@@ -32,12 +32,28 @@ export default function LoginPage() {
         // Simulate API delay
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
+        const currentUser: any = login(formData?.username);
+        console.log(currentUser);
+
         // Basic logic check (Replace with your useStore/Auth logic)
-        if (login(formData?.username)) {
+        if (currentUser) {
             toast.success("Authentication successful", {
                 description: "Welcome back to NexIntel Synergy.",
             });
-            router.push("/dashboard");
+
+            if (currentUser?.role == 'ADMIN') {
+                router.push("/admin-dashboard");
+            } else if (currentUser?.role == 'TEAM_LEAD') {
+                router.push("/team-lead-dashboard");
+            } else if (currentUser?.role == 'DEVELOPER') {
+                router.push("/developer-dashboard");
+            } else {
+                toast.error("Invalid Role", {
+                    description: "You are not authorized to login.",
+                });
+                setIsLoading(false);
+                return;
+            }
         } else {
             toast.error("Invalid credentials", {
                 description: "Please check your username and password.",

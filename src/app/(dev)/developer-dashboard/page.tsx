@@ -1,25 +1,28 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line
 } from 'recharts';
 import {
-    Rocket, FolderKanban, CheckSquare, Bug, Github,
-    AlertCircle, TrendingUp, TrendingDown, Clock, ShieldCheck, Zap,
-    CheckCircle2
+    Rocket, FolderKanban, Github,
+    AlertCircle, TrendingUp, Clock, ShieldCheck, Zap,
+    CheckCircle2,
+    CloudUpload
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ProjectStatus, UserRole } from '@/types';
+import { useStore } from '@/store/useStore';
 
 // --- Mock Data ---
 const statsData = [
     { title: 'Active Projects', count: '12', trend: '+12%', color: 'bg-indigo-50 text-indigo-600', icon: FolderKanban },
     { title: 'Urgent Tasks', count: '08', trend: '+5%', color: 'bg-rose-50 text-rose-600', icon: AlertCircle },
     { title: 'Completed Tasks', count: '142', trend: '+18%', color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle2 },
-    { title: 'Prod. Deployed', count: '98%', trend: '+2%', color: 'bg-amber-50 text-amber-600', icon: Zap },
+    { title: 'Go Live Projects', count: '98%', trend: '+2%', color: 'bg-amber-50 text-amber-600', icon: CloudUpload },
 ];
 
 const taskAnalytics = [
@@ -30,24 +33,9 @@ const taskAnalytics = [
     { name: 'Fri', completed: 18, pending: 48 },
 ];
 
-const projectDistribution = [
-    { name: 'Active', value: 4 },
-    { name: 'Pending Bugs', value: 3 },
-    { name: 'Bug Resolved', value: 20 },
-    { name: 'Deployed', value: 2 },
-    { name: 'On Hold', value: 1 },
-    { name: 'Planning', value: 1 },
-    { name: 'Completed', value: 6 },
-];
-const COLORS = [
-    '#3B82F6', // Active - Blue
-    '#F59E0B', // Pending Bugs - Amber
-    '#10B981', // Bug Resolved - Green
-    '#6366F1', // Deployed - Indigo
-    '#6B7280', // On Hold - Gray
-    '#A855F7', // Planning - Purple
-    '#22C55E', // Completed - Green
-];
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+
 
 // --- Components ---
 
@@ -76,8 +64,50 @@ const StatCard = ({ item }: any) => (
 );
 
 export default function DeveloperDashboard() {
+
+    const { currentUser, projects } = useStore();
+
+    const greeting = useMemo(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
+    }, []);
+
+    const myProjects = useMemo(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === UserRole.DEVELOPER) return projects.filter(p => p.assignedDeveloperIds.includes(currentUser.id));
+        if (currentUser.role === UserRole.TEAM_LEAD) return projects.filter(p => p.assignedLeadId === currentUser.id);
+        return projects;
+    }, [currentUser, projects]);
+
+    const projectStatusData = Object.values(ProjectStatus).map(status => ({
+        name: status,
+        value: projects.filter(p => p.status === status).length
+    }));
     return (
         <div className="space-y-8 pb-12">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {greeting}, {currentUser?.name.split(' ')[0]}
+                    </h1>
+                    <p className="mt-1 text-slate-500 dark:text-slate-400">
+                        System status: <span className="font-semibold text-emerald-500 underline underline-offset-4 decoration-emerald-500/30">Operational</span>. Reviewing {myProjects.length} active workstreams.
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="outline" className="h-11 rounded-xl px-5 border-slate-200 dark:border-slate-800">
+                        <Clock className="mr-2 h-4 w-4 text-slate-400" />
+                        History
+                    </Button>
+                    <Button className="h-11 rounded-xl bg-indigo-600 px-5 shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">
+                        <Zap className="mr-2 h-4 w-4 fill-white" />
+                        Generate Report
+                    </Button>
+                </div>
+            </div>
+
             {/* 1. Top Summary Stats */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
                 {statsData.map((stat, i) => <StatCard key={i} item={stat} />)}
@@ -87,7 +117,7 @@ export default function DeveloperDashboard() {
                 {/* 2. Task Analytics (Bar Chart) */}
                 <div className="lg:col-span-2 rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
                     <div className="mb-8 flex items-center justify-between">
-                        <h3 className="text-xl font-black uppercase tracking-tight">Productivity Velocity</h3>
+                        <h3 className="text-xl font-black uppercase tracking-tight">Pending v/s Complete Tasks</h3>
                         <div className="flex gap-4">
                             <span className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><div className="h-2 w-2 rounded-full bg-indigo-500" /> COMPLETED</span>
                             <span className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><div className="h-2 w-2 rounded-full bg-slate-200" /> PENDING</span>
@@ -107,13 +137,21 @@ export default function DeveloperDashboard() {
                 </div>
 
                 {/* 6. Global Project Distribution (Donut) */}
-                <div className="rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
-                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Status Distribution</h3>
-                    <div className="h-64 w-full">
+                <div className="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Status Health</h3>
+                    <p className="mb-8 text-sm text-slate-500">Global project distribution</p>
+                    <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
-                                <Pie data={projectDistribution} innerRadius={80} outerRadius={100} paddingAngle={8} dataKey="value">
-                                    {projectDistribution.map((entry, index) => (
+                                <Pie
+                                    data={projectStatusData}
+                                    cx="50%" cy="50%"
+                                    innerRadius={70}
+                                    outerRadius={100}
+                                    paddingAngle={8}
+                                    dataKey="value"
+                                >
+                                    {projectStatusData.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="transparent" />
                                     ))}
                                 </Pie>
@@ -121,11 +159,11 @@ export default function DeveloperDashboard() {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-8 space-y-3">
-                        {projectDistribution.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{item.name}</span>
-                                <span className="text-xs font-black">{item.value} Units</span>
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                        {projectStatusData.map((entry, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                <span className="text-xs font-medium text-slate-500">{entry.name}</span>
                             </div>
                         ))}
                     </div>
@@ -206,14 +244,14 @@ export default function DeveloperDashboard() {
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* 4. Critical Projects */}
                 <div className="lg:col-span-2 rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
-                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Active Workstreams</h3>
+                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Active Projects</h3>
                     <div className="space-y-6">
                         {[
                             { name: 'NexIntel Synergy v2', health: 92, risk: 'Healthy', color: 'bg-emerald-500' },
                             { name: 'Global Asset Tracker', health: 45, risk: 'At Risk', color: 'bg-amber-500' },
                             { name: 'Core Engine Refactor', health: 12, risk: 'Critical', color: 'bg-rose-500' },
                         ].map((project, i) => (
-                            <div key={i} className="flex flex-col gap-4 rounded-3xl border border-slate-50 p-6 dark:border-slate-800">
+                            <div key={i} className="flex flex-col gap-4 rounded-3xl border-[2px] hover:border-slate-100 border-slate-50 px-6 py-2 hover:bg-slate-50 dark:border-slate-800">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center dark:bg-slate-800"><FolderKanban className="text-slate-400" size={20} /></div>
@@ -237,7 +275,7 @@ export default function DeveloperDashboard() {
 
                 {/* 8. Recent Activity Feed */}
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
-                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Live Intelligence</h3>
+                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Live Feed</h3>
                     <div className="relative space-y-8 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-20px)] before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
                         {[
                             { user: 'Admin', action: 'Deployed Sygery v2', time: '12m ago', icon: Rocket },

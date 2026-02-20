@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useStore } from '@/store/useStore';
+import { UserRole } from '@/types';
 
 // --- Professional Mock Data ---
 const performanceData = [
@@ -45,8 +47,46 @@ const statsCards = [
 ];
 
 export default function TeamLeadDashboard() {
+
+    const { currentUser, projects } = useStore();
+
+    const greeting = useMemo(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
+    }, []);
+
+    const myProjects = useMemo(() => {
+        if (!currentUser) return [];
+        if (currentUser.role === UserRole.DEVELOPER) return projects.filter(p => p.assignedDeveloperIds.includes(currentUser.id));
+        if (currentUser.role === UserRole.TEAM_LEAD) return projects.filter(p => p.assignedLeadId === currentUser.id);
+        return projects;
+    }, [currentUser, projects]);
+
     return (
         <div className="space-y-8 pb-12">
+
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {greeting}, {currentUser?.name.split(' ')[0] || "Guest"}
+                    </h1>
+                    <p className="mt-1 text-slate-500 dark:text-slate-400">
+                        System status: <span className="font-semibold text-emerald-500 underline underline-offset-4 decoration-emerald-500/30">Operational</span>. Reviewing {myProjects.length} active workstreams.
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="outline" className="h-11 rounded-xl px-5 border-slate-200 dark:border-slate-800">
+                        <Clock className="mr-2 h-4 w-4 text-slate-400" />
+                        History
+                    </Button>
+                    <Button className="h-11 rounded-xl bg-indigo-600 px-5 shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">
+                        <Zap className="mr-2 h-4 w-4 fill-white" />
+                        Generate Report
+                    </Button>
+                </div>
+            </div>
 
             {/* 1. Summary Stats */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

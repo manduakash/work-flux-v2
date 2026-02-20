@@ -57,7 +57,7 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, onStatusChange, onD
                 </div>
                 {nextStatus && (
                     <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, nextStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-all">
-                        Next: {nextStatus.title}
+                        {nextStatus.title}
                     </Button>
                 )}
             </div>
@@ -79,9 +79,9 @@ export default function TasksPage() {
 
     const columns = [
         { id: TaskStatus.PENDING, title: 'Pending', icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-50' },
-        { id: TaskStatus.IN_PROGRESS, title: 'Active', icon: Activity, color: 'text-amber-500', bgColor: 'bg-amber-50' },
+        { id: TaskStatus.IN_PROGRESS, title: 'In-Progress', icon: Activity, color: 'text-amber-500', bgColor: 'bg-amber-50' },
         { id: TaskStatus.REVIEW, title: 'Review', icon: MessageSquare, color: 'text-indigo-500', bgColor: 'bg-indigo-50' },
-        { id: TaskStatus.COMPLETED, title: 'Done', icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
+        { id: TaskStatus.COMPLETED, title: 'Completed', icon: CheckCircle2, color: 'text-emerald-500', bgColor: 'bg-emerald-50' },
     ];
 
     // Logic: Search and Filter

@@ -11,7 +11,7 @@ interface AppState {
   isDarkMode: boolean;
 
   // Auth
-  login: (username: string) => boolean;
+  login: (username: string) => User | null;
   logout: () => void;
 
   // Users
@@ -30,7 +30,7 @@ interface AppState {
 
   // UI
   toggleDarkMode: () => void;
-  
+
   // Helpers
   getProjectTasks: (projectId: string) => Task[];
   calculateProjectProgress: (projectId: string) => number;
@@ -48,9 +48,9 @@ export const useStore = create<AppState>((set, get) => ({
     const user = MOCK_USERS.find(u => u.username === username);
     if (user) {
       set({ currentUser: user });
-      return true;
+      return user;
     }
-    return false;
+    return null;
   },
 
   logout: () => set({ currentUser: null }),
@@ -147,12 +147,12 @@ export const useStore = create<AppState>((set, get) => ({
 
   updateTask: (id, updates) => {
     set(state => {
-      const updatedTasks = state.tasks.map(t => 
+      const updatedTasks = state.tasks.map(t =>
         t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
       );
       return { tasks: updatedTasks };
     });
-    
+
     const task = get().tasks.find(t => t.id === id);
     if (task) {
       get().calculateProjectProgress(task.projectId);
@@ -179,16 +179,16 @@ export const useStore = create<AppState>((set, get) => ({
   calculateProjectProgress: (projectId) => {
     const projectTasks = get().tasks.filter(t => t.projectId === projectId);
     if (projectTasks.length === 0) return 0;
-    
+
     const totalProgress = projectTasks.reduce((acc, task) => acc + task.progressPercentage, 0);
     const averageProgress = Math.round(totalProgress / projectTasks.length);
-    
+
     set(state => ({
-      projects: state.projects.map(p => 
+      projects: state.projects.map(p =>
         p.id === projectId ? { ...p, progressPercentage: averageProgress } : p
       ),
     }));
-    
+
     return averageProgress;
   },
 }));
