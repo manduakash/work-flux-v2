@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export default function ProfileSettings() {
-    const { currentUser, updateCurrentUser } = useStore();
+    const { currentUser } = useStore();
 
     // Local state for profile data
     const [formData, setFormData] = useState({
