@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Mail, Phone, Github, Globe,
     Camera, Plus, X, Save, Briefcase,
-    Code2, ShieldCheck, MapPin, Link as LinkIcon
+    Code2, ShieldCheck, MapPin, Link as LinkIcon,
+    BadgeCheckIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -79,22 +80,53 @@ export default function ProfileSettings() {
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
 
                 {/* Avatar Upload */}
-                <div className="absolute -bottom-16 left-12 group">
+                <div className="absolute bottom-10 left-12 flex items-end gap-6 group">
+
+                    {/* Profile Image */}
                     <div className="relative h-40 w-40 rounded-[2.5rem] border-[6px] border-white bg-slate-100 dark:bg-slate-800 dark:border-slate-950 overflow-hidden shadow-xl transition-transform group-hover:scale-[1.02]">
                         {profileImg ? (
                             <img src={profileImg} className="h-full w-full object-cover" alt="Profile" />
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
-                                {currentUser?.name.charAt(0)}
-                            </div>
-                        )}
+                        ) :
+                            currentUser?.avatar ? (
+                                <img src={currentUser?.avatar} className="h-full w-full object-cover" alt="Profile" />
+                            ) :
+                                (
+                                    <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
+                                        {currentUser?.name?.charAt(0) || "AS"}
+                                    </div>
+                                )}
+
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                             <Camera className="text-white" size={28} />
                         </button>
-                        <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} accept="image/*" />
+
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            accept="image/*"
+                        />
+                    </div>
+
+                    {/* Name + Role Section */}
+                    <div className="pb-6">
+                        <h2 className="text-5xl font-bold text-indigo-100 dark:text-white">
+                            {currentUser?.name || "Akash Singh"}
+                        </h2>
+                        <p className="text-slate-400 text-2xl dark:text-slate-400">
+                            {currentUser?.role || "Full Stack Developer & DevOps"}
+                        </p>
+
+                        <div className="flex items-center gap-2 mt-2">
+                            <BadgeCheckIcon className="animate-pulse text-emerald-600 rounded-full bg-emerald-50 font-bold" size={18} />
+                            <span className="text-sm font-medium text-slate-400 dark:text-slate-400">
+                                Verified Identity
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

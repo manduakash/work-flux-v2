@@ -41,7 +41,9 @@ export default function LoginPage() {
                 description: "Welcome back to NexIntel Synergy.",
             });
 
-            if (currentUser?.role == 'ADMIN') {
+            localStorage.setItem("role", currentUser?.role);
+            
+            if (currentUser?.role == 'MANAGEMENT') {
                 router.push("/admin-dashboard");
             } else if (currentUser?.role == 'TEAM_LEAD') {
                 router.push("/team-lead-dashboard");

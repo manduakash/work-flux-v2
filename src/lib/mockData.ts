@@ -1,10 +1,9 @@
 import { User, UserRole, Project, ProjectStatus, Priority, Task, TaskStatus } from "../types";
 
 export const MOCK_USERS: User[] = [
-  { id: "u1", username: "admin", name: "Sarah Management", role: UserRole.MANAGEMENT },
-  { id: "u2", username: "lead1", name: "John TeamLead", role: UserRole.TEAM_LEAD },
-  { id: "u3", username: "dev1", name: "Alice Developer", role: UserRole.DEVELOPER },
-  { id: "u4", username: "dev2", name: "Bob Developer", role: UserRole.DEVELOPER },
+  { id: "u1", username: "admin", name: "Akash Singh", role: UserRole.MANAGEMENT, avatar: "/avatar.png" },
+  { id: "u2", username: "lead1", name: "Akash Singh", role: UserRole.TEAM_LEAD, avatar: "/avatar.png" },
+  { id: "u3", username: "dev1", name: "Akash Singh", role: UserRole.DEVELOPER, avatar: "/avatar.png" },
 ];
 
 export const MOCK_PROJECTS: Project[] = [

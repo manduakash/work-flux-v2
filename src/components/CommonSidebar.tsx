@@ -49,11 +49,12 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     ];
 
     useEffect(() => {
-        if (currentUser?.role === 'TEAM_LEAD') {
+        const role = currentUser?.role || localStorage.getItem("role");
+        if (role === 'TEAM_LEAD') {
             setNavItems(leadNavItems);
-        } else if (currentUser?.role === 'DEVELOPER') {
+        } else if (role === 'DEVELOPER') {
             setNavItems(devNavItems);
-        } else if (currentUser?.role === 'ADMIN') {
+        } else if (role === 'MANAGEMENT') {
             setNavItems(adminNavItems);
         } else {
             setNavItems([]);
@@ -100,7 +101,14 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                 {!isCollapsed && <div className="rounded-2xl mt-2 border border-slate-100 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                     <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[13px] font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                            {currentUser?.name.charAt(0) || "AS"}
+                            {currentUser?.avatar ? (
+                                <img src={currentUser?.avatar} className="h-full w-full object-cover rounded-full ring-2 ring-sky-500 dark:ring-sky-600" alt="Profile" />
+                            ) :
+                                (
+                                    <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
+                                        {currentUser?.name?.charAt(0) || "AS"}
+                                    </div>
+                                )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
