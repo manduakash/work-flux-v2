@@ -34,8 +34,8 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
         { icon: FolderKanban, label: 'Projects', href: '/projects' },
         { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
-        { icon: Rocket, label: 'Deployments', href: '/deployments' },
-        { icon: BarChart3, label: 'Reports', href: '/reports' },
+        // { icon: Rocket, label: 'Deployments', href: '/deployments' },
+        // { icon: BarChart3, label: 'Reports', href: '/reports' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
