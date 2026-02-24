@@ -12,11 +12,13 @@ import {
     Landmark,
     PieChart,
     ShieldAlert,
-    UserCircleIcon
+    UserCircleIcon,
+    Plus
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
 import { useEffect, useState } from 'react';
+import { getCookie } from '@/utils/cookies';
 
 const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentUser, handleLogout }: { isMobileOpen: boolean; isCollapsed: boolean; setIsCollapsed: (value: boolean) => void; pathname: string; currentUser: any; handleLogout: () => void }) => {
 
@@ -25,6 +27,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
         { icon: Users, label: 'Team Management', href: '/team-management' },
         { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
+        { icon: Plus, label: 'Project Create', href: '/project-create' },
         { icon: ListChecks, label: 'Task Distribution', href: '/tasks' },
         { icon: BarChartHorizontal, label: 'Performance', href: '/performance' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
@@ -49,7 +52,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     ];
 
     useEffect(() => {
-        const role = currentUser?.role || localStorage.getItem("role");
+        const role = currentUser?.role || getCookie("role");
         if (role === 'TEAM_LEAD') {
             setNavItems(leadNavItems);
         } else if (role === 'DEVELOPER') {

@@ -15,9 +15,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { getCookie } from '@/utils/cookies';
+import { useEffect } from 'react';
 
 export default function ProfileSettings() {
-    const { currentUser } = useStore();
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    useEffect(() => {
+        const user = getCookie("user");
+        if (user) {
+            setCurrentUser(user);
+        }
+    }, []);
+
+
 
     // Local state for profile data
     const [formData, setFormData] = useState({

@@ -11,22 +11,14 @@ import {
 import { useStore } from '@/store/useStore';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/CommonSidebar';
-
-const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
-    { icon: FolderKanban, label: 'Projects', href: '/projects' },
-    { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
-    { icon: Rocket, label: 'Deployments', href: '/deployments' },
-    { icon: BarChart3, label: 'Reports', href: '/reports' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
-];
+import { getCookie } from '@/utils/cookies';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
-    const { currentUser, logout } = useStore();
+    const { logout } = useStore();
     const router = useRouter();
 
     const handleLogout = () => {
@@ -35,6 +27,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     useEffect(() => setMounted(true), []);
+
+
+    const [currentUser, setCurrentUser] = useState<any>(null);
+
+    useEffect(() => {
+        const user = getCookie("user");
+        if (user) {
+            setCurrentUser(user);
+        }
+    }, []);
 
     return (
         // FIX 1: Set the parent to h-screen and overflow-hidden

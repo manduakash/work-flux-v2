@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -16,14 +16,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ProjectStatus, UserRole } from '@/types';
 import { useStore } from '@/store/useStore';
-
-// --- Mock Data ---
-const statsData = [
-    { title: 'Active Projects', count: '12', trend: '+12%', color: 'bg-indigo-50 text-indigo-600', icon: FolderKanban },
-    { title: 'Urgent Tasks', count: '08', trend: '+5%', color: 'bg-rose-50 text-rose-600', icon: AlertCircle },
-    { title: 'Completed Tasks', count: '142', trend: '+18%', color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle2 },
-    { title: 'Go Live Projects', count: '98%', trend: '+2%', color: 'bg-amber-50 text-amber-600', icon: CloudUpload },
-];
+import { getCookie } from '@/utils/cookies';
+import { callAPI, callGetAPIWithToken } from '@/components/apis/commonAPIs';
 
 const taskAnalytics = [
     { name: 'Mon', completed: 40, pending: 24 },
@@ -65,7 +59,41 @@ const StatCard = ({ item }: any) => (
 
 export default function DeveloperDashboard() {
 
-    const { currentUser, projects } = useStore();
+    const { projects } = useStore();
+
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [dashboardCount, setDashboardCount] = useState<any>(null);
+
+    const [statsData, setStatsData] = useState<any>([
+        { key: "NoOfActiveProjects", title: 'Active Projects', count: '0', trend: '+12%', color: 'bg-indigo-50 text-indigo-600', icon: FolderKanban },
+        { key: "NoOfUrgentTasks", title: 'Urgent Tasks', count: '0', trend: '+5%', color: 'bg-rose-50 text-rose-600', icon: AlertCircle },
+        { key: "NoOfCompletedTasks", title: 'Completed Tasks', count: '0', trend: '+18%', color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle2 },
+        { key: "NoOfGoLiveProjects", title: 'Go Live Projects', count: '0', trend: '+2%', color: 'bg-amber-50 text-amber-600', icon: CloudUpload },
+    ]);
+
+    const fetchDashboardData = async () => {
+        try {
+            const result = await callGetAPIWithToken("developer/dashboard/counts?fromDate=2026-01-01&toDate=2026-12-31");
+            console.log("Dashboard data:", result?.data["NoOfUrgentTasks"]);
+
+            setStatsData((prev: any) =>
+                prev.map((item: any) => ({
+                    ...item,
+                    count: result?.data[item.key]?.toString() ?? "0"
+                }))
+            );
+        } catch (error) {
+            console.error("Error fetching dashboard data:", error);
+        }
+    };
+
+    useEffect(() => {
+        const user = getCookie("user");
+        if (user) {
+            setCurrentUser(user);
+            fetchDashboardData();
+        }
+    }, []);
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
@@ -110,7 +138,13 @@ export default function DeveloperDashboard() {
 
             {/* 1. Top Summary Stats */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                {statsData.map((stat, i) => <StatCard key={i} item={stat} />)}
+                {statsData?.length > 0 ? statsData?.map((item: any) => (
+                    <StatCard item={item} key={item?.key} />
+                )) : (
+                    <div className="col-span-4 text-center text-slate-500 dark:text-slate-400">
+                        No stats data available
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

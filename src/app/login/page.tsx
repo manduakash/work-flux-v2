@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useStore } from "@/store/useStore";
-
+import { callAPI } from "@/components/apis/commonAPIs";
+import { setCookie } from "@/utils/cookies";
 
 export default function LoginPage() {
     const login = useStore((state) => state.login);
@@ -29,25 +30,40 @@ export default function LoginPage() {
         e.preventDefault();
         setIsLoading(true);
 
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const response = await callAPI("auth/login", {
+            username: formData?.username,
+            password: formData?.password,
+        });
 
-        const currentUser: any = login(formData?.username);
-        console.log(currentUser);
+        console.log(response);
+
+        setCookie("token", response?.data?.token);
+        setCookie("user", response?.data?.user);
+
+        if (!response?.success) {
+            toast.error("Failed to login", {
+                description: response?.error?.message,
+            });
+            setIsLoading(false);
+            return;
+        }
 
         // Basic logic check (Replace with your useStore/Auth logic)
-        if (currentUser) {
+        if (response?.data?.user) {
             toast.success("Authentication successful", {
                 description: "Welcome back to NexIntel Synergy.",
             });
 
-            localStorage.setItem("role", currentUser?.role);
-            
-            if (currentUser?.role == 'MANAGEMENT') {
+            setCookie("role", response?.data?.user?.role);
+
+            if (response?.data?.user?.role_id == 1) {
+                setCookie("role", "MANAGEMENT");
                 router.push("/admin-dashboard");
-            } else if (currentUser?.role == 'TEAM_LEAD') {
+            } else if (response?.data?.user?.role_id == 2) {
+                setCookie("role", "TEAM_LEAD");
                 router.push("/team-lead-dashboard");
-            } else if (currentUser?.role == 'DEVELOPER') {
+            } else if (response?.data?.user?.role_id == 3) {
+                setCookie("role", "DEVELOPER");
                 router.push("/developer-dashboard");
             } else {
                 toast.error("Invalid Role", {
