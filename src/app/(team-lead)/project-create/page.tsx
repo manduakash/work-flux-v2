@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Calendar, Flag, Layout, Smartphone, Cpu, CheckCircle2 } from 'lucide-react';
-import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
+import { callAPIWithToken, callGetAPIWithToken } from '@/components/apis/commonAPIs';
 
 const ProjectCreation = () => {
   const [formData, setFormData] = useState({
@@ -10,27 +10,48 @@ const ProjectCreation = () => {
     description: '',
     deadline: '',
     progress: 0,
-    status: 'ACTIVE',
-    priority: 'MEDIUM',
-    type: 'Web App'
+    status: '',
+    priority: '',
+    type: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // const [projectStatusData, setProjectStatusData] = useState<any[]>([]);
-  // useEffect(() => {
+  const [projectStatusData, setProjectStatusData] = useState<any[]>([]);
+  const [projectPriorityData, setProjectPriorityData] = useState<any[]>([]);
+  const [projectTypesData, setProjectTypesData] = useState<any[]>([]);
+  useEffect(() => {
 
-  //   fetchProjectStatus();
+    fetchProjectStatus();
+    fetchProjectPriority();
+    fetchProjectTypes();
+  }, []);
 
-  // }, []);
+  const fetchProjectStatus = async () => {
+    try {
+      const result = await callGetAPIWithToken("master/project-status");
+      setProjectStatusData(result.data);
+    } catch (error) {
+      console.error('Error fetching project status:', error);
+    }
+  };
 
-  // const fetchProjectStatus = async () => {
-  //   try {
-  //     const result = await callGetAPIWithToken("master/project-status");
-  //     console.log(result);
-  //   } catch (error) {
-  //     console.error('Error fetching project status:', error);
-  //   }
-  // };
+  const fetchProjectPriority = async () => {
+    try {
+      const result = await callGetAPIWithToken("master/priority");
+      setProjectPriorityData(result.data);
+    } catch (error) {
+      console.error('Error fetching project priority:', error);
+    }
+  };
 
+  const fetchProjectTypes = async () => {
+    try {
+      const result = await callGetAPIWithToken("master/project-type");
+      setProjectTypesData(result.data);
+    } catch (error) {
+      console.error('Error fetching project types:', error);
+    }
+  };
 
   // Style mapping based on your image
   const statusStyles = {
@@ -53,6 +74,41 @@ const ProjectCreation = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.type || !formData.priority || !formData.status) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        ProjectID: 0,
+        ProjectName: formData.name,
+        ProjectType: Number(formData.type),
+        ProjectPriority: Number(formData.priority),
+        ProjectStatus: Number(formData.status),
+      };
+      const result = await callAPIWithToken('projects', payload);
+      alert('Project created successfully!');
+      // Reset form
+      setFormData({
+        name: '',
+        description: '',
+        deadline: '',
+        progress: 0,
+        status: '',
+        priority: '',
+        type: ''
+      });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
@@ -65,7 +121,7 @@ const ProjectCreation = () => {
 
           {/* FORM SECTION */}
           <div className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Project Name</label>
                 <input
@@ -92,20 +148,31 @@ const ProjectCreation = () => {
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
                   <select name="status" onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none">
-                    <option value="ACTIVE">Active</option>
-                    <option value="PLANNING">Planning</option>
-                    <option value="TESTING">Testing</option>
-                    <option value="MAINTENANCE">Maintenance</option>
-                    <option value="COMPLETED">Completed</option>
+                    <option value="">Select Status</option>
+
+                    {projectStatusData.map((status) => (
+                      <option
+                        key={status.ProjectStatusID}
+                        value={status.ProjectStatusID}
+                      >
+                        {status.ProjectStatusName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
                   <select name="priority" onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none">
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
+                    <option value="">Select Priority</option>
+
+                    {projectPriorityData.map((priority) => (
+                      <option
+                        key={priority.PriorityID}
+                        value={priority.PriorityID}
+                      >
+                        {priority.PriorityName}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -118,9 +185,16 @@ const ProjectCreation = () => {
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Type</label>
                   <select name="type" onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none">
-                    <option value="Web App">Web App</option>
-                    <option value="Mobile App">Mobile App</option>
-                    <option value="IOT">IOT</option>
+                    <option value="">Select Type</option>
+
+                    {projectTypesData.map((type) => (
+                      <option
+                        key={type.ProjectTypeID}
+                        value={type.ProjectTypeID}
+                      >
+                        {type.ProjectTypeName}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -140,9 +214,13 @@ const ProjectCreation = () => {
                 />
               </div>
 
-              <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <CheckCircle2 size={20} />
-                Create Project
+                {isSubmitting ? 'Creating...' : 'Create Project'}
               </button>
             </form>
           </div>
