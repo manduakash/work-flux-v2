@@ -1,10 +1,23 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Calendar, Flag, Layout, Smartphone, Cpu, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useStore } from '@/store/useStore';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import {
+  Calendar,
+  Flag,
+  Layout,
+  Smartphone,
+  Cpu,
+  CheckCircle2
+} from 'lucide-react';
 import { callAPIWithToken, callGetAPIWithToken } from '@/components/apis/commonAPIs';
 
 const ProjectCreation = () => {
+  const addProject = useStore((state) => state.addProject);
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -20,8 +33,8 @@ const ProjectCreation = () => {
   const [projectStatusData, setProjectStatusData] = useState<any[]>([]);
   const [projectPriorityData, setProjectPriorityData] = useState<any[]>([]);
   const [projectTypesData, setProjectTypesData] = useState<any[]>([]);
-  useEffect(() => {
 
+  useEffect(() => {
     fetchProjectStatus();
     fetchProjectPriority();
     fetchProjectTypes();
@@ -30,7 +43,7 @@ const ProjectCreation = () => {
   const fetchProjectStatus = async () => {
     try {
       const result = await callGetAPIWithToken("master/project-status");
-      setProjectStatusData(result.data);
+      if (result.success) setProjectStatusData(result.data);
     } catch (error) {
       console.error('Error fetching project status:', error);
     }
@@ -39,7 +52,7 @@ const ProjectCreation = () => {
   const fetchProjectPriority = async () => {
     try {
       const result = await callGetAPIWithToken("master/priority");
-      setProjectPriorityData(result.data);
+      if (result.success) setProjectPriorityData(result.data);
     } catch (error) {
       console.error('Error fetching project priority:', error);
     }
@@ -48,22 +61,22 @@ const ProjectCreation = () => {
   const fetchProjectTypes = async () => {
     try {
       const result = await callGetAPIWithToken("master/project-type");
-      setProjectTypesData(result.data);
+      if (result.success) setProjectTypesData(result.data);
     } catch (error) {
       console.error('Error fetching project types:', error);
     }
   };
 
   const selectedStatus = projectStatusData.find(
-    s => String(s.ProjectStatusID) === formData.status
+    (s: any) => String(s.ProjectStatusID) === formData.status
   );
 
   const selectedPriority = projectPriorityData.find(
-    p => String(p.PriorityID) === formData.priority
+    (p: any) => String(p.PriorityID) === formData.priority
   );
 
   const selectedType = projectTypesData.find(
-    t => String(t.ProjectTypeID) === formData.type
+    (t: any) => String(t.ProjectTypeID) === formData.type
   );
 
   // Style mapping based on your image
@@ -72,7 +85,7 @@ const ProjectCreation = () => {
     Active: "bg-orange-50 text-orange-600 border-orange-200",
     Testing: "bg-indigo-50 text-indigo-600 border-indigo-200",
     Deployed: "bg-emerald-50 text-emerald-600 border-emerald-200",
-    Maintanance: "bg-cyan-50 text-cyan-600 border-cyan-200",
+    Maintenance: "bg-cyan-50 text-cyan-600 border-cyan-200",
     "On hold": "bg-gray-100 text-gray-600 border-gray-200",
   };
 
@@ -90,38 +103,81 @@ const ProjectCreation = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Improved Validation
     if (!formData.name || !formData.type || !formData.priority || !formData.status) {
-      alert('Please fill in all required fields.');
+      toast.error('Missing Required Fields', {
+        description: 'Please ensure Project Name, Type, Priority, and Status are filled.'
+      });
       return;
     }
+
     setIsSubmitting(true);
+    const toastId = toast.loading('Creating project...');
+
     try {
       const payload = {
         ProjectID: 0,
         ProjectName: formData.name,
+        ProjectDescription: formData.description,
         ProjectType: Number(formData.type),
         ProjectPriority: Number(formData.priority),
         ProjectStatus: Number(formData.status),
+        Deadline: formData.deadline,
+        ProgressPercentage: Number(formData.progress),
       };
+
       const result = await callAPIWithToken('projects', payload);
-      alert('Project created successfully!');
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        deadline: '',
-        progress: 0,
-        status: '',
-        priority: '',
-        type: ''
-      });
-    } catch (error) {
+
+      if (result.success) {
+        toast.success('Project Created', {
+          id: toastId,
+          description: `${formData.name} has been successfully initialized.`,
+        });
+
+        // Sync with Zustand Store for immediate local update
+        addProject({
+          name: formData.name,
+          description: formData.description,
+          status: (selectedStatus?.ProjectStatusName || 'Planning') as any,
+          priority: (selectedPriority?.PriorityName || 'Medium') as any,
+          deadline: formData.deadline,
+          progressPercentage: Number(formData.progress),
+          startDate: new Date().toISOString(),
+          assignedLeadId: '',
+          assignedDeveloperIds: [],
+        } as any);
+
+        // Reset form
+        setFormData({
+          name: '',
+          description: '',
+          deadline: '',
+          progress: 0,
+          status: '',
+          priority: '',
+          type: ''
+        });
+
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.push('/team-lead-dashboard');
+        }, 1500);
+
+      } else {
+        throw new Error(result.error?.message || 'Failed to save project');
+      }
+    } catch (error: any) {
       console.error('Error creating project:', error);
-      alert('Failed to create project. Please try again.');
+      toast.error('Submission Failed', {
+        id: toastId,
+        description: error.message || 'Please check your connection and try again.'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-12">

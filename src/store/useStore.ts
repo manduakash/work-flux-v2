@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { User, Project, Task, ActivityLog, UserRole, ProjectStatus, TaskStatus } from '@/types';
+import { persist, devtools } from 'zustand/middleware';
+import { User, Project, Task, ActivityLog } from '@/types';
 import { MOCK_USERS, MOCK_PROJECTS, MOCK_TASKS } from '@/lib/mockData';
 
 interface AppState {
@@ -11,6 +12,7 @@ interface AppState {
   isDarkMode: boolean;
 
   // Auth
+  setCurrentUser: (user: User | null) => void;
   login: (username: string) => User | null;
   logout: () => void;
 
@@ -36,159 +38,178 @@ interface AppState {
   calculateProjectProgress: (projectId: string) => number;
 }
 
-export const useStore = create<AppState>((set, get) => ({
-  currentUser: null,
-  users: MOCK_USERS,
-  projects: MOCK_PROJECTS,
-  tasks: MOCK_TASKS,
-  activityLogs: [],
-  isDarkMode: false,
+export const useStore = create<AppState>()(
+  devtools(
+    persist(
+      (set, get) => ({
+        currentUser: null,
+        users: MOCK_USERS,
+        projects: MOCK_PROJECTS,
+        tasks: MOCK_TASKS,
+        activityLogs: [],
+        isDarkMode: false,
 
-  login: (username: string) => {
-    const user = MOCK_USERS.find(u => u.username === username);
-    if (user) {
-      set({ currentUser: user });
-      return user;
-    }
-    return null;
-  },
+        setCurrentUser: (user) => set({ currentUser: user }),
 
-  logout: () => set({ currentUser: null }),
-
-  addUser: (userData) => {
-    const newUser: User = {
-      ...userData,
-      id: `u${Date.now()}`,
-    };
-    set(state => ({
-      users: [...state.users, newUser],
-      activityLogs: [
-        {
-          id: `log${Date.now()}`,
-          userId: state.currentUser?.id || 'system',
-          action: `Created user ${newUser.name}`,
-          targetId: newUser.id,
-          targetType: 'PROJECT', // Using PROJECT as a placeholder for user logs
-          timestamp: new Date().toISOString(),
+        login: (username: string) => {
+          const user = MOCK_USERS.find(u => u.username === username);
+          if (user) {
+            set({ currentUser: user });
+            return user;
+          }
+          return null;
         },
-        ...state.activityLogs,
-      ],
-    }));
-  },
 
-  deleteUser: (id) => {
-    set(state => ({
-      users: state.users.filter(u => u.id !== id),
-    }));
-  },
-
-  addProject: (projectData) => {
-    const newProject: Project = {
-      ...projectData,
-      id: `p${Date.now()}`,
-      progressPercentage: 0,
-    };
-    set(state => ({
-      projects: [...state.projects, newProject],
-      activityLogs: [
-        {
-          id: `log${Date.now()}`,
-          userId: state.currentUser?.id || 'system',
-          action: 'Created project',
-          targetId: newProject.id,
-          targetType: 'PROJECT',
-          timestamp: new Date().toISOString(),
+        logout: () => {
+          set({ currentUser: null });
+          if (typeof window !== "undefined") {
+            document.cookie.split(";").forEach((cookie) => {
+              const name = cookie.split("=")[0].trim();
+              document.cookie = `${name}=; Max-Age=0; path=/;`;
+            });
+          }
         },
-        ...state.activityLogs,
-      ],
-    }));
-  },
 
-  updateProject: (id, updates) => {
-    set(state => ({
-      projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p),
-    }));
-  },
+        addUser: (userData) => {
+          const newUser: User = {
+            ...userData,
+            id: `u${Date.now()}`,
+          };
+          set(state => ({
+            users: [...state.users, newUser],
+            activityLogs: [
+              {
+                id: `log${Date.now()}`,
+                userId: state.currentUser?.id || 'system',
+                action: `Created user ${newUser.name}`,
+                targetId: newUser.id,
+                targetType: 'PROJECT',
+                timestamp: new Date().toISOString(),
+              },
+              ...state.activityLogs,
+            ],
+          }));
+        },
 
-  deleteProject: (id) => {
-    set(state => ({
-      projects: state.projects.filter(p => p.id !== id),
-      tasks: state.tasks.filter(t => t.projectId !== id),
-    }));
-  },
+        deleteUser: (id) => {
+          set(state => ({
+            users: state.users.filter(u => u.id !== id),
+          }));
+        },
 
-  addTask: (taskData) => {
-    const newTask: Task = {
-      ...taskData,
-      id: `t${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    set(state => {
-      const newTasks = [...state.tasks, newTask];
-      return {
-        tasks: newTasks,
-        activityLogs: [
-          {
-            id: `log${Date.now()}`,
-            userId: state.currentUser?.id || 'system',
-            action: 'Created task',
-            targetId: newTask.id,
-            targetType: 'TASK',
-            timestamp: new Date().toISOString(),
-          },
-          ...state.activityLogs,
-        ],
-      };
-    });
-    // Update project progress
-    get().calculateProjectProgress(taskData.projectId);
-  },
+        addProject: (projectData) => {
+          const newProject: Project = {
+            ...projectData,
+            id: `p${Date.now()}`,
+            progressPercentage: 0,
+          };
+          set(state => ({
+            projects: [...state.projects, newProject],
+            activityLogs: [
+              {
+                id: `log${Date.now()}`,
+                userId: state.currentUser?.id || 'system',
+                action: 'Created project',
+                targetId: newProject.id,
+                targetType: 'PROJECT',
+                timestamp: new Date().toISOString(),
+              },
+              ...state.activityLogs,
+            ],
+          }));
+        },
 
-  updateTask: (id, updates) => {
-    set(state => {
-      const updatedTasks = state.tasks.map(t =>
-        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-      );
-      return { tasks: updatedTasks };
-    });
+        updateProject: (id, updates) => {
+          set(state => ({
+            projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p),
+          }));
+        },
 
-    const task = get().tasks.find(t => t.id === id);
-    if (task) {
-      get().calculateProjectProgress(task.projectId);
-    }
-  },
+        deleteProject: (id) => {
+          set(state => ({
+            projects: state.projects.filter(p => p.id !== id),
+            tasks: state.tasks.filter(t => t.projectId !== id),
+          }));
+        },
 
-  deleteTask: (id) => {
-    const task = get().tasks.find(t => t.id === id);
-    const projectId = task?.projectId;
-    set(state => ({
-      tasks: state.tasks.filter(t => t.id !== id),
-    }));
-    if (projectId) {
-      get().calculateProjectProgress(projectId);
-    }
-  },
+        addTask: (taskData) => {
+          const newTask: Task = {
+            ...taskData,
+            id: `t${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set(state => {
+            const newTasks = [...state.tasks, newTask];
+            return {
+              tasks: newTasks,
+              activityLogs: [
+                {
+                  id: `log${Date.now()}`,
+                  userId: state.currentUser?.id || 'system',
+                  action: 'Created task',
+                  targetId: newTask.id,
+                  targetType: 'TASK',
+                  timestamp: new Date().toISOString(),
+                },
+                ...state.activityLogs,
+              ],
+            };
+          });
+          get().calculateProjectProgress(taskData.projectId);
+        },
 
-  toggleDarkMode: () => set(state => ({ isDarkMode: !state.isDarkMode })),
+        updateTask: (id, updates) => {
+          set(state => {
+            const updatedTasks = state.tasks.map(t =>
+              t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+            );
+            return { tasks: updatedTasks };
+          });
 
-  getProjectTasks: (projectId) => {
-    return get().tasks.filter(t => t.projectId === projectId);
-  },
+          const task = get().tasks.find(t => t.id === id);
+          if (task) {
+            get().calculateProjectProgress(task.projectId);
+          }
+        },
 
-  calculateProjectProgress: (projectId) => {
-    const projectTasks = get().tasks.filter(t => t.projectId === projectId);
-    if (projectTasks.length === 0) return 0;
+        deleteTask: (id) => {
+          const task = get().tasks.find(t => t.id === id);
+          const projectId = task?.projectId;
+          set(state => ({
+            tasks: state.tasks.filter(t => t.id !== id),
+          }));
+          if (projectId) {
+            get().calculateProjectProgress(projectId);
+          }
+        },
 
-    const totalProgress = projectTasks.reduce((acc, task) => acc + task.progressPercentage, 0);
-    const averageProgress = Math.round(totalProgress / projectTasks.length);
+        toggleDarkMode: () => set(state => ({ isDarkMode: !state.isDarkMode })),
 
-    set(state => ({
-      projects: state.projects.map(p =>
-        p.id === projectId ? { ...p, progressPercentage: averageProgress } : p
-      ),
-    }));
+        getProjectTasks: (projectId) => {
+          return get().tasks.filter(t => t.projectId === projectId);
+        },
 
-    return averageProgress;
-  },
-}));
+        calculateProjectProgress: (projectId) => {
+          const projectTasks = get().tasks.filter(t => t.projectId === projectId);
+          if (projectTasks.length === 0) return 0;
+
+          const totalProgress = projectTasks.reduce((acc, task) => acc + task.progressPercentage, 0);
+          const averageProgress = Math.round(totalProgress / projectTasks.length);
+
+          set(state => ({
+            projects: state.projects.map(p =>
+              p.id === projectId ? { ...p, progressPercentage: averageProgress } : p
+            ),
+          }));
+
+          return averageProgress;
+        },
+      }),
+      {
+        name: 'work-flux-storage',
+      }
+    )
+  )
+);
+
