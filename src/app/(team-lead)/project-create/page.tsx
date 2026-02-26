@@ -14,6 +14,7 @@ const ProjectCreation = () => {
     priority: '',
     type: ''
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [projectStatusData, setProjectStatusData] = useState<any[]>([]);
@@ -53,20 +54,33 @@ const ProjectCreation = () => {
     }
   };
 
+  const selectedStatus = projectStatusData.find(
+    s => String(s.ProjectStatusID) === formData.status
+  );
+
+  const selectedPriority = projectPriorityData.find(
+    p => String(p.PriorityID) === formData.priority
+  );
+
+  const selectedType = projectTypesData.find(
+    t => String(t.ProjectTypeID) === formData.type
+  );
+
   // Style mapping based on your image
   const statusStyles = {
-    ACTIVE: "bg-orange-50 text-orange-600",
-    PLANNING: "bg-blue-50 text-blue-600",
-    TESTING: "bg-indigo-50 text-indigo-600",
-    COMPLETED: "bg-emerald-50 text-emerald-600",
-    MAINTENANCE: "bg-cyan-50 text-cyan-600",
+    Planning: "bg-blue-50 text-blue-600 border-blue-200",
+    Active: "bg-orange-50 text-orange-600 border-orange-200",
+    Testing: "bg-indigo-50 text-indigo-600 border-indigo-200",
+    Deployed: "bg-emerald-50 text-emerald-600 border-emerald-200",
+    Maintanance: "bg-cyan-50 text-cyan-600 border-cyan-200",
+    "On hold": "bg-gray-100 text-gray-600 border-gray-200",
   };
 
   const priorityStyles = {
-    LOW: "text-slate-400",
-    MEDIUM: "text-blue-600",
-    HIGH: "text-orange-600",
-    URGENT: "text-red-600",
+    Low: "text-slate-400",
+    Medium: "text-blue-600",
+    High: "text-orange-600",
+    Critical: "text-red-600",
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -231,8 +245,8 @@ const ProjectCreation = () => {
 
             {/* The Actual Project Card Component */}
             <div className="w-full max-w-[380px] bg-white rounded-[2.5rem] p-8 shadow-2xl shadow-slate-200 border border-slate-100">
-              <div className={`inline-block px-3 py-1 rounded-md text-[10px] font-bold tracking-wider mb-6 ${statusStyles[formData.status as keyof typeof statusStyles]}`}>
-                {formData.status}
+              <div className={`inline-block px-3 py-1 rounded-md text-[10px] font-bold tracking-wider mb-6 ${statusStyles[selectedStatus?.ProjectStatusName as keyof typeof statusStyles]}`}>
+                {selectedStatus?.ProjectStatusName}
               </div>
 
               <h3 className="text-2xl font-bold text-slate-800 mb-2 truncate">
@@ -259,16 +273,16 @@ const ProjectCreation = () => {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                    {formData.type === 'Mobile App' && <Smartphone size={14} />}
-                    {formData.type === 'Web App' && <Layout size={14} />}
-                    {formData.type === 'IOT' && <Cpu size={14} />}
+                    {selectedType?.ProjectTypeName === 'Mobile App' && <Smartphone size={14} />}
+                    {selectedType?.ProjectTypeName === 'Web App' && <Layout size={14} />}
+                    {selectedType?.ProjectTypeName === 'IOT/Hardware' && <Cpu size={14} />}
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-500">{formData.type}</span>
+                  <span className="text-[11px] font-semibold text-slate-500">{selectedType?.ProjectTypeName}</span>
                 </div>
 
                 <div className="text-right">
-                  <div className={`text-[10px] font-black flex items-center justify-end gap-1 ${priorityStyles[formData.priority as keyof typeof priorityStyles]}`}>
-                    <Flag size={10} fill="currentColor" /> {formData.priority}
+                  <div className={`text-[10px] font-black flex items-center justify-end gap-1 ${priorityStyles[selectedPriority?.PriorityName as keyof typeof priorityStyles]}`}>
+                    <Flag size={10} fill="currentColor" /> {selectedPriority?.PriorityName}
                   </div>
                   <div className="text-[11px] font-medium text-slate-400 flex items-center justify-end gap-1 mt-1">
                     <Calendar size={10} /> {formData.deadline ? new Date(formData.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Set Date'}
