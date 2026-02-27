@@ -18,7 +18,7 @@ function getDecodedCookie(request: NextRequest, name: string) {
     }
 }
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
     const token = getDecodedCookie(request, 'token');
     const role = getDecodedCookie(request, 'role');
     const { pathname } = request.nextUrl;

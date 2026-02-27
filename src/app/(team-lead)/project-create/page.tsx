@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useStore } from '@/store/useStore';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   Flag,
@@ -123,7 +124,7 @@ const ProjectCreation = () => {
         ProjectType: Number(formData.type),
         ProjectPriority: Number(formData.priority),
         ProjectStatus: Number(formData.status),
-        Deadline: formData.deadline,
+        ProjectDeadline: formData.deadline,
         ProgressPercentage: Number(formData.progress),
       };
 
@@ -270,18 +271,32 @@ const ProjectCreation = () => {
               </div>
 
               <div>
-                <div className="flex justify-between mb-2">
-                  <label className="text-sm font-semibold text-slate-700">Progress Percentage</label>
-                  <span className="text-sm font-bold text-indigo-600">{formData.progress}%</span>
+                <div className="flex justify-between mb-4">
+                  <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 ml-1">Workstream Velocity</label>
+                  <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">{formData.progress}%</span>
                 </div>
-                <input
-                  type="range"
-                  name="progress"
-                  min="0"
-                  max="100"
-                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                  onChange={handleChange}
-                />
+                <div className="relative h-2 w-full group">
+                  {/* Track Fill Background */}
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 ease-out shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                    style={{ width: `${formData.progress}%` }}
+                  />
+                  <input
+                    type="range"
+                    name="progress"
+                    min="0"
+                    max="100"
+                    value={formData.progress}
+                    className="absolute inset-0 w-full h-full appearance-none bg-slate-100 rounded-full cursor-pointer accent-transparent focus:outline-none bg-transparent"
+                    onChange={handleChange}
+                    style={{
+                      WebkitAppearance: 'none',
+                      background: 'rgba(241, 245, 249, 0.5)'
+                    }}
+                  />
+                  {/* Styled Thumb via CSS (will be added to the input class or inline styles if necessary, but Tailwind accent-transparent and background transparent with the div fill provides the look) */}
+                </div>
+                <p className="mt-3 text-[10px] font-medium text-slate-400 italic">Drag to set initial delivery progress</p>
               </div>
 
               <button
@@ -313,16 +328,20 @@ const ProjectCreation = () => {
                 {formData.description || "Project description will appear here..."}
               </p>
 
-              <div className="space-y-2 mb-8">
+              <div className="space-y-4 mb-8">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Delivery Progress</span>
-                  <span className="text-xs font-black text-slate-800">{formData.progress}%</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Velocity</span>
+                  <span className="text-sm font-black text-slate-800">{formData.progress}%</span>
                 </div>
-                <div className="w-full h-[6px] bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-600 transition-all duration-500 ease-out"
-                    style={{ width: `${formData.progress}%` }}
-                  />
+                <div className="w-full h-[10px] bg-slate-100 rounded-full overflow-hidden p-[2px]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${formData.progress}%` }}
+                    transition={{ type: "spring", stiffness: 50, damping: 20 }}
+                    className="h-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-500 rounded-full shadow-[0_0_12px_rgba(79,70,229,0.4)] relative"
+                  >
+                    <div className="absolute inset-0 bg-white/20 blur-[1px] rounded-full" />
+                  </motion.div>
                 </div>
               </div>
 

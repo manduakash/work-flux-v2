@@ -161,13 +161,7 @@ export default function TeamManagement() {
                       <span className="text-[10px] font-bold text-slate-400">{assignedCount} Assigned</span>
                     </div>
                   </div>
-                  <h4 className="font-bold text-slate-900 dark:text-white leading-tight">{project.ProjectName}</h4>
-                  <div className="mt-4 flex items-center gap-2">
-                    <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
-                      <div className="h-full bg-indigo-600" style={{ width: `${progress}%` }} />
-                    </div>
-                    <span className="text-[10px] font-black text-slate-400">{progress}%</span>
-                  </div>
+                  <h4 className="font-bold text-slate-900 dark:text-white leading-tight mt-1">{project.ProjectName}</h4>
                 </button>
               );
             })}
