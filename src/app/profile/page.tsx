@@ -6,17 +6,17 @@ import {
     User, Mail, Phone, Github, Globe,
     Camera, Plus, X, Save, Briefcase,
     Code2, ShieldCheck, MapPin, Link as LinkIcon,
-    BadgeCheckIcon
+    BadgeCheckIcon, Check, ChevronDown, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { useStore } from "@/store/useStore";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { getCookie } from '@/utils/cookies';
 import { useEffect } from 'react';
+import { callPutAPIWithToken, callGetAPIWithToken } from "@/components/apis/commonAPIs";
 
 export default function ProfileSettings() {
     const [currentUser, setCurrentUser] = useState<any>(null);
@@ -32,32 +32,128 @@ export default function ProfileSettings() {
 
     // Local state for profile data
     const [formData, setFormData] = useState({
-        name: currentUser?.name || '',
-        username: currentUser?.username || '',
+        fullName: '',
+        email: '',
+        contactNumber: '',
+        gitUsername: '',
+        gitPublicKey: '',
         bio: 'Senior Software Architect specializing in distributed systems and cloud infrastructure.',
-        github: 'https://github.com/marcusthorne',
         location: 'San Francisco, CA',
-        phone: '+1 (555) 000-0000',
-        email: `${currentUser?.username}@nexintel.com`,
     });
 
-    const [designations, setDesignations] = useState<string[]>(['Lead Architect', 'Security Auditor']);
+    const [designations, setDesignations] = useState<{ id: number; name: string }[]>([]);
+    const [allDesignations, setAllDesignations] = useState<{ id: number; name: string }[]>([]);
+    const [isDesignationDropdownOpen, setIsDesignationDropdownOpen] = useState(false);
+    const designationDropdownRef = useRef<HTMLDivElement>(null);
+
     const [techStack, setTechStack] = useState<string[]>(['Next.js', 'Go', 'Rust', 'Kubernetes']);
     const [profileImg, setProfileImg] = useState<string | null>(null);
 
     const [newTag, setNewTag] = useState({ designation: '', tech: '' });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Fetch initial profile data
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await callGetAPIWithToken('users/profile');
+                if (response?.success && response.data) {
+                    const data = response.data;
+                    setFormData({
+                        fullName: data.fullName || '',
+                        email: data.email || '',
+                        contactNumber: data.contactNumber || '',
+                        gitUsername: data.gitUsername || '',
+                        gitPublicKey: data.gitPublicKey || '',
+                        bio: data.bio || 'Senior Software Architect specializing in distributed systems and cloud infrastructure.',
+                        location: data.location || 'San Francisco, CA',
+                    });
+                    if (data.profilePicture) {
+                        setProfileImg(data.profilePicture);
+                    }
+                    // Handle designations if they come as objects or IDs
+                    if (data.designations) {
+                        setDesignations(data.designations);
+                    }
+                } else {
+                    // Fallback to cookie if API fails or returns no data
+                    const user = getCookie("user");
+                    if (user) {
+                        setCurrentUser(user);
+                        setFormData(prev => ({
+                            ...prev,
+                            fullName: user.name || '',
+                            email: user.email || `${user.username}@nexintel.com`,
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+                const user = getCookie("user");
+                if (user) {
+                    setCurrentUser(user);
+                }
+            }
+        };
+        const fetchDesignations = async () => {
+            try {
+                const response = await callGetAPIWithToken('designations');
+                if (response?.success) {
+                    setAllDesignations(response.data.map((d: any) => ({
+                        id: d.DesignationID,
+                        name: d.DesignationName.trim()
+                    })));
+                }
+            } catch (error) {
+                console.error("Failed to fetch designations:", error);
+            }
+        };
+
+        fetchProfile();
+        fetchDesignations();
+    }, []);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (designationDropdownRef.current && !designationDropdownRef.current.contains(event.target as Node)) {
+                setIsDesignationDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // --- Handlers ---
-    const handleSave = () => {
-        // In a real app, you'd merge this and send to API
-        toast.success("Identity parameters synchronized");
+    const handleSave = async () => {
+        try {
+            const payload = {
+                email: formData.email,
+                fullName: formData.fullName,
+                contactNumber: formData.contactNumber,
+                profilePicture: profileImg, // base64 string
+                gitUsername: formData.gitUsername,
+                gitPublicKey: formData.gitPublicKey,
+                designations: designations.map(d => d.id),
+            };
+
+            const response = await callPutAPIWithToken('users/profile', payload);
+
+            if (response?.success) {
+                toast.success("Identity parameters synchronized");
+            } else {
+                toast.error(response?.message || "Cloud sync failed");
+            }
+        } catch (error: any) {
+            toast.error(error.message || "An unexpected error occurred during synchronization");
+        }
     };
 
-    const addDesignation = () => {
-        if (newTag.designation && !designations.includes(newTag.designation)) {
-            setDesignations([...designations, newTag.designation]);
-            setNewTag({ ...newTag, designation: '' });
+    const toggleDesignation = (designation: { id: number; name: string }) => {
+        if (designations.some(d => d.id === designation.id)) {
+            setDesignations(designations.filter(d => d.id !== designation.id));
+        } else {
+            setDesignations([...designations, designation]);
         }
     };
 
@@ -68,8 +164,12 @@ export default function ProfileSettings() {
         }
     };
 
-    const removeTag = (list: string[], setList: Function, tag: string) => {
-        setList(list.filter(t => t !== tag));
+    const removeTag = (list: any[], setList: Function, tag: any) => {
+        if (typeof tag === 'string') {
+            setList(list.filter(t => t !== tag));
+        } else {
+            setList(list.filter(t => t.id !== tag.id));
+        }
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +226,7 @@ export default function ProfileSettings() {
                     {/* Name + Role Section */}
                     <div className="pb-6">
                         <h2 className="text-5xl font-bold text-indigo-100 dark:text-white">
-                            {currentUser?.name || "Akash Singh"}
+                            {formData.fullName || currentUser?.name || "Akash Singh"}
                         </h2>
                         <p className="text-slate-400 text-2xl dark:text-slate-400">
                             {currentUser?.role || "Full Stack Developer & DevOps"}
@@ -154,19 +254,15 @@ export default function ProfileSettings() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Legal Name</Label>
-                                <Input value={formData.name} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">System ID</Label>
-                                <Input value={formData.username} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, username: e.target.value })} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Primary Email</Label>
-                                <Input value={formData.email} className="h-12 rounded-2xl" type="email" readOnly />
+                                <Input value={formData.fullName} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, fullName: e.target.value })} />
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Direct Phone</Label>
-                                <Input value={formData.phone} className="h-12 rounded-2xl" readOnly />
+                                <Input value={formData.contactNumber} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, contactNumber: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Primary Email</Label>
+                                <Input value={formData.email} className="h-12 rounded-2xl" type="email" onChange={e => setFormData({ ...formData, email: e.target.value })} />
                             </div>
                             <div className="md:col-span-2 space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Executive Summary (Bio)</Label>
@@ -182,16 +278,25 @@ export default function ProfileSettings() {
                     {/* GitHub & Social */}
                     <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                         <h3 className="text-xl font-black uppercase tracking-tight mb-8 flex items-center gap-3">
-                            <Globe className="text-indigo-600" size={20} /> External Integrations
+                            <Globe className="text-indigo-600" size={20} /> Version Control Integrations
                         </h3>
                         <div className="space-y-4">
                             <div className="relative group">
                                 <Github className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-600" />
                                 <Input
-                                    placeholder="GitHub Profile URL"
-                                    value={formData.github}
+                                    placeholder="GitHub Username"
+                                    value={formData.gitUsername}
                                     className="pl-12 h-14 rounded-2xl bg-slate-50 border-none dark:bg-slate-800"
-                                    onChange={e => setFormData({ ...formData, github: e.target.value })}
+                                    onChange={e => setFormData({ ...formData, gitUsername: e.target.value })}
+                                />
+                            </div>
+                            <div className="relative group">
+                                <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-600" />
+                                <Input
+                                    placeholder="Git Public Key (SSH)"
+                                    value={formData.gitPublicKey}
+                                    className="pl-12 h-14 rounded-2xl bg-slate-50 border-none dark:bg-slate-800"
+                                    onChange={e => setFormData({ ...formData, gitPublicKey: e.target.value })}
                                 />
                             </div>
                             <div className="relative group">
@@ -219,29 +324,61 @@ export default function ProfileSettings() {
                             <AnimatePresence>
                                 {designations.map(tag => (
                                     <motion.span
-                                        key={tag}
+                                        key={tag.id}
                                         initial={{ scale: 0.8, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
                                         exit={{ scale: 0.8, opacity: 0 }}
                                         className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
                                     >
-                                        {tag}
-                                        <X size={14} className="cursor-pointer hover:text-rose-500" onClick={() => removeTag(designations, setDesignations, tag)} />
+                                        {tag.name}
+                                        <X size={14} className="cursor-pointer hover:text-rose-500" onClick={() => setDesignations(designations.filter(t => t.id !== tag.id))} />
                                     </motion.span>
                                 ))}
                             </AnimatePresence>
                         </div>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Add Role..."
-                                className="h-11 rounded-xl"
-                                value={newTag.designation}
-                                onChange={e => setNewTag({ ...newTag, designation: e.target.value })}
-                                onKeyDown={e => e.key === 'Enter' && addDesignation()}
-                            />
-                            <Button onClick={addDesignation} className="h-11 w-11 rounded-xl bg-indigo-600 p-0 shadow-lg shadow-indigo-500/20">
-                                <Plus size={20} />
-                            </Button>
+                        <div className="relative" ref={designationDropdownRef}>
+                            <div
+                                onClick={() => setIsDesignationDropdownOpen(!isDesignationDropdownOpen)}
+                                className={cn(
+                                    "flex items-center justify-between w-full h-12 px-4 rounded-2xl border border-slate-200 bg-white cursor-pointer hover:border-indigo-400 transition-all dark:bg-slate-950 dark:border-slate-800",
+                                    isDesignationDropdownOpen && "border-indigo-600 ring-4 ring-indigo-500/10"
+                                )}
+                            >
+                                <span className="text-sm text-slate-500 font-medium">
+                                    {designations.length > 0 ? `${designations.length} Selected` : "Select Designations..."}
+                                </span>
+                                <ChevronDown size={18} className={cn("text-slate-400 transition-transform", isDesignationDropdownOpen && "rotate-180")} />
+                            </div>
+
+                            <AnimatePresence>
+                                {isDesignationDropdownOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute z-[100] w-full mt-2 rounded-[2rem] border border-slate-200 bg-white/80 backdrop-blur-xl shadow-2xl p-4 dark:border-slate-800 dark:bg-slate-900/90 overflow-hidden"
+                                    >
+                                        <div className="max-h-60 overflow-y-auto space-y-1 pr-2 scrollbar-thin scrollbar-thumb-indigo-500">
+                                            {allDesignations.map((d) => {
+                                                const isSelected = designations.some(selected => selected.id === d.id);
+                                                return (
+                                                    <div
+                                                        key={d.id}
+                                                        onClick={() => toggleDesignation(d)}
+                                                        className={cn(
+                                                            "flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer transition-colors group",
+                                                            isSelected ? "bg-indigo-600 text-white" : "hover:bg-indigo-50 text-slate-600 dark:hover:bg-slate-800 dark:text-slate-300"
+                                                        )}
+                                                    >
+                                                        <span className="text-xs font-black uppercase tracking-wider">{d.name}</span>
+                                                        {isSelected && <Check size={16} />}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </section>
 

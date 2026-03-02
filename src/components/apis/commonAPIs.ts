@@ -67,3 +67,17 @@ export const uploadDocumentAPI = async (
 
   return await response?.json();
 };
+
+export const callPutAPIWithToken = async (url: string, body: any) => {
+  const response = await fetch(`${BASE_URL}${url}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
+    body: JSON.stringify(body),
+  });
+  const result = await response?.json();
+  if (response?.status == 401) {
+    deleteCookie("token");
+    throw new Error(`Session expired. Please login again.`);
+  }
+  return result;
+}
