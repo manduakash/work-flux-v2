@@ -16,9 +16,10 @@ import { Input } from '@/components/ui/input';
 import { cn, formatDate, getStatusColor } from '@/lib/utils';
 import { TaskStatus, UserRole, Task } from '@/types';
 import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
+import { getCookie } from '@/utils/cookies';
 
 // --- Sub-Component: Grid Card for Board View ---
-const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatusChange, onDelete, onEdit }: any) => (
+const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatusChange, onDelete, onEdit, currentUser }: any) => (
     <motion.div
         layout
         initial={{ opacity: 0, scale: 0.95 }}
@@ -56,15 +57,17 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatu
                 <motion.div initial={{ width: 0 }} animate={{ width: `${task.progressPercentage}%` }} className="h-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full" />
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
+            <div className="flex flex-col gap-2 items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                     <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white">{assignee?.name.charAt(0)}</div>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{assignee?.name.split(' ')[0]}</span>
                 </div>
+
+                {/* {(currentUser?.role_id == 3 && (nextStatus?.title?.toLowerCase() === "pending" || nextStatus?.title?.toLowerCase() === "in progress")) || (currentUser?.role_id == 2 && (nextStatus?.title?.toLowerCase() === "review" || nextStatus?.title?.toLowerCase() === "completed")) ? */}
                 <div className="flex gap-2">
                     {prevStatus && (
                         <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, prevStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest border-slate-100 text-slate-400 hover:bg-slate-100 rounded-lg transition-all">
-                            Back
+                            Send Back
                         </Button>
                     )}
                     {nextStatus && (
@@ -80,7 +83,7 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatu
 
 // --- Main Page Component ---
 export default function TasksPage() {
-    const { tasks, projects, currentUser, users, addTask, updateTask, deleteTask } = useStore();
+    const { tasks, projects, users, addTask, updateTask, deleteTask } = useStore();
 
     // Local UI State
     const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
@@ -88,12 +91,13 @@ export default function TasksPage() {
     const [apiTasks, setApiTasks] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
     const [rollbackTask, setRollbackTask] = useState<any>(null);
     const [rollbackTargetStatusId, setRollbackTargetStatusId] = useState<number | null>(null);
     const [rollbackProgress, setRollbackProgress] = useState(90);
     const [currentPage, setCurrentPage] = useState(1);
+    const [currentUser, setCurrentUser] = useState<any>(null);
     const itemsPerPage = 8;
 
     const [statusData, setStatusData] = useState<any[]>([]);
@@ -116,6 +120,11 @@ export default function TasksPage() {
         status: TaskStatus.PENDING,
         progressPercentage: 0,
     });
+
+    useEffect(() => {
+        const user = getCookie("user");
+        setCurrentUser(user);
+    }, []);
 
     useEffect(() => {
         fetchMasterData();
@@ -287,9 +296,7 @@ export default function TasksPage() {
                 deadline: formData.deadline,
             };
 
-            console.log('Finalizing Task Payload:', payload);
             const result = await callAPIWithToken('tasks', payload);
-            console.log('Task Deployment Sync Response:', result);
 
             if (result.success) {
                 toast.success(editingTask ? 'Task Refined' : 'Task Operationalized', { id: toastId });
@@ -513,7 +520,8 @@ export default function TasksPage() {
                                             }
                                         }}
                                         onDelete={handleDelete}
-                                        onEdit={() => handleOpenEditModal(task)}
+                                        onEdit={handleOpenEditModal}
+                                        currentUser={currentUser}
                                     />
                                 );
                             })

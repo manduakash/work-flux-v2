@@ -1,239 +1,355 @@
 "use client";
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    LineChart, Line
+    Radar, RadarChart, PolarGrid, PolarAngleAxis, LineChart, Line
 } from 'recharts';
 import {
-    Briefcase, Landmark, ShieldAlert, Globe,
-    TrendingUp, Activity, Gavel, Zap,
-    Target, BarChart3, CreditCard, Users
+    Activity, Globe, ShieldCheck, AlertCircle, TrendingUp, Clock,
+    Zap, Target, PieChart as PieChartIcon, ArrowUpRight, ArrowDownRight,
+    Loader2, Sparkles, Binary, ChevronRight, FolderKanban,
+    DollarSign, Briefcase, Award, Users, ShieldAlert, Gavel
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+import { useStore } from '@/store/useStore';
+import { cn, formatDate } from '@/lib/utils';
+import { UserRole } from '@/types';
+import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
+import { getCookie } from '@/utils/cookies';
 import { Button } from '@/components/ui/button';
 
-// --- Executive Mock Data ---
-const portfolioHealth = [
-    { month: 'Q1', budget: 400, actual: 320 },
-    { month: 'Q2', budget: 500, actual: 480 },
-    { month: 'Q3', budget: 450, actual: 510 },
-    { month: 'Q4', budget: 600, actual: 550 },
-];
+// --- Variants ---
 
-const resourceAllocation = [
-    { name: 'Research', value: 30 },
-    { name: 'Engineering', value: 45 },
-    { name: 'Marketing', value: 15 },
-    { name: 'Legal', value: 10 },
-];
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
+};
 
-const COLORS = ['#8b5cf6', '#6366f1', '#10b981', '#f59e0b'];
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
+};
 
-const statsData = [
-    { title: 'Portfolio Budget', val: '$4.2M', trend: '+14%', icon: Landmark, color: 'text-violet-600 bg-violet-50' },
-    { title: 'Global Headcount', val: '1,240', trend: '+85', icon: Users, color: 'text-indigo-600 bg-indigo-50' },
-    { title: 'Delivery Velocity', val: '92%', trend: '+4%', icon: Target, color: 'text-emerald-600 bg-emerald-50' },
-    { title: 'Strategic Risks', val: '02', trend: '-1', icon: ShieldAlert, color: 'text-rose-600 bg-rose-50' },
-];
+const StatCard = ({ title, value, icon: Icon, trend, trendValue, color, description }: any) => (
+    <motion.div
+        variants={itemVariants}
+        className="group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 dark:border-slate-800 dark:bg-slate-950/50 backdrop-blur-xl"
+    >
+        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-slate-50 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-slate-800/50" />
+        <div className="relative flex items-center justify-between">
+            <div className={cn("flex h-14 w-14 items-center justify-center rounded-[1.25rem] shadow-inner transition-transform group-hover:scale-110 group-hover:rotate-3", color)}>
+                <Icon className="h-7 w-7" />
+            </div>
+            {trend && (
+                <div className={cn(
+                    "flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest",
+                    trend === 'up' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30" : "bg-rose-50 text-rose-600 dark:bg-rose-950/30"
+                )}>
+                    {trend === 'up' ? <ArrowUpRight className="mr-1 h-3.5 w-3.5" /> : <ArrowDownRight className="mr-1 h-3.5 w-3.5" />}
+                    {trendValue}%
+                </div>
+            )}
+        </div>
+        <div className="mt-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
+            <h3 className="mt-2 text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">{value}</h3>
+            {description && <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{description}</p>}
+        </div>
+    </motion.div>
+);
 
 export default function AdminDashboard() {
-    return (
-        <div className="space-y-8 pb-12">
+    const { currentUser: storeUser } = useStore();
+    const [loading, setLoading] = useState(true);
+    const [profile, setProfile] = useState<any>(null);
+    const [projects, setProjects] = useState<any[]>([]);
 
-            {/* 1. Executive Summary Cards */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {statsData.map((s, i) => (
-                    <div key={i} className="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div className={cn("p-3 rounded-2xl", s.color)}><s.icon size={22} /></div>
-                            <span className="text-[10px] font-black text-emerald-500">{s.trend} YoY</span>
-                        </div>
-                        <div className="mt-5">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.title}</p>
-                            <h3 className="text-3xl font-extrabold dark:text-white">{s.val}</h3>
-                        </div>
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const user = getCookie("user");
+                setProfile(user);
+                const projectsRes = await callGetAPIWithToken('projects/projects-by-user-id');
+                if (projectsRes.success) setProjects(projectsRes.data);
+            } catch (error) {
+                console.error("Admin Dashboard Sync Failed:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const greeting = useMemo(() => {
+        const hour = new Date().getHours();
+        if (hour < 5) return "Surviving the Night";
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
+    }, []);
+
+    const portfolioGrowth = useMemo(() => [
+        { month: 'Jan', value: 450000, projects: 12 },
+        { month: 'Feb', value: 520000, projects: 15 },
+        { month: 'Mar', value: 480000, projects: 14 },
+        { month: 'Apr', value: 610000, projects: 22 },
+        { month: 'May', value: 590000, projects: 20 },
+        { month: 'Jun', value: 750000, projects: 28 },
+    ], []);
+
+    const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+    if (loading) {
+        return (
+            <div className="flex h-[80vh] w-full flex-col items-center justify-center gap-4">
+                <div className="relative">
+                    <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+                    <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse text-indigo-400" />
+                </div>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Syncing Executive Portfolio...</p>
+            </div>
+        );
+    }
+
+    return (
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="max-w-[1600px] mx-auto space-y-12 p-4 md:p-10"
+        >
+            {/* Header Section */}
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="h-px w-8 bg-indigo-600/30" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">NexIntel Executive Authority</span>
                     </div>
-                ))}
+                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{profile?.fullName?.split(' ')[0] || "Administrator"}</span>
+                    </h1>
+                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-indigo-500" />
+                        System Health: <span className="font-bold text-indigo-500 uppercase tracking-widest text-xs">Nominal</span> — Overseeing {projects.length} global portfolios.
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
+                    <Button variant="ghost" className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all">
+                        <ShieldCheck className="mr-3 h-4 w-4 text-indigo-500" />
+                        Audit Logs
+                    </Button>
+                    <Button className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                        <DollarSign className="mr-3 h-4 w-4 fill-white" />
+                        Financial Overview
+                    </Button>
+                </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    title="Portfolio Valuation"
+                    value="$12.4M"
+                    icon={DollarSign}
+                    trend="up"
+                    trendValue={18}
+                    color="bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
+                    description="Aggregate asset worth"
+                />
+                <StatCard
+                    title="Operational Efficiency"
+                    value="94.2%"
+                    icon={Activity}
+                    trend="up"
+                    trendValue={2}
+                    color="bg-emerald-500 text-white shadow-xl shadow-emerald-500/20"
+                    description="System-wide throughput"
+                />
+                <StatCard
+                    title="Global Initiatives"
+                    value={projects.length}
+                    icon={Briefcase}
+                    trend="up"
+                    trendValue={5}
+                    color="bg-slate-900 text-white shadow-xl shadow-slate-900/20"
+                    description="Active high-level workstreams"
+                />
+                <StatCard
+                    title="Strategic Risk"
+                    value="Low"
+                    icon={ShieldCheck}
+                    color="bg-white text-emerald-500 border border-slate-200"
+                    description="Verified integrity index"
+                />
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* 2. Portfolio Burn Rate (Area Chart) */}
-                <div className="lg:col-span-2 rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <div className="mb-8 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-xl font-black uppercase tracking-tight leading-none">Strategic Velocity</h3>
-                            <p className="text-xs font-bold text-slate-400 mt-2">Allocated Budget vs Actual Burn Rate (USD)</p>
-                        </div>
-                        <Button variant="outline" className="rounded-xl h-9 text-[10px] font-black uppercase border-slate-200">Fiscal Report</Button>
+                {/* Portfolio Growth */}
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8">
+                        <TrendingUp className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
-                    <div className="h-80 w-full">
+                    <div className="mb-10 relative z-10">
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Portfolio Velocity</h3>
+                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Aggregate growth and project expansion metrics</p>
+                    </div>
+                    <div className="h-[450px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={portfolioHealth}>
+                            <AreaChart data={portfolioGrowth}>
                                 <defs>
-                                    <linearGradient id="colorBudget" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800 }} />
-                                <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
-                                <Area type="monotone" dataKey="actual" stroke="#8b5cf6" fill="url(#colorBudget)" strokeWidth={4} />
-                                <Area type="monotone" dataKey="budget" stroke="#e2e8f0" fill="transparent" strokeWidth={2} strokeDasharray="10 5" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
+                                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '900' }} />
+                                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }} />
+                                <Area type="monotone" dataKey="value" stroke="#6366f1" fill="url(#colorValue)" strokeWidth={4} />
+                                <Area type="step" dataKey="projects" stroke="#10b981" fill="transparent" strokeWidth={2} strokeDasharray="10 5" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 6. Portfolio Composition (Donut) */}
-                <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <h3 className="text-xl font-black uppercase tracking-tight mb-8 text-center">Portfolio Mix</h3>
-                    <div className="h-64 w-full">
+                {/* Composition */}
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Division Matrix</h3>
+                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Resource distribution by sector</p>
+                    <div className="h-[300px] w-full relative">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <p className="text-4xl font-black text-slate-900 dark:text-white leading-none">100%</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aggregated</p>
+                        </div>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
-                                <Pie data={resourceAllocation} innerRadius={80} outerRadius={100} paddingAngle={5} dataKey="value">
-                                    {resourceAllocation.map((entry, index) => (
-                                        <Cell key={index} fill={COLORS[index % COLORS.length]} stroke="transparent" />
+                                <Pie
+                                    data={[
+                                        { name: 'R&D', value: 40 },
+                                        { name: 'Core Ops', value: 25 },
+                                        { name: 'Security', value: 20 },
+                                        { name: 'Expansion', value: 15 }
+                                    ]}
+                                    innerRadius={85}
+                                    outerRadius={115}
+                                    paddingAngle={10}
+                                    dataKey="value"
+                                >
+                                    {[0, 1, 2, 3].map((entry, index) => (
+                                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-8 space-y-2">
-                        {resourceAllocation.map((item, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 dark:border-slate-800">
+                    <div className="mt-12 space-y-4">
+                        {['R&D', 'Core Ops', 'Security', 'Expansion'].map((item, i) => (
+                            <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 transition-hover hover:scale-[1.02] cursor-default border border-transparent hover:border-indigo-100">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                                    <span className="text-[10px] font-black uppercase text-slate-500">{item.name}</span>
+                                    <div className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">{item}</span>
                                 </div>
-                                <span className="text-xs font-black">{item.value}%</span>
+                                <span className="text-sm font-black text-slate-900 dark:text-white">{[40, 25, 20, 15][i]}%</span>
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* 3. Operational Risks (Table) */}
-                <div className="lg:col-span-2 rounded-[2.5rem] border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900">
-                    <div className="p-8 pb-0 flex items-center justify-between">
-                        <h3 className="text-xl font-black uppercase tracking-tight leading-none">Governance Risks</h3>
-                        <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                {/* Strategic Initiatives */}
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                    <div className="mb-10 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Top-Tier Initiatives</h3>
+                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">High-impact workstreams governing system expansion</p>
+                        </div>
+                        <Button variant="ghost" className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50">
+                            View All <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
                     </div>
-                    <div className="p-8 overflow-x-auto">
+                    <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b border-slate-100 dark:border-slate-800">
-                                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Risk Factor</th>
-                                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Exposure</th>
-                                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Mitigation</th>
+                                <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Initiative</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Capital Flow</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Strategic Health</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {[
-                                    { factor: 'Quarterly Burn Overrun', exposure: '$120k', status: 'Critical', action: 'Budget Reallocation' },
-                                    { factor: 'Data Compliance (GDPR)', exposure: 'Legal', status: 'Review', action: 'Security Audit' },
-                                    { factor: 'Resource Churn Rate', exposure: 'High', status: 'Monitor', action: 'Retention Strategy' },
-                                ].map((row, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="py-5 font-bold text-sm text-slate-900 dark:text-white">{row.factor}</td>
-                                        <td className="py-5 text-xs font-bold text-slate-500">{row.exposure}</td>
-                                        <td className="py-5">
-                                            <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
-                                                row.status === 'Critical' ? 'bg-rose-100 text-rose-600' : 'bg-violet-100 text-violet-600'
-                                            )}>{row.status}</span>
+                                {projects.slice(0, 4).map((project, i) => (
+                                    <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                                        <td className="py-8">
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                                                    <Briefcase size={18} className="text-indigo-600" />
+                                                </div>
+                                                <span className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">{project.ProjectName}</span>
+                                            </div>
                                         </td>
-                                        <td className="py-5 text-[10px] font-bold text-slate-400 italic underline underline-offset-4">{row.action}</td>
+                                        <td className="py-8 text-sm font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">High Velocity</td>
+                                        <td className="py-8">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex justify-between items-center text-[10px] font-black uppercase text-emerald-500">
+                                                    <span>Optimal</span>
+                                                    <span>{project.ProgressPercentage || 0}%</span>
+                                                </div>
+                                                <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-emerald-500" style={{ width: `${project.ProgressPercentage || 0}%` }} />
+                                                </div>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 7. Strategic Financial Health */}
-                <div className="rounded-[2.5rem] bg-indigo-900 p-8 text-white shadow-2xl">
-                    <div className="flex items-center justify-between mb-8">
-                        <Landmark size={24} className="text-indigo-400" />
-                        <div className="px-3 py-1 bg-white/10 rounded-full text-[9px] font-black uppercase">Q4 Fiscal Window</div>
+                {/* Executive Action Feed */}
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-950 p-10 text-white shadow-2xl relative overflow-hidden group">
+                    <div className="relative z-10">
+                        <div className="mb-10 flex items-center justify-between">
+                            <h3 className="text-2xl font-black uppercase tracking-tight">Executive Log</h3>
+                            <Award className="h-6 w-6 text-indigo-400 animate-pulse" />
+                        </div>
+
+                        <div className="space-y-10">
+                            {[
+                                { action: 'Authored Global Roadmap', time: '2h ago', icon: Target },
+                                { action: 'Allocated Q3 Expansion Budget', time: '5h ago', icon: DollarSign },
+                                { action: 'Sanctioned Security Upgrade', time: '1d ago', icon: ShieldCheck },
+                            ].map((log, i) => (
+                                <div key={i} className="relative flex gap-6">
+                                    <div className="z-10 h-10 w-10 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/5">
+                                        <log.icon size={18} className="text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-black uppercase tracking-tight text-white mb-1">{log.action}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{log.time}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-12 p-8 rounded-[2rem] bg-indigo-600/20 border border-indigo-500/30 backdrop-blur-md">
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-[10px] font-black uppercase text-indigo-300">Strategy Unit</p>
+                                <Zap className="h-4 w-4 text-amber-400" />
+                            </div>
+                            <p className="text-sm font-medium text-slate-300 leading-relaxed uppercase tracking-wider">Portfolio integrity remains at 99.8%. No immediate strategic pivots authorized.</p>
+                        </div>
                     </div>
-                    <div className="space-y-8">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Cash on Hand</p>
-                            <h4 className="text-4xl font-black mt-2">$12.8M</h4>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-[10px] font-black uppercase opacity-60">
-                                <span>Projected Burn</span>
-                                <span>82%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                <motion.div initial={{ width: 0 }} animate={{ width: '82%' }} className="h-full bg-indigo-400 shadow-[0_0_15px_rgba(129,140,248,0.5)]" />
-                            </div>
-                        </div>
-
-                        <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-[9px] font-black uppercase opacity-40">Burn Rate</span>
-                                <span className="text-sm font-bold text-emerald-400">-$240k / mo</span>
-                            </div>
-                            <Activity className="text-emerald-500" size={20} />
-                        </div>
-                    </div>
-                </div>
+                    {/* Visual bg decoration */}
+                    <div className="absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px] group-hover:bg-indigo-500/20 transition-all duration-1000" />
+                </motion.div>
             </div>
-
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* 4. Strategic Initiatives Section */}
-                <div className="lg:col-span-2 rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <h3 className="text-xl font-black uppercase tracking-tight mb-8">Strategic Initiatives</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[
-                            { name: 'Global Infrastructure Expansion', dept: 'Operations', cost: '$1.2M', progress: 65 },
-                            { name: 'AI Integration Framework', dept: 'R&D', cost: '$450k', progress: 88 },
-                        ].map((item, i) => (
-                            <div key={i} className="p-6 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-violet-200 transition-all">
-                                <p className="text-[10px] font-black uppercase text-violet-500 tracking-widest mb-2">{item.dept}</p>
-                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">{item.name}</h4>
-                                <div className="flex items-center justify-between mt-auto">
-                                    <span className="text-[10px] font-bold text-slate-400">{item.cost} Budget</span>
-                                    <span className="text-xs font-black text-slate-900 dark:text-white">{item.progress}%</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* 8. Executive Action Feed */}
-                <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <h3 className="text-xl font-black uppercase tracking-tight mb-8">Executive Feed</h3>
-                    <div className="space-y-8 relative before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-20px)] before:w-[2px] before:bg-slate-50 dark:before:bg-slate-800">
-                        {[
-                            { action: 'Approved Q1 Expansion Budget', time: '2h ago', icon: Gavel },
-                            { action: 'Initiated System Audit', time: '5h ago', icon: ShieldAlert },
-                            { action: 'New Portfolio Target Set', time: '1d ago', icon: Target },
-                            { action: 'Hiring Freeze Lifted', time: '2d ago', icon: Users },
-                        ].map((log, i) => (
-                            <div key={i} className="relative flex gap-4 pl-1">
-                                <div className="z-10 h-6 w-6 rounded-full bg-white ring-4 ring-white flex items-center justify-center dark:bg-slate-900 dark:ring-slate-900 border border-slate-100 dark:border-slate-800">
-                                    <log.icon size={12} className="text-violet-600" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-tight leading-tight">{log.action}</p>
-                                    <span className="text-[10px] font-black uppercase text-slate-400">{log.time}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
+        </motion.div>
     );
 }

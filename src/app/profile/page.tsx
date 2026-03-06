@@ -54,47 +54,23 @@ export default function ProfileSettings() {
 
     // Fetch initial profile data
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const response = await callGetAPIWithToken('users/profile');
-                if (response?.success && response.data) {
-                    const data = response.data;
-                    setFormData({
-                        fullName: data.fullName || '',
-                        email: data.email || '',
-                        contactNumber: data.contactNumber || '',
-                        gitUsername: data.gitUsername || '',
-                        gitPublicKey: data.gitPublicKey || '',
-                        bio: data.bio || 'Senior Software Architect specializing in distributed systems and cloud infrastructure.',
-                        location: data.location || 'San Francisco, CA',
-                    });
-                    if (data.profilePicture) {
-                        setProfileImg(data.profilePicture);
-                    }
-                    // Handle designations if they come as objects or IDs
-                    if (data.designations) {
-                        setDesignations(data.designations);
-                    }
-                } else {
-                    // Fallback to cookie if API fails or returns no data
-                    const user = getCookie("user");
-                    if (user) {
-                        setCurrentUser(user);
-                        setFormData(prev => ({
-                            ...prev,
-                            fullName: user.name || '',
-                            email: user.email || `${user.username}@nexintel.com`,
-                        }));
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch profile:", error);
-                const user = getCookie("user");
-                if (user) {
-                    setCurrentUser(user);
-                }
+        // Only use cookie for user info
+        const user = getCookie("user");
+        if (user) {
+            setCurrentUser(user);
+            setFormData(prev => ({
+                ...prev,
+                fullName: user.name || user.FullName || '',
+                email: user.email || user.username || '',
+                contactNumber: user.contact_no || '',
+                gitUsername: user.git_username || '',
+                gitPublicKey: user.git_public_key || '',
+            }));
+            if (user.profile_image) {
+                setProfileImg(user.profile_image);
             }
-        };
+        }
+        // fetchDesignations remains as is
         const fetchDesignations = async () => {
             try {
                 const response = await callGetAPIWithToken('designations');
@@ -109,7 +85,6 @@ export default function ProfileSettings() {
             }
         };
 
-        fetchProfile();
         fetchDesignations();
     }, []);
 

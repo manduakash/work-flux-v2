@@ -35,6 +35,139 @@ export interface APIDeveloper {
   AssignedTaskJSON: string | AssignedTask[];
 }
 
+// --- Sub-Component: Expandable Developer Card ---
+const DeveloperCard = ({ dev, activeProjects, selectedProjectId, onAssign }: any) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  let tasks: AssignedTask[] = [];
+  try {
+    tasks = typeof dev.AssignedTaskJSON === 'string'
+      ? JSON.parse(dev.AssignedTaskJSON)
+      : (dev.AssignedTaskJSON || []);
+  } catch (e) { }
+
+  const currentSelectedProject = activeProjects.find((p: any) => p.ProjectID.toString() === selectedProjectId);
+  const isAssigned = tasks.some(t =>
+    t["Project : "]?.trim().toLowerCase() === currentSelectedProject?.ProjectName?.trim().toLowerCase()
+  );
+
+  const projectMap = new Map<string, string[]>();
+  tasks.forEach(t => {
+    const pName = t["Project : "]?.trim();
+    const tName = t.Task?.trim();
+    if (pName) {
+      if (!projectMap.has(pName)) projectMap.set(pName, []);
+      if (tName) projectMap.get(pName)!.push(tName);
+    }
+  });
+
+  return (
+    <motion.div
+      layout
+      className={cn(
+        "group overflow-hidden rounded-[2rem] border transition-all duration-300",
+        isAssigned
+          ? "bg-indigo-50/30 border-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900/40"
+          : "bg-white border-slate-100 dark:bg-slate-900/50 dark:border-slate-800"
+      )}
+    >
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between p-6 cursor-pointer"
+      >
+        <div className="flex items-center gap-5">
+          <div className={cn(
+            "h-14 w-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-sm transition-all group-hover:scale-105",
+            isAssigned ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+          )}>
+            {dev.UserFullName.charAt(0)}
+          </div>
+          <div>
+            <p className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">{dev.UserFullName}</p>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Briefcase size={12} className="text-indigo-400" />
+                {projectMap.size} Projects
+              </span>
+              <span className="text-slate-200 dark:text-slate-700">|</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Activity size={12} className="text-indigo-400" />
+                {tasks.length} Tasks
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {!isAssigned && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssign(dev.UserID);
+              }}
+            >
+              <UserPlus size={18} />
+            </Button>
+          )}
+          <motion.div
+            animate={{ rotate: isExpanded ? 90 : 0 }}
+            className="text-slate-300"
+          >
+            <ArrowRight size={20} />
+          </motion.div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-slate-100 dark:border-slate-800/50"
+          >
+            <div className="p-8 space-y-8 bg-white/50 dark:bg-black/5">
+              {projectMap.size > 0 ? (
+                Array.from(projectMap.entries()).map(([pName, pTasks], pIdx) => (
+                  <div key={pIdx} className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400">
+                          {pName}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">{pTasks.length} Units</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4 border-l border-slate-100 dark:border-slate-800">
+                      {pTasks.map((tn, tIdx) => (
+                        <div key={tIdx} className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-50 dark:border-slate-800 group/task">
+                          <div className="h-2 w-2 rounded-full bg-slate-200 dark:bg-slate-700 group-hover/task:bg-indigo-400 transition-colors" />
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 group-hover/task:text-slate-900 dark:group-hover/task:text-slate-200 transition-colors cursor-default">
+                            {tn}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center bg-slate-50/50 dark:bg-slate-900/50 rounded-[2rem] border border-dashed border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Neutral Resource - No Active Directives</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
 export default function TeamManagement() {
   const { projects, users, updateProject } = useStore();
 
@@ -195,109 +328,16 @@ export default function TeamManagement() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredDevelopers.map((dev) => {
-                    // Source of truth for assignment is now the developer's own task list from the API
-                    let tasks: AssignedTask[] = [];
-                    try {
-                      tasks = typeof dev.AssignedTaskJSON === 'string'
-                        ? JSON.parse(dev.AssignedTaskJSON)
-                        : (dev.AssignedTaskJSON || []);
-                    } catch (e) { }
-
-                    const currentSelectedProject = activeProjects.find(p => p.ProjectID.toString() === selectedProjectId);
-                    const isAssigned = tasks.some(t =>
-                      t["Project : "]?.trim().toLowerCase() === currentSelectedProject?.ProjectName?.trim().toLowerCase()
-                    );
-
-                    return (
-                      <motion.div
-                        key={dev.UserID}
-                        layout
-                        className={cn(
-                          "group flex items-center justify-between p-5 rounded-[1.5rem] border transition-all",
-                          isAssigned
-                            ? "bg-indigo-50/50 border-indigo-100 dark:bg-indigo-900/10 dark:border-indigo-900/30"
-                            : "bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800"
-                        )}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-sm transition-transform group-hover:scale-105",
-                            isAssigned ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
-                          )}>
-                            {dev.UserFullName.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">{dev.UserFullName}</p>
-
-                            {/* Unified Project & Task Status */}
-                            <div className="space-y-4 mt-3">
-                              {(() => {
-                                let tasks: AssignedTask[] = [];
-                                try {
-                                  tasks = typeof dev.AssignedTaskJSON === 'string'
-                                    ? JSON.parse(dev.AssignedTaskJSON)
-                                    : (dev.AssignedTaskJSON || []);
-                                } catch (e) {
-                                  console.error("Failed to parse tasks", e);
-                                }
-
-                                if (tasks.length === 0) {
-                                  return <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No tasks</span>;
-                                }
-
-                                // Group tasks by Project Name
-                                const projectMap = new Map<string, string[]>();
-                                tasks.forEach(t => {
-                                  const pName = t["Project : "]?.trim();
-                                  const tName = t.Task?.trim();
-                                  if (pName) {
-                                    if (!projectMap.has(pName)) projectMap.set(pName, []);
-                                    if (tName) projectMap.get(pName)!.push(tName);
-                                  }
-                                });
-
-                                return Array.from(projectMap.entries()).map(([pName, pTasks], pIdx) => (
-                                  <div key={pIdx} className="flex flex-col gap-2">
-                                    <div className="flex">
-                                      <span className="px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-tight dark:bg-indigo-950/30 dark:border-indigo-900/50">
-                                        {pName}
-                                      </span>
-                                    </div>
-
-                                    {pTasks.length > 0 && (
-                                      <div className="flex flex-col gap-1.5 ml-2 pl-3 border-l-2 border-indigo-50 dark:border-indigo-900/30">
-                                        {pTasks.map((tn, tIdx) => (
-                                          <div key={tIdx} className="flex items-center gap-1.5">
-                                            <div className="h-1 w-1 rounded-full bg-indigo-400" />
-                                            <span className="text-[10px] font-medium text-slate-500 hover:text-indigo-600 transition-colors cursor-default">
-                                              {tn}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ));
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-
-                        {!isAssigned && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="rounded-xl transition-all bg-slate-50 text-indigo-600 hover:bg-indigo-600 hover:text-white"
-                            onClick={() => handleToggleAssignment(dev.UserID)}
-                          >
-                            <UserPlus size={18} />
-                          </Button>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                <div className="space-y-4">
+                  {filteredDevelopers.map((dev) => (
+                    <DeveloperCard
+                      key={dev.UserID}
+                      dev={dev}
+                      activeProjects={activeProjects}
+                      selectedProjectId={selectedProjectId}
+                      onAssign={handleToggleAssignment}
+                    />
+                  ))}
                 </div>
 
                 {filteredDevelopers.length === 0 && (

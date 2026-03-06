@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Search, Filter, Calendar, Flag, User as UserIcon,
-    Trash2, Edit, X, FolderKanban, ChevronRight, AlertCircle
+    Trash2, Edit, X, FolderKanban, ChevronRight, AlertCircle,
+    Activity, Globe, ShieldCheck, Zap, Target
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,6 +14,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate, getStatusColor, getPriorityColor } from '@/lib/utils';
 import { UserRole, ProjectStatus, Priority } from '@/types';
+
+// --- Variants ---
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
+};
 
 export default function ProjectsPage() {
     const { projects, currentUser, users, addProject, deleteProject } = useStore();
@@ -45,7 +57,9 @@ export default function ProjectsPage() {
         e.preventDefault();
         addProject(formData);
         setIsModalOpen(false);
-        toast.success('Project created successfully');
+        toast.success('Workstream Initialized', {
+            description: `Project "${formData.name}" has been registered in the governance system.`
+        });
         setFormData({
             name: '', description: '', startDate: '', deadline: '',
             priority: Priority.MEDIUM, status: ProjectStatus.PLANNING,
@@ -54,75 +68,91 @@ export default function ProjectsPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="max-w-[1500px] mx-auto space-y-12 p-4 md:p-10"
+        >
             {/* Header Section */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Projects</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Orchestrate your enterprise workstreams and delivery timelines.</p>
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="h-px w-8 bg-indigo-600/30" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">NexIntel Portfolio Governance</span>
+                    </div>
+                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
+                        Global <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600">Workstreams</span>
+                    </h1>
+                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-indigo-500" />
+                        Orchestrating {projects.length} executive portfolios across all sectors.
+                    </p>
                 </div>
                 {canManage && (
                     <Button
                         onClick={() => setIsModalOpen(true)}
-                        className="h-11 rounded-xl bg-indigo-600 px-6 shadow-lg shadow-indigo-600/20 hover:bg-indigo-700"
+                        className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                        <Plus className="mr-2 h-4 w-4 stroke-[3px]" />
-                        Create Project
+                        <Plus className="mr-3 h-4 w-4 stroke-[3px]" />
+                        Initialize Project
                     </Button>
                 )}
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="relative flex-1 group">
-                    <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-500" />
+                    <Search className="absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-indigo-600" />
                     <Input
-                        placeholder="Search by project name or description..."
-                        className="pl-11 h-11 bg-white dark:bg-slate-900/50 rounded-xl border-slate-200 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                        placeholder="Search global portfolios by name or objective..."
+                        className="h-14 pl-14 bg-white dark:bg-slate-900/50 rounded-[1.5rem] border-slate-200 focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium text-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <Button variant="outline" className="h-11 rounded-xl px-5 border-slate-200 dark:border-slate-800">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filters
-                </Button>
+                <div className="flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md">
+                    <Button variant="ghost" className="h-10 rounded-2xl px-6 font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <Filter className="mr-2 h-3.5 w-3.5" />
+                        Sector Filters
+                    </Button>
+                </div>
             </div>
 
             {/* Projects Grid */}
             <motion.div
                 layout
-                className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+                className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
             >
                 <AnimatePresence mode='popLayout'>
                     {filteredProjects.map((project) => (
                         <motion.div
                             key={project.id}
+                            variants={itemVariants}
                             layout
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="group relative flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-xl hover:shadow-indigo-500/5 dark:border-slate-800 dark:bg-slate-900/50"
+                            className="group relative flex flex-col rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-2xl hover:shadow-indigo-500/10 dark:border-slate-800 dark:bg-slate-950/50 backdrop-blur-xl overflow-hidden"
                         >
-                            <div className="mb-4 flex items-start justify-between">
+                            {/* Card Background Decoration */}
+                            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-indigo-50 opaicty-0 transition-opacity group-hover:opacity-100 dark:bg-indigo-900/10" />
+
+                            <div className="relative mb-6 flex items-start justify-between">
                                 <span className={cn(
-                                    "rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+                                    "rounded-xl px-4 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-sm",
                                     getStatusColor(project.status)
                                 )}>
                                     {project.status}
                                 </span>
 
-                                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                                     {canManage && (
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                                            className="h-9 w-9 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                                             onClick={() => {
-                                                if (window.confirm('Archive this project?')) {
+                                                if (window.confirm('Decommission this workstream?')) {
                                                     deleteProject(project.id);
-                                                    toast.error('Project archived');
+                                                    toast.error('Workstream Decommissioned');
                                                 }
                                             }}
                                         >
@@ -132,38 +162,38 @@ export default function ProjectsPage() {
                                 </div>
                             </div>
 
-                            <h3 className="mb-2 text-xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+                            <h3 className="relative mb-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-tight group-hover:text-indigo-600 transition-colors">
                                 {project.name}
                             </h3>
-                            <p className="mb-6 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mb-8 line-clamp-2 text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
                                 {project.description}
                             </p>
 
-                            <div className="mt-auto space-y-5">
+                            <div className="mt-auto space-y-6">
                                 {/* Progress */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-tighter text-slate-400">
-                                        <span>Delivery Progress</span>
-                                        <span className="text-slate-900 dark:text-white">{project.progressPercentage}%</span>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                        <span>Saturation Level</span>
+                                        <span className="text-indigo-600 dark:text-indigo-400">{project.progressPercentage}%</span>
                                     </div>
-                                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800/50 shadow-inner overflow-hidden">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${project.progressPercentage}%` }}
-                                            className="h-full rounded-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)]"
+                                            className="h-full rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(99,102,241,0.4)]"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Metadata */}
-                                <div className="flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
-                                    <div className="flex -space-x-2.5">
+                                <div className="flex items-center justify-between border-t border-slate-100 pt-6 dark:border-slate-800">
+                                    <div className="flex -space-x-3">
                                         {project.assignedDeveloperIds.map((devId) => {
                                             const dev = users.find(u => u.id === devId);
                                             return (
                                                 <div
                                                     key={devId}
-                                                    className="h-9 w-9 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center text-[11px] font-bold text-indigo-700 dark:border-slate-900 dark:bg-indigo-900"
+                                                    className="h-10 w-10 rounded-2xl border-2 border-white bg-indigo-50 flex items-center justify-center text-[11px] font-black text-indigo-600 shadow-sm transition-transform hover:scale-110 hover:z-10 dark:border-slate-950 dark:bg-indigo-900/50 dark:text-indigo-400"
                                                     title={dev?.name}
                                                 >
                                                     {dev?.name?.charAt(0)}
@@ -171,17 +201,19 @@ export default function ProjectsPage() {
                                             );
                                         })}
                                         {project.assignedDeveloperIds.length === 0 && (
-                                            <span className="text-[10px] text-slate-400 italic">No devs assigned</span>
+                                            <div className="h-10 w-10 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center dark:border-slate-800">
+                                                <UserIcon size={14} className="text-slate-300" />
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col items-end">
-                                        <div className={cn("flex items-center text-[10px] font-bold uppercase mb-1", getPriorityColor(project.priority))}>
-                                            <Flag className="mr-1 h-3 w-3 fill-current" />
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className={cn("inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest", getPriorityColor(project.priority))}>
+                                            <Target className="h-3 w-3 fill-current" />
                                             {project.priority}
                                         </div>
-                                        <div className="flex items-center text-[11px] text-slate-500 font-medium">
-                                            <Calendar className="mr-1 h-3 w-3" />
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                            <Calendar className="h-3.5 w-3.5" />
                                             {formatDate(project.deadline)}
                                         </div>
                                     </div>
@@ -194,10 +226,15 @@ export default function ProjectsPage() {
 
             {/* Empty State */}
             {filteredProjects.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200 dark:bg-slate-900/20 dark:border-slate-800">
-                    <FolderKanban className="h-12 w-12 text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">No projects found</h3>
-                    <p className="text-slate-500 max-w-xs mx-auto">Try adjusting your search or filters to find what you're looking for.</p>
+                <div className="flex flex-col items-center justify-center py-32 text-center bg-white dark:bg-slate-900/20 rounded-[3.5rem] border border-dashed border-slate-200 dark:border-slate-800">
+                    <div className="h-20 w-20 rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-6">
+                        <FolderKanban className="h-10 w-10 text-slate-300" />
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">No Workstreams Identified</h3>
+                    <p className="text-slate-500 max-w-sm mx-auto mt-2 font-medium">The governance system is unable to locate workstreams matching your current query parameters.</p>
+                    <Button variant="outline" className="mt-8 h-12 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]" onClick={() => setSearchQuery('')}>
+                        Reset Filter Matrix
+                    </Button>
                 </div>
             )}
 
@@ -210,63 +247,63 @@ export default function ProjectsPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsModalOpen(false)}
-                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
                         />
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900"
+                            className="relative w-full max-w-2xl overflow-hidden rounded-[3rem] bg-white p-10 shadow-3xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800"
                         >
-                            <div className="mb-8 flex items-center justify-between">
+                            <div className="mb-10 flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Initialize Project</h2>
-                                    <p className="text-sm text-slate-500">Define the core parameters for the new workstream.</p>
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Initialize Workstream</h2>
+                                    <p className="text-sm font-medium text-slate-500 mt-1">Define core parameters for strategic deployment.</p>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="rounded-full">
-                                    <X className="h-5 w-5" />
+                                <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="rounded-2xl h-12 w-12 hover:bg-slate-50">
+                                    <X className="h-6 w-6" />
                                 </Button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                            <form onSubmit={handleSubmit} className="space-y-8">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Name</label>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Portfolio Identity</label>
                                     <Input
-                                        placeholder="e.g. Cloud Infrastructure Migration"
+                                        placeholder="Define workstream designation..."
                                         required
-                                        className="h-12 rounded-xl"
+                                        className="h-14 rounded-2xl border-slate-200 bg-slate-50/50 dark:bg-slate-950 px-6 font-bold focus:ring-4 focus:ring-indigo-500/10 transition-all"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Description</label>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Mission Objective</label>
                                     <textarea
-                                        placeholder="Provide a high-level overview of objectives..."
-                                        className="flex min-h-[100px] w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all dark:border-slate-700 dark:bg-slate-950"
+                                        placeholder="Detailed overview of tactical goals..."
+                                        className="flex min-h-[120px] w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-6 py-4 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:border-slate-800 dark:bg-slate-950"
                                         required
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Start Date</label>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Commencement</label>
                                         <Input
                                             type="date"
-                                            className="h-12 rounded-xl"
+                                            className="h-14 rounded-2xl border-slate-200 bg-slate-50/50 dark:bg-slate-950 px-6 font-bold"
                                             required
                                             value={formData.startDate}
                                             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Deadline</label>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Target Milestone</label>
                                         <Input
                                             type="date"
-                                            className="h-12 rounded-xl"
+                                            className="h-14 rounded-2xl border-slate-200 bg-slate-50/50 dark:bg-slate-950 px-6 font-bold"
                                             required
                                             value={formData.deadline}
                                             onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
@@ -274,11 +311,11 @@ export default function ProjectsPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Priority Level</label>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Priority Index</label>
                                         <select
-                                            className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950"
+                                            className="flex h-14 w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-6 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-800 dark:bg-slate-950"
                                             value={formData.priority}
                                             onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
                                         >
@@ -286,9 +323,9 @@ export default function ProjectsPage() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Lead</label>
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Assigned Executive</label>
                                         <select
-                                            className="flex h-12 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950"
+                                            className="flex h-14 w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-6 text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-800 dark:bg-slate-950"
                                             value={formData.assignedLeadId}
                                             onChange={(e) => setFormData({ ...formData, assignedLeadId: e.target.value })}
                                         >
@@ -299,10 +336,10 @@ export default function ProjectsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-                                    <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                                    <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 px-8 rounded-xl h-11">
-                                        Initialize Project
+                                <div className="flex justify-end gap-4 pt-8 border-t border-slate-100 dark:border-slate-800">
+                                    <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="rounded-2xl h-12 px-8 font-bold text-slate-500">Abort</Button>
+                                    <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 px-10 rounded-2xl h-12 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 active:scale-0.98 transition-all">
+                                        Initialize Workstream
                                     </Button>
                                 </div>
                             </form>
@@ -310,6 +347,6 @@ export default function ProjectsPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </motion.div>
     );
 }

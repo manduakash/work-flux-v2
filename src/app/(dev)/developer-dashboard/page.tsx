@@ -1,335 +1,374 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    Radar, RadarChart, PolarGrid, PolarAngleAxis, LineChart, Line
 } from 'recharts';
 import {
-    Rocket, FolderKanban, Github,
-    AlertCircle, TrendingUp, Clock, ShieldCheck, Zap,
-    CheckCircle2,
-    CloudUpload
+    Activity, FolderKanban, Github, AlertCircle, TrendingUp, Clock,
+    ShieldCheck, Zap, CheckCircle2, CloudUpload, ArrowUpRight,
+    ArrowDownRight, Loader2, Sparkles, Binary, ChevronRight,
+    Target, LayoutDashboard, Rocket
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { ProjectStatus, UserRole } from '@/types';
+
 import { useStore } from '@/store/useStore';
+import { cn, formatDate } from '@/lib/utils';
+import { ProjectStatus, UserRole } from '@/types';
 import { getCookie } from '@/utils/cookies';
-import { callAPI, callGetAPIWithToken } from '@/components/apis/commonAPIs';
-
-const taskAnalytics = [
-    { name: 'Mon', completed: 40, pending: 24 },
-    { name: 'Tue', completed: 30, pending: 13 },
-    { name: 'Wed', completed: 20, pending: 98 },
-    { name: 'Thu', completed: 27, pending: 39 },
-    { name: 'Fri', completed: 18, pending: 48 },
-];
-
-const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-
+import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
+import { Button } from '@/components/ui/button';
 
 // --- Components ---
 
-const StatCard = ({ item }: any) => (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 transition-all hover:shadow-lg">
-        <div className="flex items-center justify-between">
-            <div className={cn("rounded-2xl p-3", item.color)}>
-                <item.icon size={24} />
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
+};
+
+const StatCard = ({ title, value, icon: Icon, trend, trendValue, color, description }: any) => (
+    <motion.div
+        variants={itemVariants}
+        className="group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 dark:border-slate-800 dark:bg-slate-950/50 backdrop-blur-xl"
+    >
+        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-slate-50 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-slate-800/50" />
+        <div className="relative flex items-center justify-between">
+            <div className={cn("flex h-14 w-14 items-center justify-center rounded-[1.25rem] shadow-inner transition-transform group-hover:scale-110 group-hover:rotate-3", color)}>
+                <Icon className="h-7 w-7" />
             </div>
-            <div className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
-                <TrendingUp size={12} /> {item.trend}
-            </div>
+            {trend && (
+                <div className={cn(
+                    "flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest",
+                    trend === 'up' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30" : "bg-rose-50 text-rose-600 dark:bg-rose-950/30"
+                )}>
+                    {trend === 'up' ? <ArrowUpRight className="mr-1 h-3.5 w-3.5" /> : <ArrowDownRight className="mr-1 h-3.5 w-3.5" />}
+                    {trendValue}%
+                </div>
+            )}
         </div>
-        <div className="mt-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.title}</p>
-            <h3 className="mt-1 text-3xl font-extrabold text-slate-900 dark:text-white">{item.count}</h3>
+        <div className="mt-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
+            <h3 className="mt-2 text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">{value}</h3>
+            {description && <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{description}</p>}
         </div>
-        <div className="mt-4 h-10 w-full opacity-30">
-            <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={taskAnalytics.slice(0, 5)}>
-                    <Area type="monotone" dataKey="completed" stroke="#6366f1" fill="#6366f1" strokeWidth={2} />
-                </AreaChart>
-            </ResponsiveContainer>
-        </div>
-    </div>
+    </motion.div>
 );
 
 export default function DeveloperDashboard() {
-
-    const { projects } = useStore();
-
+    const { projects: storeProjects } = useStore();
+    const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
-    const [dashboardCount, setDashboardCount] = useState<any>(null);
-
-    const [statsData, setStatsData] = useState<any>([
-        { key: "NoOfActiveProjects", title: 'Active Projects', count: '0', trend: '+12%', color: 'bg-indigo-50 text-indigo-600', icon: FolderKanban },
-        { key: "NoOfUrgentTasks", title: 'Urgent Tasks', count: '0', trend: '+5%', color: 'bg-rose-50 text-rose-600', icon: AlertCircle },
-        { key: "NoOfCompletedTasks", title: 'Completed Tasks', count: '0', trend: '+18%', color: 'bg-emerald-50 text-emerald-600', icon: CheckCircle2 },
-        { key: "NoOfGoLiveProjects", title: 'Go Live Projects', count: '0', trend: '+2%', color: 'bg-amber-50 text-amber-600', icon: CloudUpload },
-    ]);
+    const [stats, setStats] = useState({
+        activeProjects: 0,
+        urgentTasks: 0,
+        completedTasks: 0,
+        goLive: 0,
+        myProjects: [] as any[]
+    });
 
     const fetchDashboardData = async () => {
         try {
-            const result = await callGetAPIWithToken("developer/dashboard/counts?fromDate=2026-01-01&toDate=2026-12-31");
-            console.log("Dashboard data:", result?.data["NoOfUrgentTasks"]);
-
-            setStatsData((prev: any) =>
-                prev.map((item: any) => ({
-                    ...item,
-                    count: result?.data[item.key]?.toString() ?? "0"
-                }))
-            );
+            setLoading(true);
+            const countsRes = await callGetAPIWithToken("developer/dashboard/counts?fromDate=2026-01-01&toDate=2026-12-31");
+            const user = getCookie("user");
+            setCurrentUser(user);
+            const projectsRes = await callGetAPIWithToken("projects/projects-by-user-id");
+            setStats({
+                activeProjects: countsRes?.data?.NoOfActiveProjects || 0,
+                urgentTasks: countsRes?.data?.NoOfUrgentTasks || 0,
+                completedTasks: countsRes?.data?.NoOfCompletedTasks || 0,
+                goLive: countsRes?.data?.NoOfGoLiveProjects || 0,
+                myProjects: projectsRes.success ? projectsRes.data : []
+            });
         } catch (error) {
-            console.error("Error fetching dashboard data:", error);
+            console.error("Dashboard error:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        const user = getCookie("user");
-        if (user) {
-            setCurrentUser(user);
-            fetchDashboardData();
-        }
+        fetchDashboardData();
     }, []);
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
-        if (hour < 12) return "Good morning";
-        if (hour < 18) return "Good afternoon";
-        return "Good evening";
+        if (hour < 5) return "Surviving the Night";
+        if (hour < 12) return "Good Morning";
+        if (hour < 18) return "Good Afternoon";
+        return "Good Evening";
     }, []);
 
-    const myProjects = useMemo(() => {
-        if (!currentUser) return [];
-        if (currentUser.role === UserRole.DEVELOPER) return projects.filter(p => p.assignedDeveloperIds.includes(currentUser.id));
-        if (currentUser.role === UserRole.TEAM_LEAD) return projects.filter(p => p.assignedLeadId === currentUser.id);
-        return projects;
-    }, [currentUser, projects]);
+    const chartsData = useMemo(() => {
+        return [
+            { name: 'Stability', A: 85 },
+            { name: 'Velocity', A: 92 },
+            { name: 'Quality', A: 78 },
+            { name: 'Scalability', A: 88 },
+            { name: 'Support', A: 65 },
+        ];
+    }, []);
 
-    const projectStatusData = Object.values(ProjectStatus).map(status => ({
-        name: status,
-        value: projects.filter(p => p.status === status).length
-    }));
+    const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+    if (loading) {
+        return (
+            <div className="flex h-[80vh] w-full flex-col items-center justify-center gap-4">
+                <div className="relative">
+                    <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+                    <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse text-indigo-400" />
+                </div>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Syncing Development Intelligence...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-8 pb-12">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="max-w-[1600px] mx-auto space-y-12 p-4 md:p-10"
+        >
+            {/* Header Section */}
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                        {greeting}, {currentUser?.name.split(' ')[0]}
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="h-px w-8 bg-indigo-600/30" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Developer Governance Unit</span>
+                    </div>
+                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{currentUser?.fullName?.split(' ')[0] || "Developer"}</span>
                     </h1>
-                    <p className="mt-1 text-slate-500 dark:text-slate-400">
-                        System status: <span className="font-semibold text-emerald-500 underline underline-offset-4 decoration-emerald-500/30">Operational</span>. Reviewing {myProjects.length} active workstreams.
+                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-emerald-500" />
+                        Status: <span className="font-bold text-emerald-500 uppercase tracking-widest text-xs">High Frequency</span> — Reviewing {stats.activeProjects} active workstreams.
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <Button variant="outline" className="h-11 rounded-xl px-5 border-slate-200 dark:border-slate-800">
-                        <Clock className="mr-2 h-4 w-4 text-slate-400" />
-                        History
+                <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
+                    <Button variant="ghost" className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all">
+                        <Github className="mr-3 h-4 w-4 text-slate-900 dark:text-white" />
+                        Repository Audit
                     </Button>
-                    <Button className="h-11 rounded-xl bg-indigo-600 px-5 shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">
-                        <Zap className="mr-2 h-4 w-4 fill-white" />
-                        Generate Report
+                    <Button className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                        <CloudUpload className="mr-3 h-4 w-4 fill-white" />
+                        Request Deployment
                     </Button>
                 </div>
             </div>
 
-            {/* 1. Top Summary Stats */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                {statsData?.length > 0 ? statsData?.map((item: any) => (
-                    <StatCard item={item} key={item?.key} />
-                )) : (
-                    <div className="col-span-4 text-center text-slate-500 dark:text-slate-400">
-                        No stats data available
-                    </div>
-                )}
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                    title="Active Workstreams"
+                    value={stats.activeProjects}
+                    icon={FolderKanban}
+                    trend="up"
+                    trendValue={12}
+                    color="bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
+                    description="Assigned production pipelines"
+                />
+                <StatCard
+                    title="Critical Backlog"
+                    value={stats.urgentTasks}
+                    icon={AlertCircle}
+                    trend="down"
+                    trendValue={4}
+                    color="bg-rose-500 text-white shadow-xl shadow-rose-500/20"
+                    description="High-priority impediments"
+                />
+                <StatCard
+                    title="Delivery Cycle"
+                    value={stats.completedTasks}
+                    icon={CheckCircle2}
+                    trend="up"
+                    trendValue={22}
+                    color="bg-emerald-500 text-white shadow-xl shadow-emerald-500/20"
+                    description="Verified unit completions"
+                />
+                <StatCard
+                    title="Go-Live Velocity"
+                    value={stats.goLive}
+                    icon={Rocket}
+                    color="bg-white text-indigo-600 border border-slate-200"
+                    description="Production release targets"
+                />
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* 2. Task Analytics (Bar Chart) */}
-                <div className="lg:col-span-2 rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
-                    <div className="mb-8 flex items-center justify-between">
-                        <h3 className="text-xl font-black uppercase tracking-tight">Pending v/s Complete Tasks</h3>
-                        <div className="flex gap-4">
-                            <span className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><div className="h-2 w-2 rounded-full bg-indigo-500" /> COMPLETED</span>
-                            <span className="flex items-center gap-2 text-[10px] font-bold text-slate-400"><div className="h-2 w-2 rounded-full bg-slate-200" /> PENDING</span>
-                        </div>
+                {/* 2. Technical Quality (Radar) */}
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8">
+                        <ShieldCheck className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
-                    <div className="h-80 w-full">
+                    <div className="mb-10 relative z-10">
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Professional Saturation</h3>
+                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Skill metrics and technical proficiency index</p>
+                    </div>
+                    <div className="h-[450px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={taskAnalytics}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
-                                <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Bar dataKey="completed" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={24} />
-                                <Bar dataKey="pending" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={24} />
-                            </BarChart>
+                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartsData}>
+                                <PolarGrid stroke="#e2e8f0" strokeOpacity={0.5} />
+                                <PolarAngleAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '900' }} />
+                                <Radar
+                                    name="Technical Load"
+                                    dataKey="A"
+                                    stroke="#6366f1"
+                                    fill="#6366f1"
+                                    fillOpacity={0.4}
+                                    strokeWidth={3}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', color: '#fff' }}
+                                />
+                            </RadarChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 6. Global Project Distribution (Donut) */}
-                <div className="rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900/50">
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Status Health</h3>
-                    <p className="mb-8 text-sm text-slate-500">Global project distribution</p>
-                    <div className="h-[300px] w-full">
+                {/* Status Health (Pie) */}
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Portfolio Integrity</h3>
+                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Global workstream distribution</p>
+                    <div className="h-[300px] w-full relative">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <p className="text-4xl font-black text-slate-900 dark:text-white leading-none">{stats.activeProjects}</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Units</p>
+                        </div>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={projectStatusData}
+                                    data={stats.myProjects.length > 0 ? stats.myProjects.map(p => ({ name: p.ProjectName, value: 1 })) : [{ name: 'N/A', value: 1 }]}
                                     cx="50%" cy="50%"
-                                    innerRadius={70}
-                                    outerRadius={100}
-                                    paddingAngle={8}
+                                    innerRadius={85}
+                                    outerRadius={115}
+                                    paddingAngle={10}
                                     dataKey="value"
+                                    stroke="transparent"
                                 >
-                                    {projectStatusData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="transparent" />
+                                    {stats.myProjects.map((_, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-4">
-                        {projectStatusData.map((entry, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                                <span className="text-xs font-medium text-slate-500">{entry.name}</span>
+                    <div className="mt-12 space-y-4">
+                        {stats.myProjects.slice(0, 4).map((p, i) => (
+                            <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 transition-hover hover:scale-[1.02] cursor-default border border-transparent hover:border-indigo-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">{p.ProjectName}</span>
+                                </div>
+                                <span className="text-xs font-black text-slate-900 dark:text-white">{p.ProgressPercentage || 0}%</span>
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* 3. Urgent Tasks Section */}
-                <div className="lg:col-span-2 rounded-[2rem] border border-slate-200 bg-white overflow-hidden dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <div className="p-8 pb-0 flex items-center justify-between">
-                        <h3 className="text-xl font-black uppercase tracking-tight">Urgent Tasks</h3>
-                        <Button variant="outline" className="rounded-xl h-9 text-[10px] font-black uppercase">View All</Button>
+                {/* Urgent Task Tracker */}
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                    <div className="mb-10 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Verified Critical Tasks</h3>
+                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Tactical impediments requiring immediate attention</p>
+                        </div>
+                        <Button variant="ghost" className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50">
+                            Task Board <ChevronRight className="ml-2 h-4 w-4" />
+                        </Button>
                     </div>
-                    <div className="overflow-x-auto p-8">
-                        <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
                             <thead>
-                                <tr className="border-b border-slate-100 dark:border-slate-800">
-                                    <th className="pb-4 font-black uppercase tracking-widest text-[10px] text-slate-400">Task Name</th>
-                                    <th className="pb-4 font-black uppercase tracking-widest text-[10px] text-slate-400">Priority</th>
-                                    <th className="pb-4 font-black uppercase tracking-widest text-[10px] text-slate-400">Status</th>
-                                    <th className="pb-4 font-black uppercase tracking-widest text-[10px] text-slate-400">Deadline</th>
+                                <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Operation</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Priority</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Lifecycle</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                 {[
-                                    { name: 'Core Auth Redesign', p: 'Critical', s: 'Active', d: 'Oct 24', color: 'bg-rose-500' },
-                                    { name: 'Edge Functions Optimization', p: 'High', s: 'Review', d: 'Oct 25', color: 'bg-amber-500' },
-                                    { name: 'Schema Migration', p: 'Medium', s: 'Pending', d: 'Oct 28', color: 'bg-indigo-500' },
+                                    { name: 'Core API Optimization', priority: 'Critical', status: 'In Progress', color: 'bg-indigo-600' },
+                                    { name: 'Auth Module Redesign', priority: 'High', status: 'Reviewing', color: 'bg-rose-500' },
+                                    { name: 'CI/CD Pipeline Fix', priority: 'Emergency', status: 'Blocked', color: 'bg-amber-500' },
                                 ].map((task, i) => (
-                                    <tr key={i} className="group">
-                                        <td className="py-5 font-bold text-slate-900 dark:text-white">{task.name}</td>
-                                        <td className="py-5">
-                                            <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase text-white", task.color)}>{task.p}</span>
+                                    <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                                        <td className="py-8 font-black text-base text-slate-900 dark:text-white uppercase tracking-tight">{task.name}</td>
+                                        <td className="py-8">
+                                            <span className={cn("inline-flex items-center rounded-[0.75rem] px-4 py-2 text-[9px] font-black uppercase tracking-widest shadow-sm text-white", task.color)}>
+                                                {task.priority}
+                                            </span>
                                         </td>
-                                        <td className="py-5 text-[11px] font-bold text-slate-500">{task.s}</td>
-                                        <td className="py-5 text-[11px] font-bold text-slate-500">{task.d}</td>
+                                        <td className="py-8">
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{task.status}</span>
+                                                <div className="mt-2 h-1.5 w-32 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
+                                                    <div className={cn("h-full", task.color)} style={{ width: '65%' }} />
+                                                </div>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 7. Deployment Status */}
-                <div className="rounded-[2rem] border border-slate-200 bg-indigo-600 p-8 text-white shadow-xl shadow-indigo-500/20">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black uppercase tracking-tight">Deployed Project Status</h3>
-                        <ShieldCheck className="h-6 w-6 opacity-50" />
-                    </div>
-                    <div className="mt-8 space-y-6">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Last Deployment</p>
-                            <p className="text-sm font-bold">Today, 04:24 PM (Production)</p>
+                {/* Deployment Metrics */}
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-900 p-10 text-white shadow-2xl relative overflow-hidden group">
+                    <div className="relative z-10">
+                        <div className="mb-10 flex items-center justify-between">
+                            <h3 className="text-2xl font-black uppercase tracking-tight">System Delivery</h3>
+                            <TrendingUp className="h-6 w-6 text-indigo-400 animate-pulse" />
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Build Success Rate</p>
-                            <div className="mt-2 flex items-center gap-4">
-                                <div className="h-2 flex-1 rounded-full bg-white/20">
-                                    <div className="h-full w-[94%] rounded-full bg-emerald-400" />
+                        <p className="text-4xl font-black tracking-tighter mb-2">99.4%</p>
+                        <p className="text-sm font-bold text-indigo-300/60 uppercase tracking-widest mb-10">Build integrity index</p>
+
+                        <div className="space-y-8">
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Success Rate</span>
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Stable</span>
                                 </div>
-                                <span className="text-sm font-black">94%</span>
+                                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full w-[94%] bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]" />
+                                </div>
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="rounded-2xl bg-white/10 p-4">
-                                <p className="text-[10px] font-black uppercase">Failed Builds</p>
-                                <p className="text-2xl font-black">02</p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
+                                    <p className="text-[10px] font-black uppercase opacity-40">Failed</p>
+                                    <p className="text-2xl font-black">01</p>
+                                </div>
+                                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
+                                    <p className="text-[10px] font-black uppercase opacity-40">Pipelines</p>
+                                    <p className="text-2xl font-black">04</p>
+                                </div>
                             </div>
-                            <div className="rounded-2xl bg-white/10 p-4">
-                                <p className="text-[10px] font-black uppercase">Active Pipelines</p>
-                                <p className="text-2xl font-black">05</p>
+
+                            <div className="mt-8 p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                                    <Zap className="h-5 w-5 text-indigo-400 fill-indigo-400/20" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Last Deploy</p>
+                                    <p className="text-xs font-bold text-indigo-200">Production - 4h 12m ago</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
-
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* 4. Critical Projects */}
-                <div className="lg:col-span-2 rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
-                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Active Projects</h3>
-                    <div className="space-y-6">
-                        {[
-                            { name: 'NexIntel Synergy v2', health: 92, risk: 'Healthy', color: 'bg-emerald-500' },
-                            { name: 'Global Asset Tracker', health: 45, risk: 'At Risk', color: 'bg-amber-500' },
-                            { name: 'Core Engine Refactor', health: 12, risk: 'Critical', color: 'bg-rose-500' },
-                        ].map((project, i) => (
-                            <div key={i} className="flex flex-col gap-4 rounded-3xl border-[2px] hover:border-slate-100 border-slate-50 px-6 py-2 hover:bg-slate-50 dark:border-slate-800">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center dark:bg-slate-800"><FolderKanban className="text-slate-400" size={20} /></div>
-                                        <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{project.name}</p>
-                                    </div>
-                                    <span className={cn("text-[9px] font-black uppercase tracking-widest", project.health < 20 ? 'text-rose-500' : 'text-emerald-500')}>{project.risk}</span>
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="flex justify-between text-[10px] font-black uppercase text-slate-400">
-                                        <span>Progress</span>
-                                        <span>{project.health}%</span>
-                                    </div>
-                                    <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                                        <div className={cn("h-full rounded-full", project.color)} style={{ width: `${project.health}%` }} />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* 8. Recent Activity Feed */}
-                <div className="rounded-[2rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900">
-                    <h3 className="mb-8 text-xl font-black uppercase tracking-tight">Live Feed</h3>
-                    <div className="relative space-y-8 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-20px)] before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
-                        {[
-                            { user: 'Admin', action: 'Deployed Sygery v2', time: '12m ago', icon: Rocket },
-                            { user: 'Dev_1', action: 'Merged PR #122', time: '45m ago', icon: Github },
-                            { user: 'Lead_2', action: 'Flagged Critical Bug', time: '2h ago', icon: AlertCircle },
-                            { user: 'System', action: 'Schema Optimized', time: '5h ago', icon: Zap },
-                        ].map((log, i) => (
-                            <div key={i} className="relative flex gap-4 pl-1">
-                                <div className="z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white ring-4 ring-white dark:bg-slate-900 dark:ring-slate-900">
-                                    <log.icon size={12} className="text-indigo-600" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">{log.user} <span className="font-normal text-slate-500 lowercase">{log.action}</span></p>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{log.time}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
+        </motion.div>
     );
 }

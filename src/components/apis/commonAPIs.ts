@@ -1,4 +1,5 @@
 import { deleteCookie, getCookie } from "@/utils/cookies";
+import { redirect } from "next/navigation";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -78,6 +79,7 @@ export const callPutAPIWithToken = async (url: string, body: any) => {
   if (response?.status == 401) {
     deleteCookie("token");
     throw new Error(`Session expired. Please login again.`);
+    redirect("/session-expired");
   }
   return result;
 }

@@ -26,55 +26,87 @@ export default function LoginPage() {
     });
 
     // Mock login function - replace with your useStore logic
+    // --- Logic: Secure Authentication ---
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        const response = await callAPI("auth/login", {
-            username: formData?.username,
-            password: formData?.password,
-        });
-
-        console.log(response);
-
-        setCookie("token", response?.data?.token);
-        setCookie("user", response?.data?.user);
-
-        if (!response?.success) {
-            toast.error("Failed to login", {
-                description: response?.error?.message,
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        // Basic logic check (Replace with your useStore/Auth logic)
-        if (response?.data?.user) {
-            toast.success("Authentication successful", {
-                description: "Welcome back to NexIntel Synergy.",
+        try {
+            const response = await callAPI("auth/login", {
+                username: formData?.username,
+                password: formData?.password,
             });
 
-            setCookie("role", response?.data?.user?.role);
+            console.log("Strategic Auth Response:", response);
 
-            if (response?.data?.user?.role_id == 1) {
-                setCookie("role", "MANAGEMENT");
-                router.push("/admin-dashboard");
-            } else if (response?.data?.user?.role_id == 2) {
-                setCookie("role", "TEAM_LEAD");
-                router.push("/team-lead-dashboard");
-            } else if (response?.data?.user?.role_id == 3) {
-                setCookie("role", "DEVELOPER");
-                router.push("/developer-dashboard");
-            } else {
-                toast.error("Invalid Role", {
-                    description: "You are not authorized to login.",
+            // Mission Critical: Even if success is false, if data contains a valid user/token, we might proceed 
+            // depending on how the backend handles 'soft' errors.
+            if (response?.data?.token) {
+                setCookie("token", response.data.token);
+            }
+            if (response?.data?.user) {
+                setCookie("user", response.data.user);
+            }
+
+            if (!response?.success && !response?.data?.user) {
+                toast.error("Authentication Failed", {
+                    description: response?.error?.message || response?.message || "Invalid credentials or system rejection.",
                 });
                 setIsLoading(false);
                 return;
             }
-        } else {
-            toast.error("Invalid credentials", {
-                description: "Please check your username and password.",
+
+            // Logic: Role-Based Strategic Redirection
+            const user = response?.data?.user;
+            if (user) {
+                toast.success("Login Successful", {
+                    description: `Welcome back, ${user.name.split(' ')[0]}!`,
+                });
+
+                // Standardizing Role Mapping
+                let sessionRole = "";
+                let targetPath = "";
+
+                if (user.role_id == 1) {
+                    sessionRole = "MANAGEMENT";
+                    targetPath = "/admin-dashboard";
+                } else if (user.role_id == 2) {
+                    sessionRole = "TEAM_LEAD";
+                    targetPath = "/team-lead-dashboard";
+                } else if (user.role_id == 3) {
+                    sessionRole = "DEVELOPER";
+                    targetPath = "/developer-dashboard";
+                } else {
+                    // Fallback using role string if role_id is missing or unrecognized
+                    const roleLabel = user.role?.toUpperCase() || "";
+                    if (roleLabel.includes("ADMIN") || roleLabel.includes("MANAGEMENT")) {
+                        sessionRole = "MANAGEMENT";
+                        targetPath = "/admin-dashboard";
+                    } else if (roleLabel.includes("LEAD")) {
+                        sessionRole = "TEAM_LEAD";
+                        targetPath = "/team-lead-dashboard";
+                    } else {
+                        sessionRole = "DEVELOPER";
+                        targetPath = "/developer-dashboard";
+                    }
+                }
+
+                setCookie("role", sessionRole);
+
+                // Final Redirection
+                setTimeout(() => {
+                    router.push(targetPath);
+                }, 500);
+            } else {
+                toast.error("Intelligence Gap", {
+                    description: "User profile synthesis failed. Please re-authenticate.",
+                });
+                setIsLoading(false);
+            }
+        } catch (error: any) {
+            console.error("Auth Critical Failure:", error);
+            toast.error("System Disruption", {
+                description: "Terminal connection timed out. Check infrastructure status.",
             });
             setIsLoading(false);
         }
