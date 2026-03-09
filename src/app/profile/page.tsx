@@ -223,16 +223,16 @@ export default function ProfileSettings() {
                 <div className="lg:col-span-7 space-y-8">
                     <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                         <h3 className="text-xl font-black uppercase tracking-tight mb-8 flex items-center gap-3">
-                            <User className="text-indigo-600" size={20} /> Personal Parameters
+                            <User className="text-indigo-600" size={20} /> Personal Information
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Legal Name</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</Label>
                                 <Input value={formData.fullName} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, fullName: e.target.value })} />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Direct Phone</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
                                 <Input value={formData.contactNumber} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, contactNumber: e.target.value })} />
                             </div>
                             <div className="space-y-2">
@@ -408,7 +408,7 @@ export default function ProfileSettings() {
                     </div>
 
                     <Button onClick={handleSave} className="w-full h-14 rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-500/20">
-                        <Save className="mr-3" size={18} /> Synchronize Profile
+                        <Save className="mr-3" size={18} /> Update Profile
                     </Button>
 
                 </div>

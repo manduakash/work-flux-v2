@@ -24,7 +24,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     const [navItems, setNavItems] = useState<any[]>([]);
     const leadNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/team-lead-dashboard' },
         { icon: Users, label: 'Team Management', href: '/team-management' },
         { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
         { icon: Plus, label: 'Project Create', href: '/project-create' },
@@ -108,7 +108,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                                 <img src={currentUser?.avatar} className="h-full w-full object-cover rounded-full ring-2 ring-sky-500 dark:ring-sky-600" alt="Profile" />
                             ) :
                                 (
-                                    <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
+                                    <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-xl rounded-full">
                                         {currentUser?.name?.charAt(0) || "AS"}
                                     </div>
                                 )}

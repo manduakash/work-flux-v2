@@ -86,7 +86,7 @@ export default function TasksPage() {
     const { tasks, projects, users, addTask, updateTask, deleteTask } = useStore();
 
     // Local UI State
-    const [viewMode, setViewMode] = useState<'board' | 'table'>('board');
+    const [viewMode, setViewMode] = useState<'board' | 'table'>('table');
     const [activeStatusId, setActiveStatusId] = useState<number | null>(null);
     const [apiTasks, setApiTasks] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
