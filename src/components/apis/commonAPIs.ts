@@ -3,6 +3,18 @@ import { redirect } from "next/navigation";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+function isJsonResponse(response: Response) {
+  const contentType = response.headers.get('content-type');
+  return contentType && contentType.includes('application/json');
+}
+
+function logApiUrl(url: string) {
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[API] Request URL:', url);
+  }
+}
+
 /**
  * Returns the UserID from the JWT token stored in cookies.
  */
@@ -22,40 +34,67 @@ export const getUserIdFromToken = () => {
 };
 
 export const callAPI = async (url: string, body: any) => {
-  const response = await fetch(`${BASE_URL}${url}`, {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
+  const response = await fetch(fullUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const result = await response?.json();
-  return result;
+  if (!response.ok) {
+    let text = await response.text();
+    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+  }
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
 }
 
 export const callAPIWithToken = async (url: string, body: any) => {
-  const response = await fetch(`${BASE_URL}${url}`, {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
+  const response = await fetch(fullUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
     body: JSON.stringify(body),
   });
-  const result = await response?.json();
-  if (response?.status == 401) {
+  if (response.status === 401) {
     deleteCookie("token");
     throw new Error(`Session expired. Please login again.`);
   }
-  return result;
+  if (!response.ok) {
+    let text = await response.text();
+    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+  }
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
 }
 
 export const callGetAPIWithToken = async (url: string) => {
-  const response = await fetch(`${BASE_URL}${url}`, {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
+  const response = await fetch(fullUrl, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
   });
-  const result = await response?.json();
-  if (response?.status == 401) {
+  if (response.status === 401) {
     deleteCookie("token");
     throw new Error(`Session expired. Please login again.`);
   }
-  return result;
+  if (!response.ok) {
+    let text = await response.text();
+    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+  }
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
 }
 
 export const uploadDocumentAPI = async (
@@ -63,11 +102,13 @@ export const uploadDocumentAPI = async (
   file: File,
   docDetails: any
 ) => {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
   const formData = new FormData();
   formData.append('file', file);
   formData.append('docDetials', JSON.stringify(docDetails));
 
-  const response = await fetch(`${BASE_URL}${url}`, {
+  const response = await fetch(fullUrl, {
     method: 'POST',
     headers: {
       accept: '*/*',
@@ -75,42 +116,64 @@ export const uploadDocumentAPI = async (
     body: formData,
   });
 
-  if (response?.status == 401) {
+  if (response.status === 401) {
     deleteCookie("ad_auth");
     throw new Error(`Aadhaar authentication expired. Please verify Aadhaar again.`);
   }
 
-  if (!response?.ok) {
-    throw new Error(`Upload failed with status ${response?.status}`);
+  if (!response.ok) {
+    let text = await response.text();
+    throw new Error(`Upload failed with status ${response.status}. Response: ${text.slice(0, 200)}`);
   }
-
-  return await response?.json();
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`Upload did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
 };
 
 export const callPutAPIWithToken = async (url: string, body: any) => {
-  const response = await fetch(`${BASE_URL}${url}`, {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
+  const response = await fetch(fullUrl, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
     body: JSON.stringify(body),
   });
-  const result = await response?.json();
-  if (response?.status == 401) {
+  if (response.status === 401) {
     deleteCookie("token");
     throw new Error(`Session expired. Please login again.`);
-    redirect("/session-expired");
+    // redirect("/session-expired");
   }
-  return result;
+  if (!response.ok) {
+    let text = await response.text();
+    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+  }
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
 }
 export const callPatchAPIWithToken = async (url: string, body: any) => {
-  const response = await fetch(`${BASE_URL}${url}`, {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
+  const response = await fetch(fullUrl, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
     body: JSON.stringify(body),
   });
-  const result = await response?.json();
-  if (response?.status == 401) {
+  if (response.status === 401) {
     deleteCookie("token");
     throw new Error(`Session expired. Please login again.`);
   }
-  return result;
+  if (!response.ok) {
+    let text = await response.text();
+    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+  }
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
 }

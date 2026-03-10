@@ -123,7 +123,7 @@ export default function TaskManagementPage() {
         title: '',
         subTitle: '',
         description: '',
-        assignedToUsers: [] as number[],
+        assignedToUserId: '',
         deadline: '',
         statusId: '',
         priorityId: '',
@@ -135,18 +135,30 @@ export default function TaskManagementPage() {
     useEffect(() => {
         const user = getCookie("user");
         setCurrentUser(user);
-        // If developer, fetch their tasks immediately after user is set
-        if (user?.role_id === 3) {
-            fetchMyTasks();
+        if (user) {
+            fetchTasks(user);
         }
     }, []);
 
-    const fetchMyTasks = async () => {
+    const fetchTasks = async (userOverride?: any) => {
+        const user = userOverride || currentUser;
+        if (!user) return;
         try {
-            const res = await callGetAPIWithToken('tasks/my-tasks?projectId=0&taskStatusId=0&taskPriority=0');
-            if (res.success) setMyTasks(res.data || []);
-        } catch (err) {
-            console.error('Failed to fetch developer tasks', err);
+            const userId = user?.id?.toString().replace(/\D/g, '') || user?.UserID?.toString().replace(/\D/g, '') || '0';
+            const isDeveloper = user?.role_id === 3 || user?.RoleID === 3;
+            const endpoint = isDeveloper
+                ? `tasks?taskId=0&assignedByUserId=0&assignedToUserId=${userId}&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`
+                : `tasks?taskId=0&assignedByUserId=${userId}&assignedToUserId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
+            const res = await callGetAPIWithToken(endpoint);
+            if (res.success) {
+                if (isDeveloper) {
+                    setMyTasks(res.data || []);
+                } else {
+                    setApiTasks(res.data || []);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch tasks", error);
         }
     };
 
@@ -176,26 +188,6 @@ export default function TaskManagementPage() {
             console.error("Failed to fetch task master data", error);
         }
     };
-
-    const fetchTasksByStatus = async (statusId: number) => {
-        try {
-            const userId = currentUser?.id?.toString().replace(/\D/g, '') || '0';
-            const isDeveloper = currentUser?.role_id === 3;
-            const assignedByUserId = isDeveloper ? 0 : userId;
-            const assignedToUserId = isDeveloper ? userId : 0;
-            const queryParams = `taskId=0&assignedByUserId=${assignedByUserId}&assignedToUserId=${assignedToUserId}&projectId=0&taskStatus=${statusId}&taskTypeId=0&taskPriority=0`;
-            const res = await callGetAPIWithToken(`tasks?${queryParams}`);
-            if (res.success) setApiTasks(res.data);
-        } catch (error) {
-            console.error("Failed to fetch tasks by status", error);
-        }
-    };
-
-    useEffect(() => {
-        if (activeStatusId !== null) {
-            fetchTasksByStatus(activeStatusId);
-        }
-    }, [activeStatusId, currentUser]);
 
     useEffect(() => {
         if (formData.projectId) {
@@ -232,15 +224,21 @@ export default function TaskManagementPage() {
 
 
     // Logic: Search and Filter
-    const isDeveloper = currentUser?.role_id === 3;
+    const isDeveloper = currentUser?.role_id === 3 || currentUser?.RoleID === 3;
 
     const filteredTasks = useMemo(() => {
         const source = isDeveloper ? myTasks : apiTasks;
-        return source.filter(t => {
+
+        // For Team Lead: if in board mode, filter by active tab. If in table mode, show all.
+        const statusFiltered = (!isDeveloper && activeStatusId !== null && viewMode === 'board')
+            ? source.filter(t => t.StatusID === activeStatusId)
+            : source;
+
+        return statusFiltered.filter(t => {
             const searchStr = `${t.Title} ${t.Description} ${t.ProjectName}`.toLowerCase();
             return searchStr.includes(searchQuery.toLowerCase());
         });
-    }, [apiTasks, myTasks, searchQuery, isDeveloper]);
+    }, [apiTasks, myTasks, searchQuery, isDeveloper, activeStatusId, viewMode]);
 
     const paginatedTasks = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -258,7 +256,7 @@ export default function TaskManagementPage() {
             title: '',
             subTitle: '',
             description: '',
-            assignedToUsers: [],
+            assignedToUserId: '',
             deadline: '',
             status: TaskStatus.PENDING,
             statusId: statusData[0]?.TaskStatusID?.toString() || '',
@@ -269,15 +267,8 @@ export default function TaskManagementPage() {
         setIsModalOpen(true);
     };
 
-    const toggleDeveloper = (userId: number) => {
-        setFormData(prev => {
-            const isSelected = prev.assignedToUsers.includes(userId);
-            if (isSelected) {
-                return { ...prev, assignedToUsers: prev.assignedToUsers.filter(id => id !== userId) };
-            } else {
-                return { ...prev, assignedToUsers: [...prev.assignedToUsers, userId] };
-            }
-        });
+    const selectDeveloper = (userId: number) => {
+        setFormData(prev => ({ ...prev, assignedToUserId: userId.toString() }));
     };
 
     const handleOpenEditModal = (task: any) => {
@@ -287,7 +278,7 @@ export default function TaskManagementPage() {
             title: task.title || task.Title || '',
             subTitle: task.subTitle || task.SubTitle || '',
             description: task.description || task.Description || '',
-            assignedToUsers: task.assignedToUsers || task.AssignedToUsers?.map((u: any) => u.AssignedToUserID) || [],
+            assignedToUserId: task.assignedToUserId || task.AssignedToUserID?.toString() || task.AssignedToUsers?.[0]?.AssignedToUserID?.toString() || '',
             deadline: (task.deadline || task.Deadline || '').split('T')[0],
             status: task.status || task.StatusName as any,
             statusId: task.statusId || task.StatusID?.toString() || statusData.find(s => s.TaskStatusName === (task.status || task.StatusName))?.TaskStatusID?.toString() || '',
@@ -309,7 +300,7 @@ export default function TaskManagementPage() {
         if (!formData.typeId) missingFields.push('Task Type');
         if (!formData.priorityId) missingFields.push('Priority Level');
         if (!formData.deadline) missingFields.push('Due Date');
-        if (formData.assignedToUsers.length === 0) missingFields.push('Team Members');
+        if (!formData.assignedToUserId) missingFields.push('Team Member');
 
         if (missingFields.length > 0) {
             setValidationTrigger(prev => prev + 1);
@@ -341,18 +332,17 @@ export default function TaskManagementPage() {
 
         try {
             const payload = {
-                taskId: editingTask ? parseInt((editingTask.TaskID || editingTask.id || '0').toString().replace(/\D/g, '')) || 0 : 0,
-                statusId: Number(formData.statusId),
-                typeId: Number(formData.typeId),
-                projectId: Number((formData.projectId || '0').toString().replace(/\D/g, '')),
-                priorityId: Number(formData.priorityId),
-                assignedByUserId: Number(currentUser?.id?.toString().replace(/\D/g, '') || 1),
-                assignedToUsers: formData.assignedToUsers,
-                title: formData.title,
-                subTitle: formData.subTitle,
-                description: formData.description,
-                progressPercentage: Number(formData.progressPercentage),
-                deadline: formData.deadline,
+                TaskID: editingTask ? Number(editingTask.TaskID || editingTask.id) : 0,
+                TaskStatus: Number(formData.statusId),
+                TaskTypeID: Number(formData.typeId),
+                ProjectID: Number((formData.projectId || '0').toString().replace(/\D/g, '')),
+                Priority: Number(formData.priorityId),
+                Title: formData.title,
+                SubTitle: formData.subTitle,
+                TaskDescription: formData.description,
+                ProgressPercentage: Number(formData.progressPercentage),
+                Deadline: formData.deadline,
+                AssignedToUserID: Number(formData.assignedToUserId),
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -370,28 +360,22 @@ export default function TaskManagementPage() {
                 }
 
                 // Mission-Critical: Refresh the board state from the API
-                if (activeStatusId !== null) {
-                    fetchTasksByStatus(activeStatusId);
-                }
+                fetchTasks();
 
                 setIsModalOpen(false);
             } else {
-                throw new Error(result.error?.message || 'Failed to save task');
+                throw new Error(result.message || result.error?.message || 'Failed to save task');
             }
         } catch (error: any) {
             console.error("Task submission error:", error);
-            toast.error("Save Failed", {
+            toast.error(error.message || "Save Failed", {
                 id: toastId,
-                description: "Saved locally. Connection might be slow."
+                description: "Failed to save the task on the server."
             });
 
-            // Fallback to local store if API fails
-            if (editingTask) {
-                updateTask(editingTask.id, formData as any);
-            } else {
-                addTask(formData as any);
-            }
-            setIsModalOpen(false);
+            // We should NOT fallback to local store if API fails, otherwise the user thinks it succeeded
+            setIsSubmitting(false);
+            return;
         } finally {
             setIsSubmitting(false);
         }
@@ -401,15 +385,27 @@ export default function TaskManagementPage() {
         setIsSubmitting(true);
         const toastId = toast.loading('Updating progress...');
         try {
-            const res = await callPatchAPIWithToken('tasks/progress', {
+            // Fetch the editing task details to send the full payload as required by the API
+            const task = editingTask;
+            if (!task) throw new Error('No task selected for update');
+            const payload = {
                 TaskID: taskId,
-                TaskProgress: progress
-            });
+                TaskStatus: task.StatusID || task.statusId || 1,
+                TaskTypeID: task.TypeID || task.typeId || 1,
+                ProjectID: task.ProjectID || task.projectId || 1,
+                Priority: task.PriorityID || task.priorityId || 1,
+                Title: task.Title || task.title || '',
+                SubTitle: task.SubTitle || task.subTitle || '',
+                TaskDescription: task.Description || task.description || '',
+                ProgressPercentage: progress,
+                Deadline: (task.Deadline || task.deadline || '').split('T')[0],
+                AssignedToUserID: (task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || task.assignedToUserId || 0)
+            };
+            const res = await callAPIWithToken('tasks', payload);
             if (res.success) {
                 toast.success('Progress updated successfully', { id: toastId });
-                fetchMyTasks();   // refresh developer table
+                fetchTasks();   // refresh developer table
                 setIsModalOpen(false);
-
             } else {
                 toast.error(res.message || 'Failed to update progress', { id: toastId });
             }
@@ -437,18 +433,17 @@ export default function TaskManagementPage() {
 
         try {
             const payload = {
-                taskId: task.TaskID,
-                statusId: prevStatusId,
-                typeId: task.TypeID,
-                projectId: task.ProjectID,
-                priorityId: task.PriorityID,
-                assignedByUserId: Number(currentUser?.id?.toString().replace(/\D/g, '') || 1),
-                assignedToUsers: task.AssignedToUsers?.map((u: any) => u.AssignedToUserID) || [],
-                title: task.Title,
-                subTitle: task.SubTitle || '',
-                description: task.Description,
-                progressPercentage: explicitProgress !== undefined ? explicitProgress : task.ProgressPercentage,
-                deadline: task.Deadline?.split('T')[0],
+                TaskID: task.TaskID,
+                TaskStatus: prevStatusId,
+                TaskTypeID: task.TypeID,
+                ProjectID: task.ProjectID,
+                Priority: task.PriorityID,
+                Title: task.Title,
+                SubTitle: task.SubTitle || '',
+                TaskDescription: task.Description,
+                ProgressPercentage: explicitProgress !== undefined ? explicitProgress : task.ProgressPercentage,
+                Deadline: task.Deadline?.split('T')[0],
+                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -456,7 +451,7 @@ export default function TaskManagementPage() {
             if (result.success) {
                 toast.success('Status Changed Successfully', { id: toastId });
                 setIsRollbackModalOpen(false); // Close modal on success
-                if (activeStatusId !== null) fetchTasksByStatus(activeStatusId);
+                fetchTasks();
             } else {
                 throw new Error(result.error?.message || 'Rollback failed');
             }
@@ -475,27 +470,24 @@ export default function TaskManagementPage() {
             const finalProgress = (completedStatus && nextStatusId === completedStatus.TaskStatusID) ? 100 : task.ProgressPercentage;
 
             const payload = {
-                taskId: task.TaskID,
-                statusId: nextStatusId,
-                typeId: task.TypeID,
-                projectId: task.ProjectID,
-                priorityId: task.PriorityID,
-                assignedByUserId: Number(currentUser?.id?.toString().replace(/\D/g, '') || 1),
-                assignedToUsers: task.AssignedToUsers?.map((u: any) => u.AssignedToUserID) || [],
-                title: task.Title,
-                subTitle: task.SubTitle || '',
-                description: task.Description,
-                progressPercentage: finalProgress,
-                deadline: task.Deadline?.split('T')[0],
+                TaskID: task.TaskID,
+                TaskStatus: nextStatusId,
+                TaskTypeID: task.TypeID,
+                ProjectID: task.ProjectID,
+                Priority: task.PriorityID,
+                Title: task.Title,
+                SubTitle: task.SubTitle || '',
+                TaskDescription: task.Description,
+                ProgressPercentage: finalProgress,
+                Deadline: task.Deadline?.split('T')[0],
+                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0
             };
 
             const result = await callAPIWithToken('tasks', payload);
 
             if (result.success) {
                 toast.success('Status Updated Successfully', { id: toastId });
-                if (activeStatusId !== null) {
-                    fetchTasksByStatus(activeStatusId);
-                }
+                fetchTasks();
             } else {
                 throw new Error(result.error?.message || 'Update failed');
             }
@@ -737,7 +729,7 @@ export default function TaskManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {paginatedTasks.map((task) => (
+                                    {paginatedTasks.length > 0 ? paginatedTasks.map((task) => (
                                         <tr key={task.TaskID} className="group hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{task.Title}</td>
                                             <td className="px-6 py-4"><span className="text-indigo-600 font-semibold">{task.ProjectName}</span></td>
@@ -765,7 +757,14 @@ export default function TaskManagementPage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={6} className="py-20 text-center">
+                                                <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
+                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks found</p>
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -1003,25 +1002,25 @@ export default function TaskManagementPage() {
                                         </div>
 
                                         <div className="space-y-3">
-                                            <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", formData.assignedToUsers.length === 0 && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Assign Team Members</label>
+                                            <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.assignedToUserId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Assign Team Member</label>
                                             <div className={cn(
                                                 "flex flex-wrap gap-2 p-5 rounded-3xl bg-slate-50 border transition-all dark:bg-slate-950/50",
-                                                formData.assignedToUsers.length === 0 && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-100 dark:border-slate-800"
+                                                !formData.assignedToUserId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-100 dark:border-slate-800"
                                             )}>
                                                 {availableDevs.length > 0 ? (
                                                     availableDevs.map(dev => (
                                                         <button
                                                             key={dev.UserID}
                                                             type="button"
-                                                            onClick={() => toggleDeveloper(dev.UserID)}
+                                                            onClick={() => selectDeveloper(dev.UserID)}
                                                             className={cn(
                                                                 "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border shrink-0",
-                                                                formData.assignedToUsers.includes(dev.UserID)
+                                                                formData.assignedToUserId === dev.UserID?.toString()
                                                                     ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20 scale-105"
                                                                     : "bg-white border-slate-200 text-slate-500 hover:border-indigo-400 dark:bg-slate-900 dark:border-slate-800"
                                                             )}
                                                         >
-                                                            {formData.assignedToUsers.includes(dev.UserID) ? <CheckCircle2 size={12} /> : <UserIcon size={12} />}
+                                                            {formData.assignedToUserId === dev.UserID?.toString() ? <CheckCircle2 size={12} /> : <UserIcon size={12} />}
                                                             {dev.UserFullName}
                                                         </button>
                                                     ))

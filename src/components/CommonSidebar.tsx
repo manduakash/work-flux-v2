@@ -36,7 +36,6 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     const devNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/developer-dashboard' },
         { icon: ListChecks, label: 'Assigned Tasks', href: '/create-manage-task' },
-        { icon: FolderKanban, label: 'Projects', href: '/projects' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 

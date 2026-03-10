@@ -15,7 +15,6 @@ import {
 
 import { useStore } from '@/store/useStore';
 import { cn, formatDate } from '@/lib/utils';
-import { UserRole } from '@/types';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 import { getCookie } from '@/utils/cookies';
 import { Button } from '@/components/ui/button';
@@ -63,40 +62,42 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, color, descript
 export default function Dashboard() {
     const { currentUser: storeUser } = useStore();
     const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState<any>(null);
-    const [projects, setProjects] = useState<any[]>([]);
-    const [stats, setStats] = useState<any>(null);
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchTasks = async () => {
+            setLoading(true);
             try {
-                setLoading(true);
-                // Use user data from cookie
-                const user = getCookie("user");
-                setProfile(user);
-                const projectsRes = await callGetAPIWithToken('projects/projects-by-user-id');
-                if (projectsRes.success) setProjects(projectsRes.data);
-                // If developer role, fetch specific counts
-                if (user?.role === UserRole.DEVELOPER) {
-                    const countsRes = await callGetAPIWithToken('developer/dashboard/counts');
-                    if (countsRes.success) setStats(countsRes.data);
-                }
+                const userObj = getCookie("user");
+                setUser(userObj);
+                if (!userObj) return;
+                const userId = userObj?.id?.toString().replace(/\D/g, '') || userObj?.UserID?.toString().replace(/\D/g, '') || '0';
+                const endpoint = `tasks?taskId=0&assignedByUserId=0&assignedToUserId=${userId}&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
+                const res = await callGetAPIWithToken(endpoint);
+                if (res.success) setTasks(res.data || []);
             } catch (error) {
-                console.error("Dashboard Update Error:", error);
+                console.error("Dashboard Task Fetch Error:", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchDashboardData();
+        fetchTasks();
     }, []);
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
-        if (hour < 5) return "Surviving the Night";
-        if (hour < 12) return "Good Morning";
-        if (hour < 18) return "Good Afternoon";
-        return "Good Evening";
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
     }, []);
+
+    // Stat calculations
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(t => t.StatusName?.toLowerCase() === 'completed').length;
+    const inProgressTasks = tasks.filter(t => t.StatusName?.toLowerCase() === 'in progress').length;
+    const reviewTasks = tasks.filter(t => t.StatusName?.toLowerCase() === 'review').length;
+    const avgProgress = tasks.length ? Math.round(tasks.reduce((acc, t) => acc + (t.ProgressPercentage || 0), 0) / tasks.length) : 0;
 
     const radarData = useMemo(() => {
         const categories = ['Logic', 'Design', 'Database', 'Security', 'Testing'];
@@ -140,67 +141,106 @@ export default function Dashboard() {
             {/* Header Section */}
             <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <span className="h-px w-8 bg-indigo-600/30" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Developer Dashboard</span>
-                    </div>
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{storeUser?.name?.split(' ')[0] || storeUser?.username?.split(' ')[0] || "Team Member"}</span>
+                    <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                        {greeting}, {user?.FullName?.split(' ')[0] || user?.Username?.split(' ')[0] || user?.name?.split(' ')[0] || "Developer"}!
                     </h1>
-                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-emerald-500" />
-                        Status: <span className="font-bold text-emerald-500 uppercase tracking-widest text-xs">Active</span> — Involved in {projects.length} projects.
+                    <p className="text-base text-slate-500 dark:text-slate-400">
+                        You have <span className="font-bold text-indigo-600">{totalTasks}</span> tasks. Keep up the good work!
                     </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
-                    <Button variant="ghost" className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all">
-                        <Binary className="mr-3 h-4 w-4 text-indigo-500" />
-                        History
-                    </Button>
-                    <Button className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        <Zap className="mr-3 h-4 w-4 fill-white" />
-                        Project Goals
-                    </Button>
                 </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                    title="My Projects"
-                    value={projects.filter(p => p.ProjectStatusName === 'Active').length}
-                    icon={FolderKanban}
-                    trend="up"
-                    trendValue={12}
-                    color="bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
-                    description="Projects you belong to"
-                />
-                <StatCard
-                    title="Overall Progress"
-                    value={`${Math.round(projects.reduce((acc, p) => acc + (p.ProgressPercentage || 0), 0) / (projects.length || 1))}%`}
-                    icon={ShieldCheck}
-                    trend="up"
-                    trendValue={3}
-                    color="bg-emerald-500 text-white shadow-xl shadow-emerald-500/20"
-                    description="Average project progress"
-                />
-                <StatCard
-                    title="Total Tasks"
-                    value={stats?.totalTasks || 42}
+                    title="All Tasks"
+                    value={totalTasks}
                     icon={TrendingUp}
-                    trend="up"
-                    trendValue={5.4}
                     color="bg-slate-900 text-white shadow-xl shadow-slate-900/20"
-                    description="Current task count"
+                    description="Total assigned"
                 />
                 <StatCard
-                    title="Team Network"
-                    value={projects.length}
-                    icon={Globe}
+                    title="Completed"
+                    value={completedTasks}
+                    icon={ShieldCheck}
+                    color="bg-emerald-500 text-white shadow-xl shadow-emerald-500/20"
+                    description="Done"
+                />
+                <StatCard
+                    title="In Progress"
+                    value={inProgressTasks}
+                    icon={Activity}
+                    color="bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
+                    description="Ongoing"
+                />
+                <StatCard
+                    title="In Review"
+                    value={reviewTasks}
+                    icon={Award}
                     color="bg-white text-indigo-600 border border-slate-200"
-                    description="Connected projects"
+                    description="Needs review"
                 />
             </div>
+
+            {/* Task Table */}
+            <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
+                <div className="p-8 pb-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Tasks</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Task</th>
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Project</th>
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Status</th>
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Priority</th>
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Assigned By</th>
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Progress</th>
+                                <th className="px-6 py-4 font-semibold text-xs text-slate-500">Due</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                            {tasks.length > 0 ? tasks.map((task) => (
+                                <tr key={task.TaskID} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{task.Title}</td>
+                                    <td className="px-6 py-4"><span className="text-indigo-600 font-medium">{task.ProjectName}</span></td>
+                                    <td className="px-6 py-4"><span className={cn("px-2 py-1 rounded text-xs font-bold", task.StatusName === 'Completed' ? 'bg-emerald-100 text-emerald-600' : task.StatusName === 'In Progress' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400')}>{task.StatusName}</span></td>
+                                    <td className="px-6 py-4"><span className={cn(
+                                        "px-2.5 py-1 rounded text-xs font-bold border",
+                                        task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30' :
+                                            task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' :
+                                                'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                                    )}>{task.PriorityName}</span></td>
+                                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{task.AssignedByUserFullName}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-indigo-500">{task.ProgressPercentage}%</span>
+                                            <div className="h-1.5 w-20 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${task.ProgressPercentage}%` }}
+                                                    className="h-full bg-indigo-600 rounded-full"
+                                                />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs text-slate-400">{formatDate(task.Deadline)}</td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={7} className="py-20 text-center">
+                                        <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
+                                        <p className="text-slate-400 font-bold italic text-xs">No tasks assigned to you</p>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </motion.div>
+    );
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
