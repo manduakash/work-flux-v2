@@ -180,7 +180,6 @@ export default function ProjectsPage() {
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <span className="h-px w-8 bg-indigo-600/30" />
-<<<<<<< HEAD
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">NexIntel Project Management</span>
                     </div>
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
@@ -189,16 +188,6 @@ export default function ProjectsPage() {
                     <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Globe className="h-4 w-4 text-indigo-500" />
                         Managing {projects.length} assigned projects.
-=======
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Project Management Tracker</span>
-                    </div>
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        All <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600">Projects</span>
-                    </h1>
-                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-indigo-500" />
-                        Managing {filteredProjects.length} active projects across the team.
->>>>>>> e8c62ebd3286c54703ca4ef4bc24782d68996925
                     </p>
                 </div>
                 {canManage && (

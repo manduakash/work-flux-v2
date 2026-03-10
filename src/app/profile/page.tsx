@@ -236,11 +236,7 @@ export default function ProfileSettings() {
                                 <Input value={formData.fullName} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, fullName: e.target.value })} />
                             </div>
                             <div className="space-y-2">
-<<<<<<< HEAD
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
-=======
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</Label>
->>>>>>> e8c62ebd3286c54703ca4ef4bc24782d68996925
                                 <Input value={formData.contactNumber} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, contactNumber: e.target.value })} />
                             </div>
                             <div className="space-y-2">
@@ -416,11 +412,7 @@ export default function ProfileSettings() {
                     </div>
 
                     <Button onClick={handleSave} className="w-full h-14 rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-500/20">
-<<<<<<< HEAD
-                        <Save className="mr-3" size={18} /> Update Profile
-=======
                         <Save className="mr-3" size={18} /> Save Profile
->>>>>>> e8c62ebd3286c54703ca4ef4bc24782d68996925
                     </Button>
 
                 </div>
