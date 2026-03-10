@@ -115,6 +115,7 @@ export default function TaskManagementPage() {
     const [availableDevs, setAvailableDevs] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [validationTrigger, setValidationTrigger] = useState<number>(0);
+    const [myTasks, setMyTasks] = useState<any[]>([]);  // Developer-specific: all assigned tasks
     const modalContentRef = React.useRef<HTMLDivElement>(null);
 
     const [formData, setFormData] = useState({
@@ -134,7 +135,20 @@ export default function TaskManagementPage() {
     useEffect(() => {
         const user = getCookie("user");
         setCurrentUser(user);
+        // If developer, fetch their tasks immediately after user is set
+        if (user?.role_id === 3) {
+            fetchMyTasks();
+        }
     }, []);
+
+    const fetchMyTasks = async () => {
+        try {
+            const res = await callGetAPIWithToken('tasks/my-tasks?projectId=0&taskStatusId=0&taskPriority=0');
+            if (res.success) setMyTasks(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch developer tasks', err);
+        }
+    };
 
     useEffect(() => {
         fetchMasterData();
@@ -218,12 +232,15 @@ export default function TaskManagementPage() {
 
 
     // Logic: Search and Filter
+    const isDeveloper = currentUser?.role_id === 3;
+
     const filteredTasks = useMemo(() => {
-        return apiTasks.filter(t => {
+        const source = isDeveloper ? myTasks : apiTasks;
+        return source.filter(t => {
             const searchStr = `${t.Title} ${t.Description} ${t.ProjectName}`.toLowerCase();
             return searchStr.includes(searchQuery.toLowerCase());
         });
-    }, [apiTasks, searchQuery]);
+    }, [apiTasks, myTasks, searchQuery, isDeveloper]);
 
     const paginatedTasks = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -231,6 +248,7 @@ export default function TaskManagementPage() {
     }, [filteredTasks, currentPage]);
 
     const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
+
 
 
     const handleOpenCreateModal = () => {
@@ -389,8 +407,9 @@ export default function TaskManagementPage() {
             });
             if (res.success) {
                 toast.success('Progress updated successfully', { id: toastId });
-                if (activeStatusId !== null) fetchTasksByStatus(activeStatusId);
+                fetchMyTasks();   // refresh developer table
                 setIsModalOpen(false);
+
             } else {
                 toast.error(res.message || 'Failed to update progress', { id: toastId });
             }
@@ -533,7 +552,8 @@ export default function TaskManagementPage() {
                     <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
 
-                {viewMode === 'board' && (
+                {/* Status tabs only for team leads/admins */}
+                {viewMode === 'board' && !isDeveloper && (
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-100 dark:border-slate-800">
                         {statusData.map((status) => {
                             const isActive = activeStatusId === status.TaskStatusID;
@@ -607,8 +627,103 @@ export default function TaskManagementPage() {
                             </div>
                         )}
                     </motion.div>
+                ) : isDeveloper ? (
+                    /* ── Developer: flat table from my-tasks API ── */
+                    <motion.div key="dev-table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Task</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Project</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Status</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Priority</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Assigned By</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Deadline & Progress</th>
+                                        <th className="px-6 py-4 text-right font-bold text-[10px] uppercase tracking-widest text-slate-400">Update</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                    {paginatedTasks.length > 0 ? paginatedTasks.map((task) => (
+                                        <tr key={task.TaskID} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <p className="font-bold text-slate-900 dark:text-white">{task.Title}</p>
+                                                {task.SubTitle && <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">{task.SubTitle}</p>}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider">{task.ProjectName}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>{task.StatusName}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={cn(
+                                                    "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                                                    task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30' :
+                                                        task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' :
+                                                            'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                                                )}>{task.PriorityName}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white shrink-0">
+                                                        {task.AssignedByUserFullName?.charAt(0)}
+                                                    </div>
+                                                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{task.AssignedByUserFullName}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-1.5 min-w-[140px]">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] text-slate-400">{formatDate(task.Deadline)}</span>
+                                                        <span className="text-[10px] font-black text-indigo-500">{task.ProgressPercentage}%</span>
+                                                    </div>
+                                                    <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${task.ProgressPercentage}%` }}
+                                                            className="h-full bg-indigo-600 rounded-full"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Button
+                                                    variant="ghost" size="sm"
+                                                    onClick={() => {
+                                                        setEditingTask(task);
+                                                        setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
+                                                        setIsModalOpen(true);
+                                                    }}
+                                                    className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-indigo-600 border border-indigo-100 hover:bg-indigo-50 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
+                                                >
+                                                    <Activity size={12} className="mr-1.5" /> Update
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={7} className="py-20 text-center">
+                                                <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
+                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks assigned to you</p>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Pagination */}
+                        <div className="flex items-center justify-between border-t border-slate-100 p-6 dark:border-slate-800">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Showing {paginatedTasks.length} of {filteredTasks.length} tasks</p>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl"><ChevronLeft size={16} /></Button>
+                                <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl"><ChevronRight size={16} /></Button>
+                            </div>
+                        </div>
+                    </motion.div>
                 ) : (
-                    <motion.div key="table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
+                    /* ── Team Lead: standard table ── */
+                    <motion.div key="tl-table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>
@@ -636,25 +751,17 @@ export default function TaskManagementPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
-                                                    {currentUser?.role_id !== 3 ? (
-                                                        <>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal({
-                                                                ...task,
-                                                                id: task.TaskID.toString(),
-                                                                projectId: task.ProjectID.toString(),
-                                                                title: task.Title,
-                                                                description: task.Description,
-                                                                progressPercentage: task.ProgressPercentage,
-                                                                deadline: task.Deadline,
-                                                                status: task.StatusName as any
-                                                            })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(task.TaskID.toString())}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
-                                                        </>
-                                                    ) : (
-                                                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(task)}>
-                                                            <Activity size={14} className="text-indigo-600" />
-                                                        </Button>
-                                                    )}
+                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal({
+                                                        ...task,
+                                                        id: task.TaskID.toString(),
+                                                        projectId: task.ProjectID.toString(),
+                                                        title: task.Title,
+                                                        description: task.Description,
+                                                        progressPercentage: task.ProgressPercentage,
+                                                        deadline: task.Deadline,
+                                                        status: task.StatusName as any
+                                                    })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(task.TaskID.toString())}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -662,7 +769,6 @@ export default function TaskManagementPage() {
                                 </tbody>
                             </table>
                         </div>
-
                         {/* Pagination */}
                         <div className="flex items-center justify-between border-t border-slate-100 p-6 dark:border-slate-800">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Showing {paginatedTasks.length} of {filteredTasks.length} items</p>

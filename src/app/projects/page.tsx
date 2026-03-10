@@ -51,6 +51,22 @@ export default function ProjectsPage() {
         assignedDeveloperIds: [] as string[],
     });
 
+    const [projects, setProjects] = useState<any[]>([]);
+    const getProjectsByUserId = async () => {
+        try {
+            const response = await callGetAPIWithToken(`projects/projects-by-user-id`);
+            if (response.success && response.data) {
+                setProjects(response.data);
+            }
+        } catch (error) {
+            console.error("Project Sync Failure:", error);
+            toast.error("Failed to sync project data");
+        }
+    };
+
+    useEffect(() => {
+        getProjectsByUserId();
+    }, []);
     // Strategy: Identity Extraction & API Synchronization
     useEffect(() => {
         const user = getCookie("user");
@@ -132,15 +148,15 @@ export default function ProjectsPage() {
 
     const filteredProjects = useMemo(() => {
         if (isDeveloper) {
-            return developerWorkstreams.filter(p =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase())
+            return projects.filter(p =>
+                p.ProjectName.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
         return storeProjects.filter(p =>
             p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             p.description.toLowerCase().includes(searchQuery.toLowerCase())
         );
-    }, [storeProjects, developerWorkstreams, searchQuery, isDeveloper]);
+    }, [storeProjects, projects, searchQuery, isDeveloper]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -183,11 +199,11 @@ export default function ProjectsPage() {
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">NexIntel Project Management</span>
                     </div>
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        Total <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600">Projects</span>
+                        Total <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600">Tasks</span>
                     </h1>
                     <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Globe className="h-4 w-4 text-indigo-500" />
-                        Managing {projects.length} assigned projects.
+                        Managing {projects?.length || 0} assigned projects.
                     </p>
                 </div>
                 {canManage && (
@@ -262,7 +278,7 @@ export default function ProjectsPage() {
                             </div>
 
                             <h3 className="relative mb-3 text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-tight group-hover:text-indigo-600 transition-colors">
-                                {project.name}
+                                {project.ProjectName}
                             </h3>
                             <p className="mb-8 line-clamp-2 text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
                                 {project.description}
@@ -273,7 +289,7 @@ export default function ProjectsPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                                         <span>Project Progress</span>
-                                        <span className="text-indigo-600 dark:text-indigo-400">{project.progressPercentage}%</span>
+                                        <span className="text-indigo-600 dark:text-indigo-400">{project.ProgressPercentage}%</span>
                                     </div>
                                     <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800/50 shadow-inner overflow-hidden">
                                         <motion.div
