@@ -110,7 +110,7 @@ export default function AdminDashboard() {
                     <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
                     <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse text-indigo-400" />
                 </div>
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Syncing Executive Portfolio...</p>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Loading Dashboard...</p>
             </div>
         );
     }
@@ -127,24 +127,24 @@ export default function AdminDashboard() {
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <span className="h-px w-8 bg-indigo-600/30" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">NexIntel Executive Authority</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Admin Overview</span>
                     </div>
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
                         {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{profile?.fullName?.split(' ')[0] || "Administrator"}</span>
                     </h1>
                     <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Globe className="h-4 w-4 text-indigo-500" />
-                        System Health: <span className="font-bold text-indigo-500 uppercase tracking-widest text-xs">Nominal</span> — Overseeing {projects.length} global portfolios.
+                        System Status: <span className="font-bold text-indigo-500 uppercase tracking-widest text-xs">Good</span> — Overseeing {projects.length} active projects.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
                     <Button variant="ghost" className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all">
                         <ShieldCheck className="mr-3 h-4 w-4 text-indigo-500" />
-                        Audit Logs
+                        System Logs
                     </Button>
                     <Button className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all">
                         <DollarSign className="mr-3 h-4 w-4 fill-white" />
-                        Financial Overview
+                        Budget Overview
                     </Button>
                 </div>
             </div>
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                    title="Portfolio Valuation"
+                    title="Total Value"
                     value="$12.4M"
                     icon={DollarSign}
                     trend="up"
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
                     description="Aggregate asset worth"
                 />
                 <StatCard
-                    title="Operational Efficiency"
+                    title="System Efficiency"
                     value="94.2%"
                     icon={Activity}
                     trend="up"
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
                     description="System-wide throughput"
                 />
                 <StatCard
-                    title="Global Initiatives"
+                    title="Active Projects"
                     value={projects.length}
                     icon={Briefcase}
                     trend="up"
@@ -179,11 +179,11 @@ export default function AdminDashboard() {
                     description="Active high-level workstreams"
                 />
                 <StatCard
-                    title="Strategic Risk"
+                    title="Risk Level"
                     value="Low"
                     icon={ShieldCheck}
                     color="bg-white text-emerald-500 border border-slate-200"
-                    description="Verified integrity index"
+                    description="Security check passed"
                 />
             </div>
 
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
                         <TrendingUp className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
                     <div className="mb-10 relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Portfolio Velocity</h3>
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Project Growth</h3>
                         <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Aggregate growth and project expansion metrics</p>
                     </div>
                     <div className="h-[450px] w-full">
@@ -218,8 +218,8 @@ export default function AdminDashboard() {
 
                 {/* Composition */}
                 <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Division Matrix</h3>
-                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Resource distribution by sector</p>
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Department Overview</h3>
+                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Team distribution by department</p>
                     <div className="h-[300px] w-full relative">
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <p className="text-4xl font-black text-slate-900 dark:text-white leading-none">100%</p>
@@ -266,8 +266,8 @@ export default function AdminDashboard() {
                 <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <div className="mb-10 flex items-center justify-between">
                         <div>
-                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Top-Tier Initiatives</h3>
-                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">High-impact workstreams governing system expansion</p>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Key Projects</h3>
+                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Important projects currently in progress</p>
                         </div>
                         <Button variant="ghost" className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50">
                             View All <ChevronRight className="ml-2 h-4 w-4" />
@@ -277,9 +277,9 @@ export default function AdminDashboard() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Initiative</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Capital Flow</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Strategic Health</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Project</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Progress</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -297,7 +297,7 @@ export default function AdminDashboard() {
                                         <td className="py-8">
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex justify-between items-center text-[10px] font-black uppercase text-emerald-500">
-                                                    <span>Optimal</span>
+                                                    <span>On Track</span>
                                                     <span>{project.ProgressPercentage || 0}%</span>
                                                 </div>
                                                 <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -316,15 +316,15 @@ export default function AdminDashboard() {
                 <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-950 p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div className="relative z-10">
                         <div className="mb-10 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">Executive Log</h3>
+                            <h3 className="text-2xl font-black uppercase tracking-tight">Recent Activity</h3>
                             <Award className="h-6 w-6 text-indigo-400 animate-pulse" />
                         </div>
 
                         <div className="space-y-10">
                             {[
-                                { action: 'Authored Global Roadmap', time: '2h ago', icon: Target },
-                                { action: 'Allocated Q3 Expansion Budget', time: '5h ago', icon: DollarSign },
-                                { action: 'Sanctioned Security Upgrade', time: '1d ago', icon: ShieldCheck },
+                                { action: 'Updated project roadmap', time: '2h ago', icon: Target },
+                                { action: 'Updated project budget', time: '5h ago', icon: DollarSign },
+                                { action: 'Approved security update', time: '1d ago', icon: ShieldCheck },
                             ].map((log, i) => (
                                 <div key={i} className="relative flex gap-6">
                                     <div className="z-10 h-10 w-10 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/5">
@@ -343,7 +343,7 @@ export default function AdminDashboard() {
                                 <p className="text-[10px] font-black uppercase text-indigo-300">Strategy Unit</p>
                                 <Zap className="h-4 w-4 text-amber-400" />
                             </div>
-                            <p className="text-sm font-medium text-slate-300 leading-relaxed uppercase tracking-wider">Portfolio integrity remains at 99.8%. No immediate strategic pivots authorized.</p>
+                            <p className="text-sm font-medium text-slate-300 leading-relaxed uppercase tracking-wider">System is running smoothly. No issues detected.</p>
                         </div>
                     </div>
                     {/* Visual bg decoration */}

@@ -45,7 +45,7 @@ export default function TeamPage() {
         e.preventDefault();
         addUser(formData);
         setIsModalOpen(false);
-        toast.success('Resource successfully onboarded');
+        toast.success('Member added successfully');
         setFormData({ name: '', username: '', role: UserRole.DEVELOPER });
     };
 
@@ -60,8 +60,8 @@ export default function TeamPage() {
             {/* Header Section */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Team Directory</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Manage organizational structure and access control permissions.</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Team Members</h1>
+                    <p className="text-slate-500 dark:text-slate-400">View and manage team members and their roles.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="relative group">
@@ -152,9 +152,9 @@ export default function TeamPage() {
                                         variant="outline"
                                         className="flex-1 h-10 rounded-xl text-[11px] font-bold uppercase tracking-widest gap-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30"
                                         onClick={() => {
-                                            if (window.confirm('Revoke access for this user?')) {
+                                            if (window.confirm('Remove this member?')) {
                                                 deleteUser(user.id);
-                                                toast.error('User access revoked');
+                                                toast.error('Member removed');
                                             }
                                         }}
                                     >
@@ -186,8 +186,8 @@ export default function TeamPage() {
                         >
                             <div className="mb-8 flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Add Resource</h2>
-                                    <p className="text-xs font-semibold text-slate-400 mt-1">Populate organizational directory.</p>
+                                    <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Add Member</h2>
+                                    <p className="text-xs font-semibold text-slate-400 mt-1">Add a new member to your team.</p>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="rounded-full">
                                     <X />
@@ -196,7 +196,7 @@ export default function TeamPage() {
 
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Legal Full Name</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
                                     <Input
                                         required
                                         className="h-12 rounded-2xl"
@@ -207,7 +207,7 @@ export default function TeamPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">System Identifier (Username)</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Username</label>
                                     <Input
                                         required
                                         className="h-12 rounded-2xl"
@@ -218,7 +218,7 @@ export default function TeamPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Functional Role</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Role</label>
                                     <select
                                         className="flex h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold outline-none focus:border-indigo-600 dark:border-slate-800 dark:bg-slate-950"
                                         value={formData.role}
@@ -233,7 +233,7 @@ export default function TeamPage() {
                                 <div className="flex justify-end gap-3 pt-6">
                                     <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="font-bold text-xs uppercase tracking-widest">Cancel</Button>
                                     <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 px-8 rounded-2xl font-black text-xs uppercase tracking-widest h-12">
-                                        Deploy Resource
+                                        Add Member
                                     </Button>
                                 </div>
                             </form>

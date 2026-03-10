@@ -82,7 +82,7 @@ export default function Dashboard() {
                     if (countsRes.success) setStats(countsRes.data);
                 }
             } catch (error) {
-                console.error("Dashboard Synchronization Error:", error);
+                console.error("Dashboard Update Error:", error);
             } finally {
                 setLoading(false);
             }
@@ -99,9 +99,9 @@ export default function Dashboard() {
     }, []);
 
     const radarData = useMemo(() => {
-        const categories = ['Stability', 'Innovation', 'Growth', 'Security', 'Scale'];
+        const categories = ['Logic', 'Design', 'Database', 'Security', 'Testing'];
         return categories.map(cat => ({
-            subject: cat,
+            subject: cat.toUpperCase(),
             A: Math.floor(Math.random() * 60) + 40,
             fullMark: 100,
         }));
@@ -125,7 +125,7 @@ export default function Dashboard() {
                     <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
                     <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse text-indigo-400" />
                 </div>
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Syncing Intelligence Matrix...</p>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Loading Dashboard data...</p>
             </div>
         );
     }
@@ -142,24 +142,24 @@ export default function Dashboard() {
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <span className="h-px w-8 bg-indigo-600/30" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">NexIntel Overview Governance</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Developer Dashboard</span>
                     </div>
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{profile?.fullName?.split(' ')[0] || "Operative"}</span>
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{storeUser?.name?.split(' ')[0] || storeUser?.username?.split(' ')[0] || "Team Member"}</span>
                     </h1>
                     <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Activity className="h-4 w-4 text-emerald-500" />
-                        System Status: <span className="font-bold text-emerald-500 uppercase tracking-widest text-xs">Optimized</span> — Monitoring {projects.length} global workstreams.
+                        Status: <span className="font-bold text-emerald-500 uppercase tracking-widest text-xs">Active</span> — Involved in {projects.length} projects.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
                     <Button variant="ghost" className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all">
                         <Binary className="mr-3 h-4 w-4 text-indigo-500" />
-                        Audit Log
+                        History
                     </Button>
                     <Button className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all">
                         <Zap className="mr-3 h-4 w-4 fill-white" />
-                        Strategic Intelligence
+                        Project Goals
                     </Button>
                 </div>
             </div>
@@ -167,38 +167,38 @@ export default function Dashboard() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                    title="Active Workstreams"
+                    title="My Projects"
                     value={projects.filter(p => p.ProjectStatusName === 'Active').length}
                     icon={FolderKanban}
                     trend="up"
                     trendValue={12}
                     color="bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
-                    description="Production-verified pipelines"
+                    description="Projects you belong to"
                 />
                 <StatCard
-                    title="Portfolio Health"
+                    title="Overall Progress"
                     value={`${Math.round(projects.reduce((acc, p) => acc + (p.ProgressPercentage || 0), 0) / (projects.length || 1))}%`}
                     icon={ShieldCheck}
                     trend="up"
                     trendValue={3}
                     color="bg-emerald-500 text-white shadow-xl shadow-emerald-500/20"
-                    description="Aggregate delivery index"
+                    description="Average project progress"
                 />
                 <StatCard
-                    title="Strategic Momentum"
+                    title="Total Tasks"
                     value={stats?.totalTasks || 42}
                     icon={TrendingUp}
                     trend="up"
                     trendValue={5.4}
                     color="bg-slate-900 text-white shadow-xl shadow-slate-900/20"
-                    description="Performance throughput velocity"
+                    description="Current task count"
                 />
                 <StatCard
-                    title="Global Network"
+                    title="Team Network"
                     value={projects.length}
                     icon={Globe}
                     color="bg-white text-indigo-600 border border-slate-200"
-                    description="Managed enterprise assets"
+                    description="Connected projects"
                 />
             </div>
 
@@ -210,16 +210,16 @@ export default function Dashboard() {
                         <Activity className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
                     <div className="mb-10 relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Strategic Resource Matrix</h3>
-                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Global saturation and sector distribution</p>
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Task Distribution</h3>
+                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Your focus areas across projects</p>
                     </div>
                     <div className="h-[450px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                                 <PolarGrid stroke="#e2e8f0" strokeOpacity={0.5} />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }} />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '900' }} />
                                 <Radar
-                                    name="Current deployment"
+                                    name="Task Load"
                                     dataKey="A"
                                     stroke="#6366f1"
                                     fill="#6366f1"
@@ -234,12 +234,12 @@ export default function Dashboard() {
 
                 {/* Health PIE */}
                 <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Sector Integrity</h3>
-                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Aggregate portfolio distribution</p>
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Project Status</h3>
+                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Current Project Health</p>
                     <div className="h-[300px] w-full relative">
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <p className="text-4xl font-black text-slate-900 dark:text-white leading-none">{projects.length}</p>
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Units</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Projects</p>
                         </div>
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -277,20 +277,20 @@ export default function Dashboard() {
                 <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <div className="mb-10 flex items-center justify-between">
                         <div>
-                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Critical Initiatives</h3>
-                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">High-impact delivery pipelines</p>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Important Projects</h3>
+                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Projects requiring attention</p>
                         </div>
                         <Button variant="ghost" className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50">
-                            Roadmap <ChevronRight className="ml-2 h-4 w-4" />
+                            View All <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Workstream</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Project</th>
                                     <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Phase</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Saturation</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Progress</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -299,7 +299,7 @@ export default function Dashboard() {
                                         <td className="py-8">
                                             <div className="flex flex-col">
                                                 <span className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">{project.ProjectName}</span>
-                                                <span className="mt-1 text-[11px] font-bold text-slate-400">Governance ID: <span className="text-indigo-500">#PX-{project.ProjectID}</span></span>
+                                                <span className="mt-1 text-[11px] font-bold text-slate-400">Project ID: <span className="text-indigo-500">#{project.ProjectID}</span></span>
                                             </div>
                                         </td>
                                         <td className="py-8">
@@ -334,11 +334,11 @@ export default function Dashboard() {
                 <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-slate-900 p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div className="relative z-10">
                         <div className="mb-10 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">Throughput Lift</h3>
+                            <h3 className="text-2xl font-black uppercase tracking-tight">Work Trend</h3>
                             <TrendingUp className="h-6 w-6 text-indigo-400 animate-pulse" />
                         </div>
                         <p className="text-4xl font-black tracking-tighter mb-2">+14.2%</p>
-                        <p className="text-sm font-bold text-indigo-300/60 uppercase tracking-widest mb-10">Quarterly velocity trajectory</p>
+                        <p className="text-sm font-bold text-indigo-300/60 uppercase tracking-widest mb-10">Monthly completion rate</p>
 
                         <div className="h-48 w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -356,10 +356,10 @@ export default function Dashboard() {
 
                         <div className="mt-12 p-8 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-[10px] font-black uppercase text-indigo-200">Governance AI</p>
+                                <p className="text-[10px] font-black uppercase text-indigo-200">Tips</p>
                                 <Award className="h-4 w-4 text-indigo-400" />
                             </div>
-                            <p className="text-sm font-medium text-slate-300 leading-relaxed uppercase tracking-wider">Strategic throughput is exceeding benchmarks. Expansion protocols authorized for Q3.</p>
+                            <p className="text-sm font-medium text-slate-300 leading-relaxed uppercase tracking-wider">You are doing great! Your task completion rate is above average this week.</p>
                         </div>
                     </div>
                     {/* decoration */}

@@ -18,7 +18,7 @@ const leadNavItems = [
     { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
     { icon: Users, label: 'Team Management', href: '/team-management' },
     { icon: FolderKanban, label: 'Project Oversight', href: '/projects' },
-    { icon: ListChecks, label: 'Task Distribution', href: '/tasks' },
+    { icon: ListChecks, label: 'Create & Manage Task', href: '/create-manage-task' },
     { icon: BarChartHorizontal, label: 'Performance', href: '/performance' },
     { icon: Settings, label: 'Governance', href: '/settings' },
 ];

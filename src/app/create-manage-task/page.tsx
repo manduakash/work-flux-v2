@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate, getStatusColor } from '@/lib/utils';
 import { TaskStatus, UserRole, Task } from '@/types';
-import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
+import { callGetAPIWithToken, callAPIWithToken, callPatchAPIWithToken } from '@/components/apis/commonAPIs';
 import { getCookie } from '@/utils/cookies';
 
 // --- Sub-Component: Grid Card for Board View ---
@@ -35,12 +35,20 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatu
                 <h4 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{task.title}</h4>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100" onClick={() => onEdit(task)}>
-                    <Pencil size={14} className="text-indigo-600" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-rose-50" onClick={() => onDelete(task.id)}>
-                    <Trash2 size={14} className="text-rose-500" />
-                </Button>
+                {currentUser?.role_id !== 3 ? (
+                    <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100" onClick={() => onEdit(task)}>
+                            <Pencil size={14} className="text-indigo-600" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-rose-50" onClick={() => onDelete(task.id)}>
+                            <Trash2 size={14} className="text-rose-500" />
+                        </Button>
+                    </>
+                ) : (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-indigo-50" onClick={() => onEdit(task)}>
+                        <Activity size={14} className="text-indigo-600" />
+                    </Button>
+                )}
             </div>
         </div>
 
@@ -82,7 +90,7 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatu
 );
 
 // --- Main Page Component ---
-export default function TasksPage() {
+export default function TaskManagementPage() {
     const { tasks, projects, users, addTask, updateTask, deleteTask } = useStore();
 
     // Local UI State
@@ -106,6 +114,8 @@ export default function TasksPage() {
     const [apiProjects, setApiProjects] = useState<any[]>([]);
     const [availableDevs, setAvailableDevs] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [validationTrigger, setValidationTrigger] = useState<number>(0);
+    const modalContentRef = React.useRef<HTMLDivElement>(null);
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -141,7 +151,8 @@ export default function TasksPage() {
             if (statuses.success) {
                 setStatusData(statuses.data);
                 if (statuses.data.length > 0 && activeStatusId === null) {
-                    setActiveStatusId(statuses.data[0].TaskStatusID);
+                    const pendingStatus = statuses.data.find((s: any) => s.TaskStatusName === "Pending");
+                    setActiveStatusId(pendingStatus ? pendingStatus.TaskStatusID : statuses.data[0].TaskStatusID);
                 }
             }
             if (priorities.success) setPriorityData(priorities.data);
@@ -155,7 +166,10 @@ export default function TasksPage() {
     const fetchTasksByStatus = async (statusId: number) => {
         try {
             const userId = currentUser?.id?.toString().replace(/\D/g, '') || '0';
-            const queryParams = `taskId=0&assignedByUserId=${userId}&assignedToUserId=0&projectId=0&taskStatus=${statusId}&taskTypeId=0&taskPriority=0`;
+            const isDeveloper = currentUser?.role_id === 3;
+            const assignedByUserId = isDeveloper ? 0 : userId;
+            const assignedToUserId = isDeveloper ? userId : 0;
+            const queryParams = `taskId=0&assignedByUserId=${assignedByUserId}&assignedToUserId=${assignedToUserId}&projectId=0&taskStatus=${statusId}&taskTypeId=0&taskPriority=0`;
             const res = await callGetAPIWithToken(`tasks?${queryParams}`);
             if (res.success) setApiTasks(res.data);
         } catch (error) {
@@ -186,7 +200,7 @@ export default function TasksPage() {
         }
     }, [apiProjects]);
 
-    // Strategic Sync: Status <-> Progress
+    // Auto Sync: Status <-> Progress
     useEffect(() => {
         const completedStatus = statusData.find(s => s.TaskStatusName === "Completed");
         if (!completedStatus) return;
@@ -270,15 +284,42 @@ export default function TasksPage() {
         e.preventDefault();
 
         // Validation logic
-        if (!formData.projectId || !formData.statusId || !formData.typeId || !formData.priorityId || !formData.deadline || formData.assignedToUsers.length === 0) {
-            toast.error('Deployment Halted', {
-                description: 'Please ensure all governance parameters (Project, Status, Type, Priority, Deadline) and at least one Resource are selected.'
+        const missingFields: string[] = [];
+        if (!formData.title) missingFields.push('Task Title');
+        if (!formData.projectId) missingFields.push('Project');
+        if (!formData.statusId) missingFields.push('Current Status');
+        if (!formData.typeId) missingFields.push('Task Type');
+        if (!formData.priorityId) missingFields.push('Priority Level');
+        if (!formData.deadline) missingFields.push('Due Date');
+        if (formData.assignedToUsers.length === 0) missingFields.push('Team Members');
+
+        if (missingFields.length > 0) {
+            setValidationTrigger(prev => prev + 1);
+            toast.error('Missing Required Fields', {
+                description: `Please clarify: ${missingFields.join(', ')}`
             });
+
+            // Scroll to the first missing field
+            if (modalContentRef.current) {
+                const firstError = modalContentRef.current.querySelector('.border-rose-500, select:invalid, input:invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    // Fallback: search by label matching missingFields[0]
+                    const labels = modalContentRef.current.querySelectorAll('label');
+                    for (const label of Array.from(labels)) {
+                        if (label.textContent?.includes(missingFields[0])) {
+                            label.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            break;
+                        }
+                    }
+                }
+            }
             return;
         }
 
         setIsSubmitting(true);
-        const toastId = toast.loading(editingTask ? 'Updating task alignment...' : 'Operationalizing new task...');
+        const toastId = toast.loading(editingTask ? 'Saving changes...' : 'Adding task...');
 
         try {
             const payload = {
@@ -299,7 +340,7 @@ export default function TasksPage() {
             const result = await callAPIWithToken('tasks', payload);
 
             if (result.success) {
-                toast.success(editingTask ? 'Task Refined' : 'Task Operationalized', { id: toastId });
+                toast.success(editingTask ? 'Task Updated' : 'Task Created', { id: toastId });
 
                 if (editingTask) {
                     updateTask(editingTask.id, {
@@ -317,13 +358,13 @@ export default function TasksPage() {
 
                 setIsModalOpen(false);
             } else {
-                throw new Error(result.error?.message || 'Failed to sync task');
+                throw new Error(result.error?.message || 'Failed to save task');
             }
         } catch (error: any) {
             console.error("Task submission error:", error);
-            toast.error("Submission Failed", {
+            toast.error("Save Failed", {
                 id: toastId,
-                description: "Falling back to local update. Connectivity might be intermittent."
+                description: "Saved locally. Connection might be slow."
             });
 
             // Fallback to local store if API fails
@@ -333,6 +374,28 @@ export default function TasksPage() {
                 addTask(formData as any);
             }
             setIsModalOpen(false);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handlePatchProgress = async (taskId: number, progress: number) => {
+        setIsSubmitting(true);
+        const toastId = toast.loading('Updating progress...');
+        try {
+            const res = await callPatchAPIWithToken('tasks/progress', {
+                TaskID: taskId,
+                TaskProgress: progress
+            });
+            if (res.success) {
+                toast.success('Progress updated successfully', { id: toastId });
+                if (activeStatusId !== null) fetchTasksByStatus(activeStatusId);
+                setIsModalOpen(false);
+            } else {
+                toast.error(res.message || 'Failed to update progress', { id: toastId });
+            }
+        } catch (error: any) {
+            toast.error(error.message, { id: toastId });
         } finally {
             setIsSubmitting(false);
         }
@@ -351,7 +414,7 @@ export default function TasksPage() {
             return;
         }
 
-        const toastId = toast.loading(`Rolling back to ${statusData.find(s => s.TaskStatusID === prevStatusId)?.TaskStatusName}...`);
+        const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === prevStatusId)?.TaskStatusName}...`);
 
         try {
             const payload = {
@@ -372,7 +435,7 @@ export default function TasksPage() {
             const result = await callAPIWithToken('tasks', payload);
 
             if (result.success) {
-                toast.success('Workstream Rollback Successful', { id: toastId });
+                toast.success('Status Changed Successfully', { id: toastId });
                 setIsRollbackModalOpen(false); // Close modal on success
                 if (activeStatusId !== null) fetchTasksByStatus(activeStatusId);
             } else {
@@ -380,15 +443,15 @@ export default function TasksPage() {
             }
         } catch (error: any) {
             console.error("Status rollback error:", error);
-            toast.error("Transition Halted", { id: toastId });
+            toast.error("Action Failed", { id: toastId });
         }
     };
 
     const handleAdvanceStatus = async (task: any, nextStatusId: number) => {
-        const toastId = toast.loading(`Advancing to ${statusData.find(s => s.TaskStatusID === nextStatusId)?.TaskStatusName}...`);
+        const toastId = toast.loading(`Updating status to ${statusData.find(s => s.TaskStatusID === nextStatusId)?.TaskStatusName}...`);
 
         try {
-            // Intelligence: If advancing to "Completed", auto-lock progress at 100%
+            // Tip: If advancing to "Completed", auto-lock progress at 100%
             const completedStatus = statusData.find(s => s.TaskStatusName === "Completed");
             const finalProgress = (completedStatus && nextStatusId === completedStatus.TaskStatusID) ? 100 : task.ProgressPercentage;
 
@@ -410,26 +473,26 @@ export default function TasksPage() {
             const result = await callAPIWithToken('tasks', payload);
 
             if (result.success) {
-                toast.success('Strategic Alignment Successful', { id: toastId });
+                toast.success('Status Updated Successfully', { id: toastId });
                 if (activeStatusId !== null) {
                     fetchTasksByStatus(activeStatusId);
                 }
             } else {
-                throw new Error(result.error?.message || 'Re-alignment failed');
+                throw new Error(result.error?.message || 'Update failed');
             }
         } catch (error: any) {
             console.error("Status advancement error:", error);
-            toast.error("Transition Halted", {
+            toast.error("Action Failed", {
                 id: toastId,
-                description: "Manual governance check required. Check console for payload diagnostics."
+                description: "Please check your network and try again."
             });
         }
     };
 
     const handleDelete = (id: string) => {
-        if (confirm('Archive this task?')) {
+        if (confirm('Delete this task?')) {
             deleteTask(id);
-            toast.error('Task archived');
+            toast.error('Task deleted');
         }
     };
 
@@ -439,8 +502,12 @@ export default function TasksPage() {
             {/* Header */}
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Task Management</h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Track granular execution and team performance metrics.</p>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">
+                        {currentUser?.role_id === 3 ? 'My Assigned Tasks' : 'Create & Manage Task'}
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">
+                        {currentUser?.role_id === 3 ? 'Update your progress and complete your deliverables.' : 'Monitor your tasks and track team progress.'}
+                    </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800 shadow-inner">
@@ -451,9 +518,11 @@ export default function TasksPage() {
                             <LayoutGrid size={16} /> Board
                         </button>
                     </div>
-                    <Button onClick={handleOpenCreateModal} className="h-11 rounded-xl bg-slate-900 text-white px-6 font-bold shadow-xl shadow-slate-900/10 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        <Plus className="mr-2 h-4 w-4 stroke-[3px]" /> New Task
-                    </Button>
+                    {currentUser?.role_id !== 3 && (
+                        <Button onClick={handleOpenCreateModal} className="h-11 rounded-xl bg-slate-900 text-white px-6 font-bold shadow-xl shadow-slate-900/10 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                            <Plus className="mr-2 h-4 w-4 stroke-[3px]" /> New Task
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -478,7 +547,13 @@ export default function TasksPage() {
                                     )}
                                 >
                                     {status.TaskStatusName}
-                                    {isActive && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="activeTaskTab"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"
+                                            transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                        />
+                                    )}
                                 </button>
                             );
                         })}
@@ -492,7 +567,7 @@ export default function TasksPage() {
                     <motion.div key={activeStatusId} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {filteredTasks.length > 0 ? (
                             filteredTasks.map((task) => {
-                                // Find next/prev status for strategic realignment
+                                // Find next/prev status for update
                                 const currentIndex = statusData.findIndex(s => s.TaskStatusID === activeStatusId);
                                 const nextStatus = statusData[currentIndex + 1];
                                 const prevStatus = statusData[currentIndex - 1];
@@ -538,7 +613,7 @@ export default function TasksPage() {
                             <table className="w-full text-left text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Information</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Task Details</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Project</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Status</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Assignee</th>
@@ -561,17 +636,25 @@ export default function TasksPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal({
-                                                        ...task,
-                                                        id: task.TaskID.toString(),
-                                                        projectId: task.ProjectID.toString(),
-                                                        title: task.Title,
-                                                        description: task.Description,
-                                                        progressPercentage: task.ProgressPercentage,
-                                                        deadline: task.Deadline,
-                                                        status: task.StatusName as any
-                                                    })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(task.TaskID.toString())}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
+                                                    {currentUser?.role_id !== 3 ? (
+                                                        <>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal({
+                                                                ...task,
+                                                                id: task.TaskID.toString(),
+                                                                projectId: task.ProjectID.toString(),
+                                                                title: task.Title,
+                                                                description: task.Description,
+                                                                progressPercentage: task.ProgressPercentage,
+                                                                deadline: task.Deadline,
+                                                                status: task.StatusName as any
+                                                            })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(task.TaskID.toString())}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
+                                                        </>
+                                                    ) : (
+                                                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(task)}>
+                                                            <Activity size={14} className="text-indigo-600" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -582,7 +665,7 @@ export default function TasksPage() {
 
                         {/* Pagination */}
                         <div className="flex items-center justify-between border-t border-slate-100 p-6 dark:border-slate-800">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Showing {paginatedTasks.length} of {filteredTasks.length} units</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Showing {paginatedTasks.length} of {filteredTasks.length} items</p>
                             <div className="flex gap-2">
                                 <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl"><ChevronLeft size={16} /></Button>
                                 <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl"><ChevronRight size={16} /></Button>
@@ -612,7 +695,7 @@ export default function TasksPage() {
                             {/* Modal Header */}
                             <div className="p-8 pb-4 flex items-center justify-between shrink-0">
                                 <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
-                                    {editingTask ? 'Refine Execution Unit' : 'Initialize Execution Unit'}
+                                    {currentUser?.role_id === 3 ? 'Update Progress' : (editingTask ? 'Edit Task' : 'Add New Task')}
                                 </h2>
                                 <Button variant="ghost" size="icon" className="rounded-2xl h-10 w-10 hover:bg-slate-100" onClick={() => setIsModalOpen(false)}>
                                     <X size={20} />
@@ -620,146 +703,263 @@ export default function TasksPage() {
                             </div>
 
                             {/* Scrollable Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-8 pt-2 scrollbar-hide">
-                                <form onSubmit={handleSubmitTask} className="space-y-8 pb-4">
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Governance - Target Project</label>
-                                        <select
-                                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950 dark:border-slate-800"
-                                            value={formData.projectId}
-                                            onChange={e => setFormData({ ...formData, projectId: e.target.value })}
-                                        >
-                                            <option value="">Select Target Project...</option>
-                                            {apiProjects.map(p => <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>)}
-                                        </select>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Core Identity - Task Title</label>
-                                            <Input placeholder="Define delivery outcome..." required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
+                            <div ref={modalContentRef} className="flex-1 overflow-y-auto p-8 pt-2 scrollbar-hide">
+                                {currentUser?.role_id === 3 ? (
+                                    /* Developer-only: Progress Update View */
+                                    <div className="space-y-8 pb-4">
+                                        {/* Task Info */}
+                                        <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-5 space-y-3">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Task</p>
+                                            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">{editingTask?.Title || editingTask?.title}</h3>
+                                            <p className="text-xs text-slate-500">{editingTask?.Description || editingTask?.description}</p>
+                                            <div className="flex flex-wrap gap-3 pt-2">
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-wider">
+                                                    <Activity size={10} /> {editingTask?.StatusName || editingTask?.status}
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider">
+                                                    <Calendar size={10} /> Due: {formatDate(editingTask?.Deadline || editingTask?.deadline)}
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider">
+                                                    {editingTask?.ProjectName}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Phase / Workstream</label>
-                                            <Input placeholder="e.g. Phase 1 - Scoping" value={formData.subTitle} onChange={e => setFormData({ ...formData, subTitle: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
+
+                                        {/* Progress Slider */}
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">My Progress</label>
+                                                <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                                                    {formData.progressPercentage}%
+                                                </span>
+                                            </div>
+                                            <div className="relative h-3 w-full">
+                                                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(79,70,229,0.3)]" style={{ width: `${formData.progressPercentage}%` }} />
+                                                <input
+                                                    type="range" min="0" max="100"
+                                                    className="absolute inset-0 w-full h-full appearance-none bg-slate-100 dark:bg-slate-700 rounded-full cursor-pointer focus:outline-none"
+                                                    value={formData.progressPercentage}
+                                                    onChange={e => setFormData({ ...formData, progressPercentage: Number(e.target.value) })}
+                                                    style={{ WebkitAppearance: 'none', background: 'transparent' }}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Milestones */}
+                                        <div className="grid grid-cols-4 gap-3">
+                                            {[25, 50, 75, 100].map(milestone => (
+                                                <button
+                                                    key={milestone}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, progressPercentage: milestone }))}
+                                                    className={cn(
+                                                        "py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border transition-all",
+                                                        formData.progressPercentage >= milestone
+                                                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-indigo-300"
+                                                    )}
+                                                >
+                                                    {milestone}%
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-4 flex flex-col gap-3">
+                                            <Button
+                                                onClick={() => handlePatchProgress(editingTask?.TaskID || editingTask?.id, formData.progressPercentage)}
+                                                disabled={isSubmitting}
+                                                className="h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30"
+                                            >
+                                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Progress</>}
+                                            </Button>
+                                            <Button variant="ghost" className="h-11 rounded-2xl font-bold text-slate-500" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                ) : (
+                                    <form onSubmit={handleSubmitTask} className="space-y-8 pb-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Operational Type</label>
-                                            <select className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950 dark:border-slate-800" value={formData.typeId} onChange={e => setFormData({ ...formData, typeId: e.target.value })}>
-                                                <option value="">Select Type</option>
-                                                {typeData.map(t => <option key={t.TaskTypeID} value={t.TaskTypeID}>{t.TaskTypeName}</option>)}
+                                            <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.projectId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Project</label>
+                                            <select
+                                                className={cn(
+                                                    "h-12 w-full rounded-2xl border bg-slate-50 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
+                                                    !formData.projectId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
+                                                )}
+                                                value={formData.projectId}
+                                                onChange={e => setFormData({ ...formData, projectId: e.target.value })}
+                                            >
+                                                <option value="">Select Project...</option>
+                                                {apiProjects.map(p => <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>)}
                                             </select>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Live Status</label>
-                                            <select className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950 dark:border-slate-800" value={formData.statusId} onChange={e => setFormData({ ...formData, statusId: e.target.value })}>
-                                                <option value="">Select Status</option>
-                                                {statusData.map(s => <option key={s.TaskStatusID} value={s.TaskStatusID}>{s.TaskStatusName}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Risk Priority</label>
-                                            <select className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950 dark:border-slate-800" value={formData.priorityId} onChange={e => setFormData({ ...formData, priorityId: e.target.value })}>
-                                                <option value="">Select Priority</option>
-                                                {priorityData.map(p => <option key={p.PriorityID} value={p.PriorityID}>{p.PriorityName}</option>)}
-                                            </select>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.title && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Task Title</label>
+                                                <Input
+                                                    placeholder="Enter task title..."
+                                                    required
+                                                    value={formData.title}
+                                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                                    className={cn("h-12 rounded-2xl border bg-white dark:bg-slate-950 px-4 font-bold", !formData.title && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200")}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Sub Title</label>
+                                                <Input placeholder="e.g. Backend Development" value={formData.subTitle} onChange={e => setFormData({ ...formData, subTitle: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
+                                            </div>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Deployment Deadline</label>
-                                            <Input type="date" required value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
-                                        </div>
-                                    </div>
 
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Task progress</label>
-                                            <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{formData.progressPercentage}%</span>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.typeId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Task Type</label>
+                                                <select
+                                                    className={cn(
+                                                        "h-12 w-full rounded-2xl border bg-white px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
+                                                        !formData.typeId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
+                                                    )}
+                                                    value={formData.typeId}
+                                                    onChange={e => setFormData({ ...formData, typeId: e.target.value })}
+                                                >
+                                                    <option value="">Select Type</option>
+                                                    {typeData.map(t => <option key={t.TaskTypeID} value={t.TaskTypeID}>{t.TaskTypeName}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.statusId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Current Status</label>
+                                                <select
+                                                    className={cn(
+                                                        "h-12 w-full rounded-2xl border bg-white px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
+                                                        !formData.statusId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
+                                                    )}
+                                                    value={formData.statusId}
+                                                    onChange={e => setFormData({ ...formData, statusId: e.target.value })}
+                                                >
+                                                    <option value="">Select Status</option>
+                                                    {statusData.map(s => <option key={s.TaskStatusID} value={s.TaskStatusID}>{s.TaskStatusName}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div className={cn("relative h-2 w-full group", formData.progressPercentage === 100 && statusData.find(s => s.TaskStatusID.toString() === formData.statusId)?.TaskStatusName === "Completed" && "opacity-60 cursor-not-allowed")}>
-                                            <div
-                                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(79,70,229,0.2)]"
-                                                style={{ width: `${formData.progressPercentage}%` }}
-                                            />
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="100"
-                                                disabled={statusData.find(s => s.TaskStatusID.toString() === formData.statusId)?.TaskStatusName === "Completed"}
-                                                className="absolute inset-0 w-full h-full appearance-none bg-slate-100 rounded-full cursor-pointer accent-transparent focus:outline-none bg-transparent"
-                                                value={formData.progressPercentage}
-                                                onChange={e => setFormData({ ...formData, progressPercentage: Number(e.target.value) })}
-                                                style={{ WebkitAppearance: 'none', background: 'rgba(241, 245, 249, 0.5)' }}
-                                            />
-                                        </div>
-                                        {statusData.find(s => s.TaskStatusID.toString() === formData.statusId)?.TaskStatusName === "Completed" && (
-                                            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Progress locked at 100% for completed tasks</p>
-                                        )}
-                                    </div>
 
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Assigned Resources</label>
-                                        <div className="flex flex-wrap gap-2 p-5 rounded-3xl bg-slate-50 border border-slate-100 dark:bg-slate-950/50 dark:border-slate-800">
-                                            {availableDevs.length > 0 ? (
-                                                availableDevs.map(dev => (
-                                                    <button
-                                                        key={dev.UserID}
-                                                        type="button"
-                                                        onClick={() => toggleDeveloper(dev.UserID)}
-                                                        className={cn(
-                                                            "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border shrink-0",
-                                                            formData.assignedToUsers.includes(dev.UserID)
-                                                                ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20 scale-105"
-                                                                : "bg-white border-slate-200 text-slate-500 hover:border-indigo-400 dark:bg-slate-900 dark:border-slate-800"
-                                                        )}
-                                                    >
-                                                        {formData.assignedToUsers.includes(dev.UserID) ? <CheckCircle2 size={12} /> : <UserIcon size={12} />}
-                                                        {dev.UserFullName}
-                                                    </button>
-                                                ))
-                                            ) : (
-                                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest py-2 text-center w-full italic">Awaiting project selection for resource mapping...</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.priorityId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Priority Level</label>
+                                                <select
+                                                    className={cn(
+                                                        "h-12 w-full rounded-2xl border bg-white px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
+                                                        !formData.priorityId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
+                                                    )}
+                                                    value={formData.priorityId}
+                                                    onChange={e => setFormData({ ...formData, priorityId: e.target.value })}
+                                                >
+                                                    <option value="">Select Priority</option>
+                                                    {priorityData.map(p => <option key={p.PriorityID} value={p.PriorityID}>{p.PriorityName}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.deadline && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Due Date</label>
+                                                <Input
+                                                    type="date"
+                                                    required
+                                                    value={formData.deadline}
+                                                    onChange={e => setFormData({ ...formData, deadline: e.target.value })}
+                                                    className={cn("h-12 rounded-2xl border bg-white dark:bg-slate-950 px-4 font-bold", !formData.deadline && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200")}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Progress</label>
+                                                <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{formData.progressPercentage}%</span>
+                                            </div>
+                                            <div className={cn("relative h-2 w-full group", formData.progressPercentage === 100 && statusData.find(s => s.TaskStatusID.toString() === formData.statusId)?.TaskStatusName === "Completed" && "opacity-60 cursor-not-allowed")}>
+                                                <div
+                                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(79,70,229,0.2)]"
+                                                    style={{ width: `${formData.progressPercentage}%` }}
+                                                />
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="100"
+                                                    disabled={statusData.find(s => s.TaskStatusID.toString() === formData.statusId)?.TaskStatusName === "Completed"}
+                                                    className="absolute inset-0 w-full h-full appearance-none bg-slate-100 rounded-full cursor-pointer accent-transparent focus:outline-none bg-transparent"
+                                                    value={formData.progressPercentage}
+                                                    onChange={e => setFormData({ ...formData, progressPercentage: Number(e.target.value) })}
+                                                    style={{ WebkitAppearance: 'none', background: 'rgba(241, 245, 249, 0.5)' }}
+                                                />
+                                            </div>
+                                            {statusData.find(s => s.TaskStatusID.toString() === formData.statusId)?.TaskStatusName === "Completed" && (
+                                                <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-1">Progress locked at 100% for completed tasks</p>
                                             )}
                                         </div>
-                                    </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Technical Requirements & Context</label>
-                                        <textarea
-                                            className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all dark:bg-slate-950 dark:border-slate-800"
-                                            placeholder="Provide detailed implementation requirements..."
-                                            value={formData.description}
-                                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        />
-                                    </div>
-                                </form>
+                                        <div className="space-y-3">
+                                            <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", formData.assignedToUsers.length === 0 && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Assign Team Members</label>
+                                            <div className={cn(
+                                                "flex flex-wrap gap-2 p-5 rounded-3xl bg-slate-50 border transition-all dark:bg-slate-950/50",
+                                                formData.assignedToUsers.length === 0 && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-100 dark:border-slate-800"
+                                            )}>
+                                                {availableDevs.length > 0 ? (
+                                                    availableDevs.map(dev => (
+                                                        <button
+                                                            key={dev.UserID}
+                                                            type="button"
+                                                            onClick={() => toggleDeveloper(dev.UserID)}
+                                                            className={cn(
+                                                                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border shrink-0",
+                                                                formData.assignedToUsers.includes(dev.UserID)
+                                                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-600/20 scale-105"
+                                                                    : "bg-white border-slate-200 text-slate-500 hover:border-indigo-400 dark:bg-slate-900 dark:border-slate-800"
+                                                            )}
+                                                        >
+                                                            {formData.assignedToUsers.includes(dev.UserID) ? <CheckCircle2 size={12} /> : <UserIcon size={12} />}
+                                                            {dev.UserFullName}
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest py-2 text-center w-full italic">Assign team members to the project first</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Task Description</label>
+                                            <textarea
+                                                className="min-h-[120px] w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all dark:bg-slate-950 dark:border-slate-800"
+                                                placeholder="Enter task details..."
+                                                value={formData.description}
+                                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                            />
+                                        </div>
+                                    </form>
+                                )}
                             </div>
 
-                            {/* Modal Footer */}
-                            <div className="p-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-                                <Button variant="ghost" type="button" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-50" onClick={() => setIsModalOpen(false)}>Discard</Button>
-                                <Button
-                                    onClick={handleSubmitTask}
-                                    disabled={isSubmitting}
-                                    className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 active:scale-[0.98] transition-all"
-                                >
-                                    {isSubmitting ? (
-                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizing...</>
-                                    ) : (
-                                        <>{editingTask ? 'Update Task' : 'Deploy Task'}</>
-                                    )}
-                                </Button>
-                            </div>
+                            {/* Modal Footer — only for team leads / admins */}
+                            {currentUser?.role_id !== 3 && (
+                                <div className="p-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
+                                    <Button variant="ghost" type="button" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-50" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                    <Button
+                                        onClick={handleSubmitTask}
+                                        disabled={isSubmitting}
+                                        className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 active:scale-[0.98] transition-all"
+                                    >
+                                        {isSubmitting ? (
+                                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                                        ) : (
+                                            <>{editingTask ? 'Save Changes' : 'Add Task'}</>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
-            {/* Premium Strategic Rollback Modal */}
+            {/* Status Change Confirmation Modal */}
             <AnimatePresence>
                 {isRollbackModalOpen && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -774,8 +974,8 @@ export default function TasksPage() {
 
                             <div className="space-y-6">
                                 <div>
-                                    <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Rollback Confirmation</h2>
-                                    <p className="text-sm text-slate-500 mt-2">Reverting <b>{rollbackTask?.Title}</b> from Completed state. You must explicitly define the new workstream progress.</p>
+                                    <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Change Status</h2>
+                                    <p className="text-sm text-slate-500 mt-2">Moving <b>{rollbackTask?.Title}</b> from Completed back to an active state. Update the progress below.</p>
                                 </div>
 
                                 <div className="space-y-4">

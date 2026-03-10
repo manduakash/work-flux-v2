@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Mail, Phone, Github, Globe,
@@ -14,21 +14,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { getCookie } from '@/utils/cookies';
-import { useEffect } from 'react';
+import { getCookie, setCookie } from '@/utils/cookies';
 import { callPutAPIWithToken, callGetAPIWithToken } from "@/components/apis/commonAPIs";
+import { useStore } from '@/store/useStore';
 
 export default function ProfileSettings() {
-    const [currentUser, setCurrentUser] = useState<any>(null);
-
-    useEffect(() => {
-        const user = getCookie("user");
-        if (user) {
-            setCurrentUser(user);
-        }
-    }, []);
-
-
+    const { currentUser, setCurrentUser } = useStore();
 
     // Local state for profile data
     const [formData, setFormData] = useState({
@@ -52,25 +43,25 @@ export default function ProfileSettings() {
     const [newTag, setNewTag] = useState({ designation: '', tech: '' });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Fetch initial profile data
+    // Initial load handled by useStore hydration, but we sync local form
     useEffect(() => {
-        // Only use cookie for user info
-        const user = getCookie("user");
-        if (user) {
-            setCurrentUser(user);
+        if (currentUser) {
             setFormData(prev => ({
                 ...prev,
-                fullName: user.name || user.FullName || '',
-                email: user.email || user.username || '',
-                contactNumber: user.contact_no || '',
-                gitUsername: user.git_username || '',
-                gitPublicKey: user.git_public_key || '',
+                fullName: currentUser.name || currentUser.FullName || '',
+                email: currentUser.email || currentUser.username || '',
+                contactNumber: currentUser.contact_no || '',
+                gitUsername: currentUser.git_username || '',
+                gitPublicKey: currentUser.git_public_key || '',
             }));
-            if (user.profile_image) {
-                setProfileImg(user.profile_image);
+            if (currentUser.profile_image) {
+                setProfileImg(currentUser.profile_image);
             }
         }
-        // fetchDesignations remains as is
+    }, [currentUser]);
+
+    // Fetch designations
+    useEffect(() => {
         const fetchDesignations = async () => {
             try {
                 const response = await callGetAPIWithToken('designations');
@@ -115,12 +106,25 @@ export default function ProfileSettings() {
             const response = await callPutAPIWithToken('users/profile', payload);
 
             if (response?.success) {
-                toast.success("Identity parameters synchronized");
+                toast.success("Profile updated successfully");
+                // Update store and cookie with new info
+                if (currentUser) {
+                    const updatedUser = {
+                        ...currentUser,
+                        name: formData.fullName,
+                        contact_no: formData.contactNumber,
+                        profile_image: profileImg || currentUser.profile_image,
+                        git_username: formData.gitUsername,
+                        git_public_key: formData.gitPublicKey
+                    };
+                    setCurrentUser(updatedUser);
+                    setCookie("user", updatedUser);
+                }
             } else {
-                toast.error(response?.message || "Cloud sync failed");
+                toast.error(response?.message || "Update failed");
             }
         } catch (error: any) {
-            toast.error(error.message || "An unexpected error occurred during synchronization");
+            toast.error(error.message || "An error occurred while saving");
         }
     };
 
@@ -153,7 +157,7 @@ export default function ProfileSettings() {
             const reader = new FileReader();
             reader.onloadend = () => setProfileImg(reader.result as string);
             reader.readAsDataURL(file);
-            toast.info("Avatar buffer updated");
+            toast.info("Profile picture updated");
         }
     };
 
@@ -173,12 +177,12 @@ export default function ProfileSettings() {
                         {profileImg ? (
                             <img src={profileImg} className="h-full w-full object-cover" alt="Profile" />
                         ) :
-                            currentUser?.avatar ? (
-                                <img src={currentUser?.avatar} className="h-full w-full object-cover" alt="Profile" />
+                            currentUser?.avatar || currentUser?.profile_image ? (
+                                <img src={currentUser?.avatar || currentUser?.profile_image} className="h-full w-full object-cover" alt="Profile" />
                             ) :
                                 (
                                     <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
-                                        {currentUser?.name?.charAt(0) || "AS"}
+                                        {currentUser?.name?.charAt(0) || currentUser?.username?.charAt(0) || "U"}
                                     </div>
                                 )}
 
@@ -201,16 +205,16 @@ export default function ProfileSettings() {
                     {/* Name + Role Section */}
                     <div className="pb-6">
                         <h2 className="text-5xl font-bold text-indigo-100 dark:text-white">
-                            {formData.fullName || currentUser?.name || "Akash Singh"}
+                            {formData.fullName || currentUser?.name || "User Name"}
                         </h2>
                         <p className="text-slate-400 text-2xl dark:text-slate-400">
-                            {currentUser?.role || "Full Stack Developer & DevOps"}
+                            {currentUser?.role || "Developer"}
                         </p>
 
                         <div className="flex items-center gap-2 mt-2">
                             <BadgeCheckIcon className="animate-pulse text-emerald-600 rounded-full bg-emerald-50 font-bold" size={18} />
                             <span className="text-sm font-medium text-slate-400 dark:text-slate-400">
-                                Verified Identity
+                                Verified Member
                             </span>
                         </div>
                     </div>
@@ -232,15 +236,19 @@ export default function ProfileSettings() {
                                 <Input value={formData.fullName} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, fullName: e.target.value })} />
                             </div>
                             <div className="space-y-2">
+<<<<<<< HEAD
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Number</Label>
+=======
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Phone Number</Label>
+>>>>>>> e8c62ebd3286c54703ca4ef4bc24782d68996925
                                 <Input value={formData.contactNumber} className="h-12 rounded-2xl" onChange={e => setFormData({ ...formData, contactNumber: e.target.value })} />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Primary Email</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</Label>
                                 <Input value={formData.email} className="h-12 rounded-2xl" type="email" onChange={e => setFormData({ ...formData, email: e.target.value })} />
                             </div>
                             <div className="md:col-span-2 space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Executive Summary (Bio)</Label>
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">About Me (Bio)</Label>
                                 <textarea
                                     className="w-full min-h-[120px] rounded-3xl border border-slate-200 bg-white p-4 text-sm focus:border-indigo-600 outline-none dark:bg-slate-950 dark:border-slate-800"
                                     value={formData.bio}
@@ -253,7 +261,7 @@ export default function ProfileSettings() {
                     {/* GitHub & Social */}
                     <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                         <h3 className="text-xl font-black uppercase tracking-tight mb-8 flex items-center gap-3">
-                            <Globe className="text-indigo-600" size={20} /> Version Control Integrations
+                            <Globe className="text-indigo-600" size={20} /> GitHub & Location
                         </h3>
                         <div className="space-y-4">
                             <div className="relative group">
@@ -277,7 +285,7 @@ export default function ProfileSettings() {
                             <div className="relative group">
                                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-600" />
                                 <Input
-                                    placeholder="Operational Base (Location)"
+                                    placeholder="Location"
                                     value={formData.location}
                                     className="pl-12 h-14 rounded-2xl bg-slate-50 border-none dark:bg-slate-800"
                                     onChange={e => setFormData({ ...formData, location: e.target.value })}
@@ -402,13 +410,17 @@ export default function ProfileSettings() {
                             <ShieldCheck size={40} className="text-indigo-500 opacity-50" />
                         </div>
                         <p className="relative z-10 mt-6 text-xs text-slate-400 leading-relaxed font-medium">
-                            Your profile is verified within the NexIntel Synergy network. Strategic deployment access is currently <span className="text-emerald-400 font-bold uppercase">Authorized</span>.
+                            Your profile is verified within the Work-Flux network. You have <span className="text-emerald-400 font-bold uppercase">Authorized</span> access.
                         </p>
                         <div className="absolute -right-10 -bottom-10 h-40 w-40 bg-indigo-600/20 rounded-full blur-3xl" />
                     </div>
 
                     <Button onClick={handleSave} className="w-full h-14 rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-500/20">
+<<<<<<< HEAD
                         <Save className="mr-3" size={18} /> Update Profile
+=======
+                        <Save className="mr-3" size={18} /> Save Profile
+>>>>>>> e8c62ebd3286c54703ca4ef4bc24782d68996925
                     </Button>
 
                 </div>
