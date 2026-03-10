@@ -37,7 +37,14 @@ export interface User {
   username: string;
   name: string;
   role: UserRole;
+  role_id?: number;
   avatar?: string;
+  email?: string;
+  contact_no?: string;
+  git_username?: string;
+  git_public_key?: string;
+  profile_image?: string;
+  FullName?: string; // For legacy/API consistency
 }
 
 export interface Task {
@@ -50,6 +57,7 @@ export interface Task {
   status: TaskStatus;
   progressPercentage: number;
   remarks?: string;
+  priority?: Priority;
   createdAt: string;
   updatedAt: string;
 }

@@ -15,7 +15,7 @@ import Sidebar from '@/components/CommonSidebar';
 const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
     { icon: FolderKanban, label: 'Projects', href: '/projects' },
-    { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
+    { icon: CheckSquare, label: 'Tasks', href: '/create-manage-task' },
     { icon: Rocket, label: 'Deployments', href: '/deployments' },
     { icon: BarChart3, label: 'Reports', href: '/reports' },
     { icon: Settings, label: 'Settings', href: '/settings' },

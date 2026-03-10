@@ -25,44 +25,54 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     const [navItems, setNavItems] = useState<any[]>([]);
     const leadNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
-        { icon: Users, label: 'Team Management', href: '/team-management' },
-        { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
-        { icon: Plus, label: 'Project Create', href: '/project-create' },
-        { icon: ListChecks, label: 'Task Distribution', href: '/tasks' },
-        { icon: BarChartHorizontal, label: 'Performance', href: '/performance' },
+        { icon: Plus, label: 'Add Project', href: '/project-create' },
+        { icon: Users, label: 'Team Assignment', href: '/team-management' },
+        { icon: ListChecks, label: 'Assign Tasks', href: '/create-manage-task' },
+        { icon: FolderKanban, label: 'Project Health', href: '/project-oversight' },
+        { icon: BarChartHorizontal, label: 'Stats', href: '/performance' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
     const devNavItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
+        { icon: LayoutDashboard, label: 'Overview', href: '/developer-dashboard' },
+        { icon: ListChecks, label: 'Assigned Tasks', href: '/create-manage-task' },
         { icon: FolderKanban, label: 'Projects', href: '/projects' },
-        { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
-        // { icon: Rocket, label: 'Deployments', href: '/deployments' },
-        // { icon: BarChart3, label: 'Reports', href: '/reports' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
     const adminNavItems = [
-        { icon: LayoutDashboard, label: 'Global Overview', href: '/admin-dashboard' },
-        { icon: Globe, label: 'Project Portfolio', href: '/portfolio' },
-        { icon: Landmark, label: 'Financials & Burn', href: '/financials' },
-        { icon: PieChart, label: 'Resource Analytics', href: '/analytics' },
-        { icon: ShieldAlert, label: 'Risk & Compliance', href: '/governance' },
+        { icon: LayoutDashboard, label: 'Overview', href: '/admin-dashboard' },
+        { icon: Globe, label: 'Portfolio', href: '/portfolio' },
+        { icon: Landmark, label: 'Finance', href: '/financials' },
+        { icon: PieChart, label: 'Analytics', href: '/analytics' },
+        { icon: ShieldAlert, label: 'Settings', href: '/governance' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
     useEffect(() => {
-        const role = currentUser?.role || getCookie("role");
-        if (role === 'TEAM_LEAD') {
+        const roleIdRaw = getCookie("role_id");
+        const roleId = currentUser?.role_id || (roleIdRaw ? parseInt(roleIdRaw) : null);
+
+        if (roleId === 2) {
             setNavItems(leadNavItems);
-        } else if (role === 'DEVELOPER') {
+        } else if (roleId === 3) {
             setNavItems(devNavItems);
-        } else if (role === 'MANAGEMENT') {
+        } else if (roleId === 1) {
             setNavItems(adminNavItems);
         } else {
-            setNavItems([]);
+            // Robust fallback if role_id is not yet set or unavailable
+            const role = currentUser?.role || getCookie("role");
+            if (role === 'TEAM_LEAD') {
+                setNavItems(leadNavItems);
+            } else if (role === 'DEVELOPER') {
+                setNavItems(devNavItems);
+            } else if (role === 'MANAGEMENT') {
+                setNavItems(adminNavItems);
+            } else {
+                setNavItems([]);
+            }
         }
-    }, [])
+    }, [currentUser])
 
     return (
         <aside className={cn(
@@ -109,13 +119,13 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                             ) :
                                 (
                                     <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
-                                        {currentUser?.name?.charAt(0) || "AS"}
+                                        {currentUser?.name?.charAt(0) || currentUser?.username?.charAt(0) || "U"}
                                     </div>
                                 )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                                {currentUser?.name || "Akash Singh"}
+                                {currentUser?.name || currentUser?.username || "Active User"}
                             </p>
                             <p className="truncate text-[11px] font-medium uppercase tracking-wider text-slate-500">
                                 {currentUser?.role.replace('_', ' ')}

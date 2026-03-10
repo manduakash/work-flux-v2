@@ -3,6 +3,24 @@ import { redirect } from "next/navigation";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+/**
+ * Returns the UserID from the JWT token stored in cookies.
+ */
+export const getUserIdFromToken = () => {
+  if (typeof window === "undefined") return null;
+  const token = getCookie("token");
+  if (!token) return null;
+  try {
+    const payloadBase64 = token.split(".")[1];
+    const payload = JSON.parse(atob(payloadBase64));
+    // Using UserID as seen in user's decoded example
+    return payload.UserID || payload.userId || payload.id;
+  } catch (error) {
+    console.error("JWT Decode Failure:", error);
+    return null;
+  }
+};
+
 export const callAPI = async (url: string, body: any) => {
   const response = await fetch(`${BASE_URL}${url}`, {
     method: 'POST',
@@ -80,6 +98,19 @@ export const callPutAPIWithToken = async (url: string, body: any) => {
     deleteCookie("token");
     throw new Error(`Session expired. Please login again.`);
     redirect("/session-expired");
+  }
+  return result;
+}
+export const callPatchAPIWithToken = async (url: string, body: any) => {
+  const response = await fetch(`${BASE_URL}${url}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
+    body: JSON.stringify(body),
+  });
+  const result = await response?.json();
+  if (response?.status == 401) {
+    deleteCookie("token");
+    throw new Error(`Session expired. Please login again.`);
   }
   return result;
 }

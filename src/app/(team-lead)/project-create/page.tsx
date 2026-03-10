@@ -13,7 +13,7 @@ import {
   Cpu,
   CheckCircle2
 } from 'lucide-react';
-import { callAPIWithToken, callGetAPIWithToken } from '@/components/apis/commonAPIs';
+import { callAPIWithToken, callGetAPIWithToken, getUserIdFromToken } from '@/components/apis/commonAPIs';
 
 const ProjectCreation = () => {
   const addProject = useStore((state) => state.addProject);
@@ -106,9 +106,9 @@ const ProjectCreation = () => {
     e.preventDefault();
 
     // Improved Validation
-    if (!formData.name || !formData.type || !formData.priority || !formData.status) {
+    if (!formData.name || !formData.type || !formData.priority || !formData.status || !formData.deadline) {
       toast.error('Missing Required Fields', {
-        description: 'Please ensure Project Name, Type, Priority, and Status are filled.'
+        description: 'Please ensure all fields including Deadline are filled.'
       });
       return;
     }
@@ -126,6 +126,8 @@ const ProjectCreation = () => {
         ProjectStatus: Number(formData.status),
         ProjectDeadline: formData.deadline,
         ProgressPercentage: Number(formData.progress),
+        ProjectLeadID: Number(getUserIdFromToken() || 0),
+        ProjectStartDate: new Date().toISOString().split('T')[0]
       };
 
       const result = await callAPIWithToken('projects', payload);
@@ -145,7 +147,7 @@ const ProjectCreation = () => {
           deadline: formData.deadline,
           progressPercentage: Number(formData.progress),
           startDate: new Date().toISOString(),
-          assignedLeadId: '',
+          assignedLeadId: getUserIdFromToken()?.toString() || '',
           assignedDeveloperIds: [],
         } as any);
 
@@ -185,7 +187,7 @@ const ProjectCreation = () => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Create New Project</h1>
-          <p className="text-slate-500">Enter project details to update your dashboard grid.</p>
+          <p className="text-slate-500">Enter project details to get started.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -272,7 +274,7 @@ const ProjectCreation = () => {
 
               <div>
                 <div className="flex justify-between mb-4">
-                  <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 ml-1">Workstream Velocity</label>
+                  <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 ml-1">Project Progress</label>
                   <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">{formData.progress}%</span>
                 </div>
                 <div className="relative h-2 w-full group">
@@ -296,7 +298,7 @@ const ProjectCreation = () => {
                   />
                   {/* Styled Thumb via CSS (will be added to the input class or inline styles if necessary, but Tailwind accent-transparent and background transparent with the div fill provides the look) */}
                 </div>
-                <p className="mt-3 text-[10px] font-medium text-slate-400 italic">Drag to set initial delivery progress</p>
+                <p className="mt-3 text-[10px] font-medium text-slate-400 italic">Slide to set starting progress</p>
               </div>
 
               <button
@@ -325,12 +327,12 @@ const ProjectCreation = () => {
               </h3>
 
               <p className="text-slate-400 text-sm leading-relaxed mb-8 h-10 line-clamp-2">
-                {formData.description || "Project description will appear here..."}
+                {formData.description || "Project goals will appear here..."}
               </p>
 
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Delivery Velocity</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Project Progress</span>
                   <span className="text-sm font-black text-slate-800">{formData.progress}%</span>
                 </div>
                 <div className="w-full h-[10px] bg-slate-100 rounded-full overflow-hidden p-[2px]">

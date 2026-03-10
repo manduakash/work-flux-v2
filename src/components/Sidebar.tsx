@@ -41,7 +41,7 @@ export const Sidebar = () => {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderKanban, label: 'Projects', path: '/projects' },
-        { icon: CheckSquare, label: 'Tasks', path: '/tasks' },
+        { icon: CheckSquare, label: 'Create & Manage Task', path: '/create-manage-task' },
     ];
 
     if (currentUser?.role === UserRole.MANAGEMENT || currentUser?.role === UserRole.TEAM_LEAD) {

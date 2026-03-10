@@ -125,7 +125,7 @@ export default function ProfessionalDashboard() {
         completed: 45
     };
 
-    if (loading) return <div className="p-20 text-center font-black animate-pulse">SYNCHRONIZING CORE...</div>;
+    if (loading) return <div className="p-20 text-center font-black animate-pulse">LOADING DASHBOARD DATA...</div>;
 
     return (
         <motion.div
@@ -135,9 +135,9 @@ export default function ProfessionalDashboard() {
             {/* Header section with Requirement 9: Total Active Project Days */}
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter uppercase">Team Lead <span className="text-indigo-600">Dashboard</span></h1>
+                    <h1 className="text-4xl font-black tracking-tighter uppercase">Management <span className="text-indigo-600">Overview</span></h1>
                     <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-1 flex items-center gap-2">
-                        System Online: Monitoring {data?.projects?.length} Workstreams
+                        Tracking {data?.projects?.length} Projects
                     </p>
                 </div>
 
@@ -147,7 +147,7 @@ export default function ProfessionalDashboard() {
                         <Calendar className="h-6 w-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black uppercase text-slate-400">Total Active Uptime</p>
+                        <p className="text-[10px] font-black uppercase text-slate-400">Total Project Time</p>
                         <p className="text-xl font-black">1,240 <span className="text-sm text-slate-400 tracking-normal">Days</span></p>
                     </div>
                 </div>
@@ -157,16 +157,16 @@ export default function ProfessionalDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* 4. Task Summary Total */}
                 <motion.div variants={itemVariants} className="lg:col-span-4 grid grid-cols-4 gap-4">
-                    <SummaryCard label="Pending Task(s)" value={taskSummary.pending} color="bg-rose-500" icon={Clock} />
-                    <SummaryCard label="In Progress Task(s)" value={taskSummary.inProgress} color="bg-blue-500" icon={Activity} />
-                    <SummaryCard label="Under Review Task(s)" value={taskSummary.review} color="bg-amber-500" icon={ShieldCheck} />
-                    <SummaryCard label="Completed Task(s)" value={taskSummary.completed} color="bg-emerald-500" icon={CheckCircle2} />
+                    <SummaryCard label="Pending" value={taskSummary.pending} color="bg-rose-500" icon={Clock} />
+                    <SummaryCard label="Active" value={taskSummary.inProgress} color="bg-blue-500" icon={Activity} />
+                    <SummaryCard label="In Review" value={taskSummary.review} color="bg-amber-500" icon={ShieldCheck} />
+                    <SummaryCard label="Finished" value={taskSummary.completed} color="bg-emerald-500" icon={CheckCircle2} />
                 </motion.div>
 
                 {/* 3. Resources (Developers) per Project */}
                 <motion.div variants={itemVariants} className="lg:col-span-4 bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h3 className="font-black uppercase tracking-tight mb-6 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-indigo-500" /> Resource Allocation
+                        <Users className="h-5 w-5 text-indigo-500" /> Team Member Distribution
                     </h3>
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -175,7 +175,7 @@ export default function ProfessionalDashboard() {
                                 <XAxis dataKey="ProjectName" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
                                 <YAxis axisLine={false} tickLine={false} />
                                 <Tooltip />
-                                <Bar dataKey="ProjectID" name="Developers" fill={COLORS.active} radius={[6, 6, 0, 0]} barSize={30} />
+                                <Bar dataKey="ProjectID" name="Team Members" fill={COLORS.active} radius={[6, 6, 0, 0]} barSize={30} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -189,7 +189,7 @@ export default function ProfessionalDashboard() {
                 <motion.div variants={itemVariants} className="lg:col-span-2 bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-black uppercase tracking-tight flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5 text-indigo-500" /> Weekly Task Trend (Last 4 weeks)
+                            <TrendingUp className="h-5 w-5 text-indigo-500" /> Daily Task Trend
                         </h3>
                     </div>
                     <div className="h-[300px]">
@@ -218,7 +218,7 @@ export default function ProfessionalDashboard() {
 
                 {/* 2. All Projects Donut */}
                 <motion.div variants={itemVariants} className="bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <h3 className="font-black uppercase tracking-tight mb-6">Project Lifecycle</h3>
+                    <h3 className="font-black uppercase tracking-tight mb-6">Status Breakdown</h3>
                     <div className="h-[250px] relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -257,7 +257,7 @@ export default function ProfessionalDashboard() {
                 {/* 5. All Projects Percentage Completion */}
                 <motion.div variants={itemVariants} className="bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h3 className="font-black uppercase tracking-tight mb-6 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-indigo-500" /> Completion Matrix
+                        <BarChart3 className="h-5 w-5 text-indigo-500" /> Project Progress
                     </h3>
                     <div className="space-y-6">
                         {data.projects.slice(0, 5).map((project: any) => (
@@ -280,7 +280,7 @@ export default function ProfessionalDashboard() {
 
                 {/* 6. Developers Stats (Pending vs Completed) */}
                 <motion.div variants={itemVariants} className="bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <h3 className="font-black uppercase tracking-tight mb-6">Developer Performance</h3>
+                    <h3 className="font-black uppercase tracking-tight mb-6">Team Progress</h3>
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={data.devStats} layout="vertical">
@@ -304,7 +304,7 @@ export default function ProfessionalDashboard() {
                         <div className="h-10 w-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
                             <Timer className="h-6 w-6" />
                         </div>
-                        <h3 className="font-black uppercase tracking-tight">Stale Tasks (&gt;3 Weeks)</h3>
+                        <h3 className="font-black uppercase tracking-tight">Old Tasks (&gt;21 Days)</h3>
                     </div>
                     <div className="space-y-4">
                         {data.staleTasks.map((task: any) => (
@@ -325,7 +325,7 @@ export default function ProfessionalDashboard() {
                         <div className="h-10 w-10 bg-rose-500 rounded-xl flex items-center justify-center text-white">
                             <Flame className="h-6 w-6 animate-pulse" />
                         </div>
-                        <h3 className="font-black uppercase tracking-tight">Priority Interventions</h3>
+                        <h3 className="font-black uppercase tracking-tight">Urgent Tasks</h3>
                     </div>
                     <div className="space-y-4">
                         {data.urgentTasks.map((task: any) => (
@@ -335,7 +335,7 @@ export default function ProfessionalDashboard() {
                                     <p className="text-[10px] text-indigo-400 font-bold uppercase">{task.project}</p>
                                 </div>
                                 <Button size="sm" className="h-8 rounded-xl bg-indigo-600 font-black text-[9px] uppercase hover:bg-indigo-500">
-                                    Resolve <ChevronRight className="ml-1 h-3 w-3" />
+                                    Open <ChevronRight className="ml-1 h-3 w-3" />
                                 </Button>
                             </div>
                         ))}

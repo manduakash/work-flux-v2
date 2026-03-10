@@ -15,7 +15,7 @@ import { callAPI } from "@/components/apis/commonAPIs";
 import { setCookie } from "@/utils/cookies";
 
 export default function LoginPage() {
-    const login = useStore((state) => state.login);
+    const { setCurrentUser } = useStore();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +37,7 @@ export default function LoginPage() {
                 password: formData?.password,
             });
 
-            console.log("Strategic Auth Response:", response);
+            console.log("Login Response:", response);
 
             // Mission Critical: Even if success is false, if data contains a valid user/token, we might proceed 
             // depending on how the backend handles 'soft' errors.
@@ -59,6 +59,7 @@ export default function LoginPage() {
             // Logic: Role-Based Strategic Redirection
             const user = response?.data?.user;
             if (user) {
+                setCurrentUser(user as any);
                 toast.success("Login Successful", {
                     description: `Welcome back, ${user.name.split(' ')[0]}!`,
                 });
@@ -92,21 +93,22 @@ export default function LoginPage() {
                 }
 
                 setCookie("role", sessionRole);
+                setCookie("role_id", user.role_id);
 
                 // Final Redirection
                 setTimeout(() => {
                     router.push(targetPath);
                 }, 500);
             } else {
-                toast.error("Intelligence Gap", {
-                    description: "User profile synthesis failed. Please re-authenticate.",
+                toast.error("Login Error", {
+                    description: "Could not load your profile. Please try again.",
                 });
                 setIsLoading(false);
             }
         } catch (error: any) {
             console.error("Auth Critical Failure:", error);
-            toast.error("System Disruption", {
-                description: "Terminal connection timed out. Check infrastructure status.",
+            toast.error("Connection Error", {
+                description: "Could not connect to the server. Please check your internet.",
             });
             setIsLoading(false);
         }
@@ -151,10 +153,10 @@ export default function LoginPage() {
                             <FolderKanban size={30} />
                         </motion.div>
                         <h2 className="mt-6 text-2xl font-bold tracking-tight text-white">
-                            NexIntel Synergy
+                            Work-Flux
                         </h2>
                         <p className="mt-2 text-sm text-slate-200/70">
-                            Enterprise Project Management
+                            Simple & Efficient Project Management
                         </p>
                     </div>
 
@@ -244,8 +246,8 @@ export default function LoginPage() {
 
                 {/* Optional: Footer text */}
                 <p className="mt-8 text-center text-sm text-slate-400">
-                    Secure & end-to-end encrypted AES-256. <br />
-                    &copy; {new Date().getFullYear()} NexIntel Synergy
+                    Secure & end-to-end encrypted. <br />
+                    &copy; {new Date().getFullYear()} Work-Flux
                 </p>
             </motion.div>
         </div>

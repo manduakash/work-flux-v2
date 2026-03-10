@@ -58,9 +58,9 @@ export default function middleware(request: NextRequest) {
             return redirectToAuthorizedDashboard(role, request);
         }
 
-        const teamLeadRoutes = ['/team-lead-dashboard', '/team-management', '/project-create', '/project-oversight', '/performance'];
-        if (teamLeadRoutes.some(route => pathname.startsWith(route))) {
-            if (role !== 'TEAM_LEAD' && role !== 'MANAGEMENT') {
+        const managementRoutes = ['/team-management', '/create-manage-task', '/project-create', '/project-oversight', '/performance'];
+        if (managementRoutes.some(route => pathname.startsWith(route))) {
+            if (role !== 'TEAM_LEAD' && role !== 'MANAGEMENT' && role !== 'DEVELOPER') {
                 return redirectToAuthorizedDashboard(role, request);
             }
         }

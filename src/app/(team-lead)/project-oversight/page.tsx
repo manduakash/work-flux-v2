@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate } from '@/lib/utils';
 import { ProjectStatus, Priority } from '@/types';
-import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
+import { callGetAPIWithToken, callAPIWithToken, getUserIdFromToken } from '@/components/apis/commonAPIs';
 import { toast } from 'sonner';
 
 // --- Helper: Risk Assessment ---
@@ -69,7 +69,7 @@ export default function ProjectOversight() {
       if (response.success) {
         setApiProjects(response.data);
       } else {
-        toast.error("Failed to load portfolio data");
+        toast.error("Failed to load project data");
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -111,7 +111,7 @@ export default function ProjectOversight() {
   const handleSubmitUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
-    const toastId = toast.loading('Syncing project refinements...');
+    const toastId = toast.loading('Saving changes...');
 
     try {
       const payload = {
@@ -123,12 +123,13 @@ export default function ProjectOversight() {
         ProjectStatus: Number(formData.statusId),
         ProjectDeadline: formData.deadline,
         ProgressPercentage: Number(formData.progress),
+        ProjectLeadID: Number(getUserIdFromToken() || 0),
       };
 
       const result = await callAPIWithToken('projects', payload);
 
       if (result.success) {
-        toast.success('Governance Data Synchronized', { id: toastId });
+        toast.success('Project details updated', { id: toastId });
         setIsModalOpen(false);
         fetchApiProjects(); // Refresh table
 
@@ -142,7 +143,7 @@ export default function ProjectOversight() {
           } as any);
         }
       } else {
-        throw new Error(result.message || 'Failed to update workstream');
+        throw new Error(result.message || 'Failed to update project');
       }
     } catch (error: any) {
       toast.error('Sync failed', { id: toastId, description: error.message });
@@ -159,10 +160,10 @@ export default function ProjectOversight() {
     const velocity = 65;
 
     return [
-      { label: 'Portfolio Health', val: total > 0 ? `${Math.round((healthy / total) * 100)}%` : '0%', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50' },
-      { label: 'Delivery Velocity', val: `${Math.round(velocity)}%`, icon: Zap, color: 'text-indigo-600 bg-indigo-50' },
-      { label: 'Strategic Alignment', val: 'High', icon: Target, color: 'text-amber-600 bg-amber-50' },
-      { label: 'Active Resources', val: users.length, icon: Users, color: 'text-slate-600 bg-slate-50' },
+      { label: 'Project Health', val: total > 0 ? `${Math.round((healthy / total) * 100)}%` : '0%', icon: ShieldCheck, color: 'text-emerald-600 bg-emerald-50' },
+      { label: 'Project Progress', val: `${Math.round(velocity)}%`, icon: Zap, color: 'text-indigo-600 bg-indigo-50' },
+      { label: 'Overall Status', val: 'High', icon: Target, color: 'text-amber-600 bg-amber-50' },
+      { label: 'Team Members', val: users.length, icon: Users, color: 'text-slate-600 bg-slate-50' },
     ];
   }, [apiProjects, users]);
 
@@ -173,11 +174,11 @@ export default function ProjectOversight() {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Project Oversight</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Strategic governance and risk assessment across organizational workstreams.</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Monitor project status and progress across your team.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="h-11 rounded-xl px-5 border-slate-200 font-bold uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all">
-            <Filter size={14} className="mr-2" /> Filter Portfolio
+            <Filter size={14} className="mr-2" /> Filter Projects
           </Button>
           <Button className="h-11 rounded-xl bg-slate-900 px-6 font-bold shadow-xl shadow-slate-900/20 text-white hover:scale-[1.02] active:scale-[0.98] transition-all">
             Export Audit Log
@@ -210,7 +211,7 @@ export default function ProjectOversight() {
       {/* 2. Oversight Matrix Table */}
       <div className="rounded-[2.5rem] border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900 min-h-[400px]">
         <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between dark:border-slate-800">
-          <h3 className="text-xl font-black uppercase tracking-tight">Governance Matrix</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight">Project Status Table</h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -218,7 +219,7 @@ export default function ProjectOversight() {
             </div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-rose-500" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Risk Detected</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Needs Attention</span>
             </div>
           </div>
         </div>
@@ -227,16 +228,16 @@ export default function ProjectOversight() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Compiling Governance Data...</p>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Loading project data...</p>
             </div>
           ) : (
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 dark:bg-slate-800/50 dark:border-slate-800">
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Workstream Name</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Project Name</th>
                   <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Type</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Health Index</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Strategic Priority</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Priority</th>
                   <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
                 </tr>
               </thead>
@@ -323,7 +324,7 @@ export default function ProjectOversight() {
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-2xl overflow-hidden rounded-[2.5rem] bg-white p-8 shadow-2xl dark:bg-slate-900">
               <div className="mb-8 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Refine Workstream</h2>
+                  <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Edit Project</h2>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Audit Trail ID: {editingProject?.ProjectID}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="rounded-2xl" onClick={() => setIsModalOpen(false)}><X /></Button>
@@ -351,7 +352,7 @@ export default function ProjectOversight() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Governance Status</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Project Status</label>
                     <select
                       className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950 dark:border-slate-800"
                       value={formData.statusId}
@@ -364,7 +365,7 @@ export default function ProjectOversight() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Strategic Priority</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Priority</label>
                     <select
                       className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950 dark:border-slate-800"
                       value={formData.priorityId}
@@ -374,7 +375,7 @@ export default function ProjectOversight() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Target Deadline</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Deadline</label>
                     <Input
                       type="date"
                       value={formData.deadline}
@@ -386,7 +387,7 @@ export default function ProjectOversight() {
 
                 <div>
                   <div className="flex justify-between mb-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Governance Velocity</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Project Progress</label>
                     <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900/50">{formData.progress}%</span>
                   </div>
                   <div className="relative h-2 w-full group">
@@ -408,16 +409,16 @@ export default function ProjectOversight() {
                       }}
                     />
                   </div>
-                  <p className="mt-3 text-[10px] font-medium text-slate-400 italic">Modify progress based on workstream audit logs</p>
+                  <p className="mt-3 text-[10px] font-medium text-slate-400 italic">Update progress based on recent work</p>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <Button variant="ghost" type="button" className="rounded-2xl h-12 px-6 font-bold" onClick={() => setIsModalOpen(false)}>Discard</Button>
+                  <Button variant="ghost" type="button" className="rounded-2xl h-12 px-6 font-bold" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                   <Button type="submit" disabled={isUpdating} className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all">
                     {isUpdating ? (
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Persisting...</>
                     ) : (
-                      <>Sync Refinements</>
+                      <>Save Changes</>
                     )}
                   </Button>
                 </div>
@@ -430,22 +431,22 @@ export default function ProjectOversight() {
       {/* 3. Portfolio Allocation (Insights) */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-          <h3 className="text-xl font-black uppercase tracking-tight mb-8">Resource Load Index</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight mb-8">Team Workload</h3>
           <div className="h-64 w-full flex items-center justify-center">
             <div className="relative flex items-center justify-center h-48 w-48 rounded-full border-[16px] border-emerald-500 border-t-indigo-600 border-l-amber-500 shadow-inner">
               <div className="text-center">
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{users.length}</p>
-                <p className="text-[10px] font-black uppercase text-slate-400">Engaged Devs</p>
+                <p className="text-[10px] font-black uppercase text-slate-400">Team Members</p>
               </div>
             </div>
           </div>
           <div className="mt-8 space-y-3">
             <div className="flex justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100">
-              <span className="text-[10px] font-black uppercase text-slate-500">Avg Tasks per User</span>
+              <span className="text-[10px] font-black uppercase text-slate-500">Avg Tasks per Member</span>
               <span className="text-xs font-black">4.2 Units</span>
             </div>
             <div className="flex justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100">
-              <span className="text-[10px] font-black uppercase text-slate-500">Saturation Level</span>
+              <span className="text-[10px] font-black uppercase text-slate-500">Workload Status</span>
               <span className="text-xs font-black text-emerald-500">Optimal</span>
             </div>
           </div>
@@ -455,15 +456,15 @@ export default function ProjectOversight() {
           <div className="relative z-10 flex flex-col h-full">
             <div className="flex items-center gap-3 mb-6">
               <Activity size={24} className="text-indigo-400" />
-              <h3 className="text-2xl font-black uppercase tracking-tight">Oversight Insights</h3>
+              <h3 className="text-2xl font-black uppercase tracking-tight">Updates & Tips</h3>
             </div>
             <p className="text-indigo-100 text-lg leading-relaxed max-w-md font-medium">
-              Portfolio delivery velocity has increased by <span className="text-white font-black underline decoration-indigo-400 underline-offset-4">14.2%</span> this quarter.
-              One critical workstream requires immediate resource reallocation to meet Q4 targets.
+              Average project progress has increased by <span className="text-white font-black underline decoration-indigo-400 underline-offset-4">14.2%</span> this quarter.
+              One project requires attention to meet targets.
             </p>
             <div className="mt-auto pt-10 flex gap-4">
               <Button className="bg-white text-indigo-900 hover:bg-white/90 font-black uppercase tracking-widest text-[10px] h-12 px-8 rounded-2xl shadow-xl transition-all">
-                View Mitigation Plan
+                View Next Steps
               </Button>
               <Button variant="ghost" className="text-white border border-white/20 hover:bg-white/10 font-black uppercase tracking-widest text-[10px] h-12 px-8 rounded-2xl transition-all">
                 Strategic Roadmap

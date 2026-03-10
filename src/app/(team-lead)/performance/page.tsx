@@ -34,10 +34,10 @@ export default function TeamPerformance() {
     const avgProgress = Math.round(tasks.reduce((acc, t) => acc + (t.progressPercentage || (t as any).ProgressPercentage || 0), 0) / totalTasks);
 
     return [
-      { label: 'Completion Rate', val: `${completionRate}%`, trend: '+4.5%', icon: Zap, color: 'text-indigo-600 bg-indigo-50' },
-      { label: 'Avg Progress', val: `${avgProgress}%`, trend: '+2.1%', icon: Activity, color: 'text-emerald-600 bg-emerald-50' },
-      { label: 'Strategic Risk', val: `${highPriorityRisk}%`, trend: 'Active', icon: Target, color: 'text-amber-600 bg-amber-50' },
-      { label: 'High Priority', val: `${highPriorityCount}`, trend: 'Tasks', icon: Bug, color: 'text-rose-600 bg-rose-50' },
+      { label: 'Tasks Done', val: `${completionRate}%`, trend: '+4.5%', icon: Zap, color: 'text-indigo-600 bg-indigo-50' },
+      { label: 'Total Progress', val: `${avgProgress}%`, trend: '+2.1%', icon: Activity, color: 'text-emerald-600 bg-emerald-50' },
+      { label: 'Risk Level', val: `${highPriorityRisk}%`, trend: 'Active', icon: Target, color: 'text-amber-600 bg-amber-50' },
+      { label: 'Urgent Tasks', val: `${highPriorityCount}`, trend: 'Tasks', icon: Bug, color: 'text-rose-600 bg-rose-50' },
     ];
   }, [tasks]);
 
@@ -100,15 +100,15 @@ export default function TeamPerformance() {
       {/* Header */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Performance Intelligence</h1>
-          <p className="text-slate-500 dark:text-slate-400">Advanced analytics on team velocity, delivery quality, and resource efficiency.</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Team Stats</h1>
+          <p className="text-slate-500 dark:text-slate-400">Track team progress and task completion rates.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="h-11 rounded-xl px-5 border-slate-200 font-bold uppercase tracking-widest text-[10px]">
             <Filter size={14} className="mr-2" /> All Projects
           </Button>
           <Button className="h-11 rounded-xl bg-indigo-600 px-6 font-bold shadow-xl shadow-indigo-600/20 text-white">
-            <Sparkles size={16} className="mr-2" /> AI Insights
+            <Sparkles size={16} className="mr-2" /> Tips
           </Button>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function TeamPerformance() {
                 <span className="text-[10px] font-black text-emerald-500 flex items-center gap-1">
                   <TrendingUp size={12} /> {stat.trend}
                 </span>
-                <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">VS PREV CYCLE</span>
+                <span className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">VS LAST WEEK</span>
               </div>
             </div>
             <div className="mt-6">
@@ -141,13 +141,13 @@ export default function TeamPerformance() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-                <LineIcon className="text-indigo-600" size={20} /> Execution Velocity
+                <LineIcon className="text-indigo-600" size={20} /> Team Progress Chart
               </h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Growth & Completion Trajectory</p>
+              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Tasks completed over time</p>
             </div>
             <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-xl">
-              <button className="px-4 py-1.5 text-[9px] font-black uppercase rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600">Active Cycle</button>
-              <button className="px-4 py-1.5 text-[9px] font-black uppercase text-slate-400">Historical</button>
+              <button className="px-4 py-1.5 text-[9px] font-black uppercase rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600">This Week</button>
+              <button className="px-4 py-1.5 text-[9px] font-black uppercase text-slate-400">Last Month</button>
             </div>
           </div>
           <div className="h-[350px] w-full">
@@ -174,8 +174,8 @@ export default function TeamPerformance() {
         {/* Project Distribution - Radar Chart */}
         <div className="rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
           <div className="mb-8 text-center">
-            <h3 className="text-xl font-black uppercase tracking-tight">Strategic Load</h3>
-            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Project Assignment Balance</p>
+            <h3 className="text-xl font-black uppercase tracking-tight">Task Distribution</h3>
+            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">How tasks are spread across projects</p>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -200,7 +200,7 @@ export default function TeamPerformance() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Output Mix Pie Chart */}
         <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-          <h3 className="text-xl font-black uppercase tracking-tight mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Output Mix</h3>
+          <h3 className="text-xl font-black uppercase tracking-tight mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">Task Categories</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -230,8 +230,8 @@ export default function TeamPerformance() {
         <div className="lg:col-span-2 rounded-[2.5rem] border border-slate-200 bg-white overflow-hidden shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="p-8 border-b border-slate-50 flex items-center justify-between dark:border-slate-800">
             <div>
-              <h3 className="text-xl font-black uppercase tracking-tight leading-none">Resource Efficiency</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-widest">Individual Throughput & Quality Metrics</p>
+              <h3 className="text-xl font-black uppercase tracking-tight leading-none">Work Summary</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-widest">Task completion by member</p>
             </div>
             <Button variant="ghost" size="icon" className="rounded-full"><MoreHorizontal /></Button>
           </div>
@@ -240,9 +240,9 @@ export default function TeamPerformance() {
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100 dark:bg-slate-800/50 dark:border-slate-800">
                   <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Team Member</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Throughput</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Cycle Time</th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Trend</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Tasks Done</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Avg Time</th>
+                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
                   <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Action</th>
                 </tr>
               </thead>
@@ -275,7 +275,7 @@ export default function TeamPerformance() {
                     <td className="px-8 py-6">
                       <div className={cn("flex items-center gap-1 text-[10px] font-black uppercase", dev.trend === 'up' ? 'text-emerald-500' : 'text-rose-500')}>
                         {dev.trend === 'up' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                        {dev.trend === 'up' ? 'Improving' : 'Stagnant'}
+                        {dev.trend === 'up' ? 'Doing Great' : 'Consistent'}
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
