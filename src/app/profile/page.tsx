@@ -361,41 +361,6 @@ export default function ProfileSettings() {
                         </div>
                     </section>
 
-                    {/* Tech Stack Section */}
-                    <section className="rounded-[2.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                        <h3 className="text-xl font-black uppercase tracking-tight mb-6 flex items-center gap-3">
-                            <Code2 className="text-indigo-600" size={20} /> Tech Stack
-                        </h3>
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            <AnimatePresence>
-                                {techStack.map(tag => (
-                                    <motion.span
-                                        key={tag}
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 5 }}
-                                        className="flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                                    >
-                                        {tag}
-                                        <X size={14} className="cursor-pointer hover:text-rose-500" onClick={() => removeTag(techStack, setTechStack, tag)} />
-                                    </motion.span>
-                                ))}
-                            </AnimatePresence>
-                        </div>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Add Skill (e.g. AWS)..."
-                                className="h-11 rounded-xl"
-                                value={newTag.tech}
-                                onChange={e => setNewTag({ ...newTag, tech: e.target.value })}
-                                onKeyDown={e => e.key === 'Enter' && addTech()}
-                            />
-                            <Button onClick={addTech} className="h-11 w-11 rounded-xl bg-slate-900 p-0 shadow-lg shadow-slate-900/20">
-                                <Plus size={20} />
-                            </Button>
-                        </div>
-                    </section>
-
                     {/* Verification Status */}
                     <div className="rounded-[2.5rem] bg-slate-900 p-8 text-white shadow-2xl relative overflow-hidden">
                         <div className="relative z-10 flex items-center justify-between">

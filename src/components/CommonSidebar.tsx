@@ -28,7 +28,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         { icon: Plus, label: 'Add Project', href: '/project-create' },
         { icon: Users, label: 'Team Assignment', href: '/team-management' },
         { icon: ListChecks, label: 'Assign Tasks', href: '/create-manage-task' },
-        { icon: FolderKanban, label: 'Project Health', href: '/project-oversight' },
+        { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
         { icon: BarChartHorizontal, label: 'Stats', href: '/performance' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
