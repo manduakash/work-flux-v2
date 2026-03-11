@@ -713,7 +713,7 @@ export default function TaskManagementPage() {
                     </motion.div>
                 ) : (
                     /* ── Team Lead: standard table ── */
-                    <motion.div key="tl-table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
+                    <motion.div key="tl-table" initial={{ opacity: 1 }} animate={{ opacity: 1 }} className="rounded-3xl border border-slate-200 overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                                 <thead>

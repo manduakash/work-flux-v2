@@ -60,6 +60,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {/* Main Content */}
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                     {children}
+                    {/* <div
+                        className="absolute inset-0 opacity-[0.2] pointer-events-none"
+                        style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diagonal-striped-brick.png")' }}
+                    /> */}
                 </main>
             </div>
         </div>
