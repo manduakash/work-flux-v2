@@ -6,7 +6,9 @@ import {
     Plus, Search, Filter, Calendar, CheckCircle2, Clock,
     Trash2, Edit, LayoutGrid, List, ChevronLeft, ChevronRight,
     Activity, MessageSquare, X, ArrowUpDown, MoreHorizontal,
-    Inbox, User as UserIcon, AlertCircle, Ban, Send, Pencil, Loader2
+    Inbox, User as UserIcon, AlertCircle, Ban, Send, Pencil, Loader2,
+    CheckCircle2Icon,
+    CircleCheckBig
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,7 +21,7 @@ import { callGetAPIWithToken, callAPIWithToken, callPatchAPIWithToken } from '@/
 import { getCookie } from '@/utils/cookies';
 
 // --- Sub-Component: Grid Card for Board View ---
-const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatusChange, onDelete, onEdit, currentUser }: any) => (
+const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusChange, onDelete, onEdit, currentUser }: any) => (
     <motion.div
         layout
         initial={{ opacity: 0, scale: 0.95 }}
@@ -29,9 +31,9 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatu
     >
         <div className="mb-4 flex items-start justify-between">
             <div className="flex flex-col gap-1.5">
-                <span className="inline-flex items-center rounded-lg bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
+                <div className="flex w-fit items-center rounded-lg bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
                     {project?.name}
-                </span>
+                </div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white line-clamp-1">{task.title}</h4>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -65,22 +67,17 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, prevStatus, onStatu
                 <motion.div initial={{ width: 0 }} animate={{ width: `${task.progressPercentage}%` }} className="h-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full" />
             </div>
 
-            <div className="flex flex-col gap-2 items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
+            <div className="flex gap-2 items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
                 <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white">{assignee?.name.charAt(0)}</div>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{assignee?.name.split(' ')[0]}</span>
+                    <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white uppercase" title={`${assignee?.name}`}>{assignee?.name.charAt(0)}{assignee?.name[1].charAt(0)}</div>
+                    <span>{assignee?.name?.split(" ")[0]}</span>
                 </div>
 
                 {/* {(currentUser?.role_id == 3 && (nextStatus?.title?.toLowerCase() === "pending" || nextStatus?.title?.toLowerCase() === "in progress")) || (currentUser?.role_id == 2 && (nextStatus?.title?.toLowerCase() === "review" || nextStatus?.title?.toLowerCase() === "completed")) ? */}
                 <div className="flex gap-2">
-                    {prevStatus && (
-                        <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, prevStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest border-slate-100 text-slate-400 hover:bg-slate-100 rounded-lg transition-all">
-                            Send Back
-                        </Button>
-                    )}
-                    {nextStatus && (
-                        <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, nextStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-all">
-                            {nextStatus.title}
+                    {statusId == 3 && (
+                        <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, nextStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-lg transition-all">
+                            <CircleCheckBig /> Complete
                         </Button>
                     )}
                 </div>
@@ -144,11 +141,12 @@ export default function TaskManagementPage() {
         const user = userOverride || currentUser;
         if (!user) return;
         try {
+            console.log("user", user);
             const userId = user?.id?.toString().replace(/\D/g, '') || user?.UserID?.toString().replace(/\D/g, '') || '0';
-            const isDeveloper = user?.role_id === 3 || user?.RoleID === 3;
+            const isDeveloper = user?.role_id == 3;
             const endpoint = isDeveloper
-                ? `tasks?taskId=0&assignedByUserId=0&assignedToUserId=${userId}&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`
-                : `tasks?taskId=0&assignedByUserId=${userId}&assignedToUserId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
+                ? `tasks?taskId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`
+                : `tasks?taskId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
             const res = await callGetAPIWithToken(endpoint);
             if (res.success) {
                 if (isDeveloper) {
@@ -598,7 +596,7 @@ export default function TaskManagementPage() {
                                         project={{ name: task.ProjectName }}
                                         assignee={{ name: task.AssignedToUsers?.[0]?.AssignedToUserFullName || task.AssignedByUserFullName || 'Unassigned' }}
                                         nextStatus={nextStatus ? { id: nextStatus.TaskStatusID, title: nextStatus.TaskStatusName } : null}
-                                        prevStatus={prevStatus ? { id: prevStatus.TaskStatusID, title: prevStatus.TaskStatusName } : null}
+                                        statusId={activeStatusId || null}
                                         onStatusChange={(id: string, sId: number) => {
                                             if (activeStatusId !== null && sId < activeStatusId) {
                                                 handleRollbackStatus(task, sId);

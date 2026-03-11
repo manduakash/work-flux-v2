@@ -96,7 +96,7 @@ export default function ProjectsPage() {
             // Numeric extraction for the API parameter
             const userId = user.id?.toString().replace(/\D/g, '') || "13"; // Fallback to 13 as seen in user's example
 
-            const endpoint = `tasks?taskId=0&assignedByUserId=0&assignedToUserId=${userId}&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
+            const endpoint = `tasks?taskId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
             const response = await callGetAPIWithToken(endpoint);
 
             if (response.success && response.data) {

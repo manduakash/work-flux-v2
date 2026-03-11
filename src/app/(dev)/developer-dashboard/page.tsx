@@ -65,27 +65,27 @@ export default function DeveloperDashboard() {
     const { projects: storeProjects } = useStore();
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
-    const [stats, setStats] = useState({
-        activeProjects: 0,
-        urgentTasks: 0,
-        completedTasks: 0,
-        goLive: 0,
-        myProjects: [] as any[]
+    const [stats, setStats] = useState<any>({
+        PendingTasks: 0,
+        InProgressTasks: 0,
+        ReviewTasks: 0,
+        CompletedTasks: 0,
+        ActiveProjects: 0
     });
 
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
-            const countsRes = await callGetAPIWithToken("developer/dashboard/counts?fromDate=2026-01-01&toDate=2026-12-31");
+            const countsRes = await callGetAPIWithToken("developer/dashboard/count");
             const user = getCookie("user");
             setCurrentUser(user);
             const projectsRes = await callGetAPIWithToken("projects/projects-by-user-id");
             setStats({
-                activeProjects: countsRes?.data?.NoOfActiveProjects || 0,
-                urgentTasks: countsRes?.data?.NoOfUrgentTasks || 0,
-                completedTasks: countsRes?.data?.NoOfCompletedTasks || 0,
-                goLive: countsRes?.data?.NoOfGoLiveProjects || 0,
-                myProjects: projectsRes.success ? projectsRes.data : []
+                PendingTasks: countsRes?.data?.PendingTasks || 0,
+                InProgressTasks: countsRes?.data?.InProgressTasks || 0,
+                ReviewTasks: countsRes?.data?.ReviewTasks || 0,
+                CompletedTasks: countsRes?.data?.CompletedTasks || 0,
+                ActiveProjects: countsRes?.data?.ActiveProjects || 0
             });
         } catch (error) {
             console.error("Dashboard error:", error);
@@ -167,8 +167,8 @@ export default function DeveloperDashboard() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
-                    title="Active Workstreams"
-                    value={stats.activeProjects}
+                    title="Assigned Tasks"
+                    value={stats.PendingTasks}
                     icon={FolderKanban}
                     trend="up"
                     trendValue={12}
@@ -176,8 +176,8 @@ export default function DeveloperDashboard() {
                     description="Assigned production pipelines"
                 />
                 <StatCard
-                    title="Critical Backlog"
-                    value={stats.urgentTasks}
+                    title="In Progress Tasks"
+                    value={stats.InProgressTasks}
                     icon={AlertCircle}
                     trend="down"
                     trendValue={4}
@@ -185,8 +185,8 @@ export default function DeveloperDashboard() {
                     description="High-priority impediments"
                 />
                 <StatCard
-                    title="Delivery Cycle"
-                    value={stats.completedTasks}
+                    title="Waiting Review"
+                    value={stats.ReviewTasks}
                     icon={CheckCircle2}
                     trend="up"
                     trendValue={22}
@@ -194,8 +194,15 @@ export default function DeveloperDashboard() {
                     description="Verified unit completions"
                 />
                 <StatCard
-                    title="Go-Live Velocity"
-                    value={stats.goLive}
+                    title="Completed Tasks"
+                    value={stats.CompletedTasks}
+                    icon={Rocket}
+                    color="bg-white text-indigo-600 border border-slate-200"
+                    description="Production release targets"
+                />
+                <StatCard
+                    title="On Going Projects"
+                    value={stats.ActiveProjects}
                     icon={Rocket}
                     color="bg-white text-indigo-600 border border-slate-200"
                     description="Production release targets"
@@ -245,7 +252,7 @@ export default function DeveloperDashboard() {
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
-                                    data={stats.myProjects.length > 0 ? stats.myProjects.map(p => ({ name: p.ProjectName, value: 1 })) : [{ name: 'N/A', value: 1 }]}
+                                    data={stats?.myProjects?.length > 0 ? stats?.myProjects.map(p => ({ name: p.ProjectName, value: 1 })) : [{ name: 'N/A', value: 1 }]}
                                     cx="50%" cy="50%"
                                     innerRadius={85}
                                     outerRadius={115}
@@ -253,7 +260,7 @@ export default function DeveloperDashboard() {
                                     dataKey="value"
                                     stroke="transparent"
                                 >
-                                    {stats.myProjects.map((_, index) => (
+                                    {stats?.myProjects?.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
@@ -262,7 +269,7 @@ export default function DeveloperDashboard() {
                         </ResponsiveContainer>
                     </div>
                     <div className="mt-12 space-y-4">
-                        {stats.myProjects.slice(0, 4).map((p, i) => (
+                        {stats?.myProjects?.slice(0, 4)?.map((p, i) => (
                             <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 transition-hover hover:scale-[1.02] cursor-default border border-transparent hover:border-indigo-100">
                                 <div className="flex items-center gap-3">
                                     <div className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
