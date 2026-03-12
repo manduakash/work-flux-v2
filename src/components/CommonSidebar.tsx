@@ -85,7 +85,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                         <Rocket size={20} />
                     </div>
                     {!isCollapsed && (
-                        <span className="text-lg font-black tracking-tighter text-slate-900 dark:text-white uppercase">Work-Flux</span>
+                        <span className="text-lg font-black tracking-tighter text-slate-900 dark:text-white uppercase">Project Management</span>
                     )}
                     <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="mt-auto hidden lg:flex">
                         <ChevronLeft className={cn("transition-transform", isCollapsed && "rotate-180")} />
