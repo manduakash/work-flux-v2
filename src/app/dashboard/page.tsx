@@ -73,7 +73,7 @@ export default function Dashboard() {
                 setUser(userObj);
                 if (!userObj) return;
                 const userId = userObj?.id?.toString().replace(/\D/g, '') || userObj?.UserID?.toString().replace(/\D/g, '') || '0';
-                const endpoint = `tasks?taskId=0&assignedByUserId=0&assignedToUserId=${userId}&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
+                const endpoint = `tasks?taskId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0`;
                 const res = await callGetAPIWithToken(endpoint);
                 if (res.success) setTasks(res.data || []);
             } catch (error) {
