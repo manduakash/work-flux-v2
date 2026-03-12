@@ -519,14 +519,6 @@ export default function TaskManagementPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800 shadow-inner">
-                        <button onClick={() => setViewMode('table')} className={cn("flex h-9 items-center gap-2 rounded-lg px-4 text-xs font-bold transition-all", viewMode === 'table' ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700")}>
-                            <List size={16} /> List
-                        </button>
-                        <button onClick={() => setViewMode('board')} className={cn("flex h-9 items-center gap-2 rounded-lg px-4 text-xs font-bold transition-all", viewMode === 'board' ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700")}>
-                            <LayoutGrid size={16} /> Board
-                        </button>
-                    </div>
                     {currentUser?.role_id !== 3 && (
                         <Button onClick={handleOpenCreateModal} className="h-11 rounded-xl bg-slate-900 text-white px-6 font-bold shadow-xl shadow-slate-900/10 hover:scale-[1.02] active:scale-[0.98] transition-all">
                             <Plus className="mr-2 h-4 w-4 stroke-[3px]" /> New Task
