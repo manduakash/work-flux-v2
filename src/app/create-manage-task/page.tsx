@@ -8,7 +8,8 @@ import {
     Activity, MessageSquare, X, ArrowUpDown, MoreHorizontal,
     Inbox, User as UserIcon, AlertCircle, Ban, Send, Pencil, Loader2,
     CheckCircle2Icon,
-    CircleCheckBig
+    CircleCheckBig,
+    CircleX
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -76,9 +77,14 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
                 {/* {(currentUser?.role_id == 3 && (nextStatus?.title?.toLowerCase() === "pending" || nextStatus?.title?.toLowerCase() === "in progress")) || (currentUser?.role_id == 2 && (nextStatus?.title?.toLowerCase() === "review" || nextStatus?.title?.toLowerCase() === "completed")) ? */}
                 <div className="flex gap-2">
                     {statusId == 3 && (
-                        <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, nextStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-lg transition-all">
-                            <CircleCheckBig /> Complete
-                        </Button>
+                        <>
+                            <Button variant="outline" size="sm" title="Mark as Complete" onClick={() => onStatusChange(task.id, nextStatus.id)} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-full transition-all">
+                                <CircleCheckBig className='m-0 p-0' />
+                            </Button>
+                            <Button variant="outline" size="sm" title="Mark as Incomplete" onClick={() => onStatusChange(task.id, nextStatus.id)} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white rounded-full transition-all">
+                                <CircleX className='m-0 p-0' />
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -468,7 +474,7 @@ export default function TaskManagementPage() {
         }
     };
 
-    const handleAdvanceStatus = async (task: any, nextStatusId: number) => {
+    const handleAdvanceStatus = async (task: any, nextStatusId: number, isCompleted: number) => {
         const toastId = toast.loading(`Updating status to ${statusData.find(s => s.TaskStatusID === nextStatusId)?.TaskStatusName}...`);
 
         try {
@@ -487,7 +493,9 @@ export default function TaskManagementPage() {
                 TaskDescription: task.Description,
                 ProgressPercentage: finalProgress,
                 Deadline: task.Deadline?.split('T')[0],
-                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0
+                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0,
+                IsRejected: isCompleted ? 0 : 1,
+                Remarks: isCompleted ? "Task Approved." : "Task is incomplete or requirement not fulfilled."
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -600,9 +608,9 @@ export default function TaskManagementPage() {
                                         statusId={activeStatusId || null}
                                         onStatusChange={(id: string, sId: number) => {
                                             if (activeStatusId !== null && sId < activeStatusId) {
-                                                handleRollbackStatus(task, sId);
+                                                handleRollbackStatus(task, sId, 0);
                                             } else {
-                                                handleAdvanceStatus(task, sId);
+                                                handleAdvanceStatus(task, sId, 1);
                                             }
                                         }}
                                         onDelete={handleDelete}
@@ -928,7 +936,7 @@ export default function TaskManagementPage() {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            
+
                                             <div className="space-y-1.5 hidden">
                                                 <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.statusId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Current Status</label>
                                                 <select
