@@ -130,12 +130,21 @@ export default function TaskManagementPage() {
     });
 
     useEffect(() => {
-        const user = getCookie("user");
-        setCurrentUser(user);
-        if (user) {
-            fetchTasks(user);
+        const role_id = getCookie("role_id");
+        if (role_id) {
+            role_id == 2 ? setViewMode("board") : setViewMode("table");
         }
     }, []);
+
+    useEffect(() => {
+        const user = getCookie("user");
+        console.log("user", user);
+        setCurrentUser(user);
+        if (user) {
+            console.log("viewMode", viewMode);
+            fetchTasks(user);
+        }
+    }, [viewMode]);
 
     const fetchTasks = async (userOverride?: any) => {
         const user = userOverride || currentUser;
@@ -875,39 +884,33 @@ export default function TaskManagementPage() {
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSubmitTask} className="space-y-8 pb-4">
-                                        <div className="space-y-1.5">
-                                            <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.projectId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Project</label>
-                                            <select
-                                                className={cn(
-                                                    "h-12 w-full rounded-2xl border bg-slate-50 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
-                                                    !formData.projectId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
-                                                )}
-                                                value={formData.projectId}
-                                                onChange={e => setFormData({ ...formData, projectId: e.target.value })}
-                                            >
-                                                <option value="">Select Project...</option>
-                                                {apiProjects.map(p => <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>)}
-                                            </select>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.projectId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Project</label>
+                                                <select
+                                                    className={cn(
+                                                        "h-12 w-full rounded-2xl border bg-slate-50 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
+                                                        !formData.projectId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
+                                                    )}
+                                                    value={formData.projectId}
+                                                    onChange={e => setFormData({ ...formData, projectId: e.target.value })}
+                                                >
+                                                    <option value="">Select Project...</option>
+                                                    {apiProjects.map(p => <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Task Title</label>
+                                                <Input placeholder="Enter task title..." value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                                             <div className="space-y-1.5">
-                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.title && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Task Title</label>
-                                                <Input
-                                                    placeholder="Enter task title..."
-                                                    required
-                                                    value={formData.title}
-                                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                                    className={cn("h-12 rounded-2xl border bg-white dark:bg-slate-950 px-4 font-bold", !formData.title && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200")}
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Sub Title</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Module</label>
                                                 <Input placeholder="e.g. Backend Development" value={formData.subTitle} onChange={e => setFormData({ ...formData, subTitle: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
                                             </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.typeId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Task Type</label>
                                                 <select
@@ -922,7 +925,11 @@ export default function TaskManagementPage() {
                                                     {typeData.map(t => <option key={t.TaskTypeID} value={t.TaskTypeID}>{t.TaskTypeName}</option>)}
                                                 </select>
                                             </div>
-                                            <div className="space-y-1.5">
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            
+                                            <div className="space-y-1.5 hidden">
                                                 <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.statusId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Current Status</label>
                                                 <select
                                                     className={cn(
@@ -965,7 +972,7 @@ export default function TaskManagementPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4">
+                                        <div className="space-y-4 hidden">
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Progress</label>
                                                 <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{formData.progressPercentage}%</span>
