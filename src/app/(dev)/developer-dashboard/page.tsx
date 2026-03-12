@@ -250,7 +250,7 @@ export default function DeveloperDashboard() {
                 </div> */}
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <StatCard
                     title="Newly Assigned Tasks"
                     value={stats.PendingTasks}
@@ -312,6 +312,17 @@ export default function DeveloperDashboard() {
                     bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700"
                     iconColor="text-rose-500"
                     borderColor="border-2 border-rose-400"
+                />
+
+                <StatCard
+                    title="On Going Projects"
+                    value={stats?.ActiveProjects}
+                    icon={Rocket}
+                    color="bg-white/20 text-white border border-white/30 shadow-lg"
+                    description="Projects currently in progress"
+                    bgColor="bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-700"
+                    iconColor="text-cyan-500"
+                    borderColor="border-2 border-cyan-400"
                 />
             </div>
 
