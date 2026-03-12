@@ -46,7 +46,7 @@ export default function LoginPage() {
             }
             if (response?.data?.user) {
                 setCookie("user", { ...response?.data?.user, profile_image: null });
-                localStorage.setItem("profile_image", response?.data?.profile_image);
+                localStorage.setItem("profile_image", response?.data?.user?.profile_image);
             }
 
             if (!response?.success && !response?.data?.user) {
