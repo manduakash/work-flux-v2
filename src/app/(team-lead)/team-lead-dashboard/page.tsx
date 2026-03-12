@@ -60,28 +60,35 @@ export default function ProfessionalDashboard() {
         staleTasks: []
     });
 
+    const [projectDashboardData, setProjectDashboardData] = useState<any>(null);
+
+    useEffect(() =>{
+        callGetAPIWithToken('lead/dashboard/team-member-graph').then((res) => {
+            setProjectDashboardData(res.data);
+        }).catch((err) => {            console.error("Dashboard Data Fetch Error:", err);
+        })
+    }, []);
     useEffect(() => {
         const fetchAllData = async () => {
             try {
                 // In a real scenario, you'd have specific endpoints for these.
                 // Simulating comprehensive data fetch:
-                const [projectsRes] = await Promise.all([
-                    callGetAPIWithToken('projects/projects-by-user-id')
+                const [projectsRes,devRes] = await Promise.all([
+                    callGetAPIWithToken('projects/projects-by-user-id'),
+                    callGetAPIWithToken('lead/dashboard/developer-wise-team-progress-graph')
                 ]);
 
+                const transformedDevStats = (devRes.data || []).map((dev: any) => ({
+                name: dev.DeveloperName,
+                pending: Number(dev.NoOfInProgressTask),
+                completed: Number(dev.NoOfCompletedTask),
+                }));
                 // Mocking complex data structures for the requested charts based on project data
                 const mockWeeklyTasks = [
                     { week: 'W1', pending: 20, completed: 15 },
                     { week: 'W2', pending: 18, completed: 25 },
                     { week: 'W3', pending: 25, completed: 20 },
                     { week: 'W4', pending: 12, completed: 30 },
-                ];
-
-                const mockDevStats = [
-                    { name: 'Alex', pending: 5, completed: 12 },
-                    { name: 'Sarah', pending: 2, completed: 18 },
-                    { name: 'John', pending: 8, completed: 10 },
-                    { name: 'Emma', pending: 4, completed: 15 },
                 ];
 
                 const mockUrgentTasks = [
@@ -92,7 +99,7 @@ export default function ProfessionalDashboard() {
                 setData({
                     projects: projectsRes.data || [],
                     weeklyTasks: mockWeeklyTasks,
-                    devStats: mockDevStats,
+                    devStats: transformedDevStats,
                     urgentTasks: mockUrgentTasks,
                     staleTasks: [
                         { id: 101, title: 'Documentation Update', age: '24 days', owner: 'Alex' },
@@ -118,12 +125,36 @@ export default function ProfessionalDashboard() {
     }, [data.projects]);
 
     // 4. Task Summary Total Calculation
-    const taskSummary = {
-        pending: 12,
-        inProgress: 8,
-        review: 5,
-        completed: 45
-    };
+    // const taskSummary = {
+    //     pending: 12,
+    //     inProgress: 8,
+    //     review: 5,
+    //     completed: 45
+    // };
+    const [taskSummary, setTaskSummary] = useState({
+        pending: 0,
+        inProgress: 0,
+        review: 0,
+        completed: 0,
+        rejected: 0,
+        total: 0,
+        projects: 0
+    });
+
+   useEffect(() =>{
+        callGetAPIWithToken('lead/dashboard/count').then((res) => {
+            setTaskSummary({
+                pending: Number(res.data.PendingTasks),
+                inProgress: Number(res.data.InProgressTasks),
+                review: Number(res.data.ReviewTasks),
+                completed: Number(res.data.CompletedTasks),
+                rejected: Number(res.data.RejectedTasks),
+                total: Number(res.data.TotalTasks),
+                projects: Number(res.data.ActiveProjects)
+            });
+        }).catch((err) => {            console.error("Dashboard Data Fetch Error:", err);
+        })
+    }, []);
 
     if (loading) return <div className="p-20 text-center font-black animate-pulse">LOADING DASHBOARD DATA...</div>;
 
@@ -170,12 +201,12 @@ export default function ProfessionalDashboard() {
                     </h3>
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data.projects.slice(0, 6)}>
+                            <BarChart data={projectDashboardData?.slice(0, 6)}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="ProjectName" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
                                 <YAxis axisLine={false} tickLine={false} />
                                 <Tooltip />
-                                <Bar dataKey="ProjectID" name="Team Members" fill={COLORS.active} radius={[6, 6, 0, 0]} barSize={30} />
+                                <Bar dataKey="NoOfDevelopers" name="Team Members" fill={COLORS.active} radius={[6, 6, 0, 0]} barSize={30} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
