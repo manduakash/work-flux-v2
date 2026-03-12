@@ -56,8 +56,8 @@ const StatCard = ({
     const isPositive = trend === 'up';
 
     return (
-        <div
-             // Ensure itemVariants is defined in your parent component
+        <motion.div
+            variants={itemVariants} // Ensure itemVariants is defined in your parent component
             className={cn(
                 "group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl border border-none",
                 bgColor // Applies the vibrant gradient you passed in
@@ -104,7 +104,7 @@ const StatCard = ({
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -217,7 +217,7 @@ export default function DeveloperDashboard() {
     }
 
     return (
-        <div
+        <motion.div
             initial="hidden"
             animate="visible"
             variants={containerVariants}
@@ -317,7 +317,7 @@ export default function DeveloperDashboard() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* 2. Technical Quality (Radar) */}
-                <div  className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8">
                         <ClipboardList className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
@@ -345,10 +345,10 @@ export default function DeveloperDashboard() {
                         </ResponsiveContainer>
                         <div className='flex justify-center items-center text-2xl text-slate-400 font-bold gap-3'>Total Tasks: <span className='text-slate-600'>{stats?.TotalTasks || 0}</span></div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Status Health (Pie) */}
-                <div  className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Projects Status</h3>
                     <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Global workstream distribution</p>
                     <div className="h-[300px] w-full relative">
@@ -386,12 +386,12 @@ export default function DeveloperDashboard() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Urgent Task Tracker */}
-                <div  className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <div className="mb-10 flex items-center justify-between">
                         <div>
                             <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
@@ -528,10 +528,10 @@ export default function DeveloperDashboard() {
 
                         </div>}
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Deployment Metrics */}
-                <div  className="rounded-[3.5rem] bg-indigo-900 p-10 text-white shadow-2xl relative overflow-hidden group">
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-900 p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div className="relative z-10">
                         <div className="mb-10 flex items-center justify-between">
                             <h3 className="text-2xl font-black uppercase tracking-tight">
@@ -620,8 +620,8 @@ export default function DeveloperDashboard() {
 
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
-        </div>
+        </motion.div>
     );
 }
