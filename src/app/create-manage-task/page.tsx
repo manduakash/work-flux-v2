@@ -800,7 +800,7 @@ export default function TaskManagementPage() {
                                                         deadline: task.Deadline,
                                                         status: task.StatusName as any
                                                     })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(task.TaskID.toString())}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(task)}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
                                                 </div>
                                             </td>
                                         </tr>
