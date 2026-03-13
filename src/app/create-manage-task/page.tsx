@@ -36,6 +36,15 @@ import { cn, formatDate, getStatusColor } from '@/lib/utils';
 import { TaskStatus, UserRole, Task } from '@/types';
 import { callGetAPIWithToken, callAPIWithToken, callPatchAPIWithToken, callDeleteAPIWithToken } from '@/components/apis/commonAPIs';
 import { getCookie } from '@/utils/cookies';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 // --- Sub-Component: Grid Card for Board View ---
 const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusChange, onDelete, onEdit, currentUser }: any) => (
@@ -609,6 +618,24 @@ export default function TaskManagementPage() {
                 <div className="relative group max-w-xl">
                     <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                     <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                </div>
+
+                <div>
+                    <Select>
+                        <SelectTrigger className="w-full max-w-48">
+                            <SelectValue placeholder="Select a fruit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                <SelectLabel>Fruits</SelectLabel>
+                                <SelectItem value="apple">Apple</SelectItem>
+                                <SelectItem value="banana">Banana</SelectItem>
+                                <SelectItem value="blueberry">Blueberry</SelectItem>
+                                <SelectItem value="grapes">Grapes</SelectItem>
+                                <SelectItem value="pineapple">Pineapple</SelectItem>
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* Status tabs only for team leads/admins */}
