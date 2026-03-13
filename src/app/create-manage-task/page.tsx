@@ -75,18 +75,33 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
         </p>
 
         <div className="mt-auto space-y-4">
-            {task?.isRejected ? <div className='flex flex-col gap-1'>
-                <Label>Rejection Remarks:</Label>
-                <div className='border bg-rose-50 rounded-xl text-sm p-2 border-rose-200 min-h-[50px] max-h-[80px] overflow-y-auto modal-scrollbar'>
-                    {task?.remarks}
+            {task?.isRejected && (
+                <div className='flex flex-col gap-1.5'>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-500">
+                        <AlertCircle size={12} /> Rejection Remarks
+                    </div>
+                    <div className='border bg-rose-50/50 rounded-xl text-[11px] p-3 border-rose-100 text-rose-700 min-h-[40px] max-h-[80px] overflow-y-auto modal-scrollbar leading-relaxed font-medium dark:bg-rose-900/10 dark:border-rose-900/20 dark:text-rose-400'>
+                        {task?.remarks}
+                    </div>
                 </div>
-            </div> : <><div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400">
-                <div className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(task.deadline)}</div>
-                <span className="text-slate-900 dark:text-white">{task.progressPercentage}% Complete</span>
-            </div>
+            )}
+            
+            <div className="space-y-3">
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400">
+                    <div className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(task.deadline)}</div>
+                    <span className="text-slate-900 dark:text-white font-black">{task.progressPercentage}% Complete</span>
+                </div>
                 <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${task.progressPercentage}%` }} className="h-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full" />
-                </div></>}
+                    <motion.div 
+                        initial={{ width: 0 }} 
+                        animate={{ width: `${task.progressPercentage}%` }} 
+                        className={cn(
+                            "h-full shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full transition-all duration-500",
+                            task?.isRejected ? "bg-rose-500 shadow-rose-500/20" : "bg-indigo-600 shadow-indigo-600/20"
+                        )} 
+                    />
+                </div>
+            </div>
 
 
 
@@ -128,10 +143,6 @@ export default function TaskManagementPage() {
     const [isTaskCompleteModalOpen, setIsTaskCompleteModalOpen] = useState<boolean>(false);
     const [remarks, setRemarks] = useState("");
     const [editingTask, setEditingTask] = useState<any | null>(null);
-    const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
-    const [rollbackTask, setRollbackTask] = useState<any>(null);
-    const [rollbackTargetStatusId, setRollbackTargetStatusId] = useState<number | null>(null);
-    const [rollbackProgress, setRollbackProgress] = useState(90);
     const [currentPage, setCurrentPage] = useState(1);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const itemsPerPage = 8;
@@ -464,76 +475,41 @@ export default function TaskManagementPage() {
 
 
     const handleUpdateTaskStatus = async (type: string) => {
-        // Find if we are reverting FROM "Completed"
-
-        const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === 2)?.TaskStatusName}...`);
+        if (!currentTask) return;
+        
+        const isRejected = type === "REJECTED";
+        const targetStatusId = isRejected ? 2 : 4; // 2: In Progress/Revise, 4: Completed
+        const statusName = statusData.find(s => s.TaskStatusID === targetStatusId)?.TaskStatusName || (isRejected ? 'Revision' : 'Completion');
+        
+        const toastId = toast.loading(`Updating task status to ${statusName}...`);
 
         try {
-
             const payload = {
-                TaskID: currentTask?.TaskID,
-                TaskStatus: type == "REJECTED" ? 2 : 4,
-                IsRejected: type == "REJECTED" ? 1 : 0,
+                TaskID: currentTask.TaskID || currentTask.id,
+                TaskStatus: targetStatusId,
+                IsRejected: isRejected ? 1 : 0,
                 Remarks: remarks,
-                TaskPriority: currentTask.PriorityID,
-                TaskDeadline: currentTask.Deadline?.split('T')[0]
-            }
+                TaskPriority: currentTask.PriorityID || currentTask.priorityId,
+                TaskDeadline: (currentTask.Deadline || currentTask.deadline)?.split('T')[0]
+            };
 
             const result = await callPatchAPIWithToken('tasks/status', payload);
 
             if (result.success) {
-                toast.success('Status Changed Successfully', { id: toastId });
-                setIsRollbackModalOpen(false); // Close modal on success
+                toast.success(`Task ${isRejected ? 'Sent for Revision' : 'Marked as Complete'}`, { id: toastId });
+                setIsRejectionModalOpen(false);
+                setIsTaskCompleteModalOpen(false);
+                setRemarks("");
                 fetchTasks();
             } else {
-                throw new Error(result.error?.message || 'Rollback failed');
+                throw new Error(result.error?.message || result.message || 'Status update failed');
             }
         } catch (error: any) {
-            console.error("Status rollback error:", error);
-            toast.error("Action Failed", { id: toastId });
+            console.error("Status update error:", error);
+            toast.error(error.message || "Action Failed", { id: toastId });
         }
     };
 
-    const handleTaskComplete = async (task: any, nextStatusId: number, isCompleted: number) => {
-        const toastId = toast.loading(`Updating status to ${statusData.find(s => s.TaskStatusID === nextStatusId)?.TaskStatusName}...`);
-
-        try {
-            // Tip: If advancing to "Completed", auto-lock progress at 100%
-            const completedStatus = statusData.find(s => s.TaskStatusName === "Completed");
-            const finalProgress = (completedStatus && nextStatusId === completedStatus.TaskStatusID) ? 100 : task.ProgressPercentage;
-
-            const payload = {
-                TaskID: task.TaskID,
-                TaskStatus: nextStatusId,
-                TaskTypeID: task.TypeID,
-                ProjectID: task.ProjectID,
-                Priority: task.PriorityID,
-                Title: task.Title,
-                SubTitle: task.SubTitle || '',
-                TaskDescription: task.Description,
-                ProgressPercentage: finalProgress,
-                Deadline: task.Deadline?.split('T')[0],
-                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0,
-                IsRejected: isCompleted ? 0 : 1,
-                Remarks: isCompleted ? "Task Approved." : "Task is incomplete or requirement not fulfilled."
-            };
-
-            const result = await callAPIWithToken('tasks', payload);
-
-            if (result.success) {
-                toast.success('Status Updated Successfully', { id: toastId });
-                fetchTasks();
-            } else {
-                throw new Error(result.error?.message || 'Update failed');
-            }
-        } catch (error: any) {
-            console.error("Status advancement error:", error);
-            toast.error("Action Failed", {
-                id: toastId,
-                description: "Please check your network and try again."
-            });
-        }
-    };
 
     const handleDelete = (task: any) => {
         setTaskToDelete(task);
@@ -811,8 +787,37 @@ export default function TaskManagementPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal({
+                                                <div className="flex justify-end gap-1 items-center">
+                                                    {task.StatusID === 3 && (
+                                                        <>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                title="Approve & Complete"
+                                                                onClick={() => {
+                                                                    setCurrentTask(task);
+                                                                    setIsTaskCompleteModalOpen(true);
+                                                                }} 
+                                                                className="h-8 w-8 rounded-lg text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
+                                                            >
+                                                                <CircleCheckBig size={16} />
+                                                            </Button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                title="Reject / Needs Revision"
+                                                                onClick={() => {
+                                                                    setCurrentTask(task);
+                                                                    setIsRejectionModalOpen(true);
+                                                                }} 
+                                                                className="h-8 w-8 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                                            >
+                                                                <CircleX size={16} />
+                                                            </Button>
+                                                            <div className="w-px h-4 bg-slate-100 mx-1" />
+                                                        </>
+                                                    )}
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleOpenEditModal({
                                                         ...task,
                                                         id: task.TaskID.toString(),
                                                         projectId: task.ProjectID.toString(),
@@ -822,7 +827,7 @@ export default function TaskManagementPage() {
                                                         deadline: task.Deadline,
                                                         status: task.StatusName as any
                                                     })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(task)}><Trash2 size={14} className="text-slate-400 group-hover:text-rose-500" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleDelete(task)}><Trash2 size={14} className="text-slate-400 hover:text-rose-500" /></Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1113,58 +1118,7 @@ export default function TaskManagementPage() {
                 )}
             </AnimatePresence>
             {/* Status Change Confirmation Modal */}
-            <AnimatePresence>
-                {isRollbackModalOpen && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsRollbackModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                            <div className="mb-6 flex items-center justify-between">
-                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl text-amber-600">
-                                    <AlertCircle size={24} />
-                                </div>
-                                <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setIsRollbackModalOpen(false)}><X /></Button>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div>
-                                    <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase">Change Status</h2>
-                                    <p className="text-sm text-slate-500 mt-2">Moving <b>{rollbackTask?.Title}</b> from Completed back to an active state. Update the progress below.</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Revised Progress</label>
-                                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{rollbackProgress}%</span>
-                                    </div>
-                                    <div className="relative h-2 w-full group">
-                                        <div className="absolute inset-y-0 left-0 bg-indigo-600 rounded-full shadow-[0_0_10px_rgba(79,70,229,0.3)]" style={{ width: `${rollbackProgress}%` }} />
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="99"
-                                            className="absolute inset-0 w-full h-full appearance-none bg-slate-100 rounded-full cursor-pointer accent-transparent focus:outline-none"
-                                            value={rollbackProgress}
-                                            onChange={e => setRollbackProgress(Number(e.target.value))}
-                                            style={{ WebkitAppearance: 'none', background: 'rgba(241, 245, 249, 0.5)' }}
-                                        />
-                                    </div>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Note: Progress cannot be 100% when reverting from completed.</p>
-                                </div>
-
-                                {/* <div className="flex flex-col gap-2 pt-4">
-                                    <Button
-                                        onClick={() => handleRollbackStatus(rollbackTask, rollbackTargetStatusId!, rollbackProgress)}
-                                        className="h-12 bg-slate-900 text-white hover:bg-slate-800 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl active:scale-[0.98] transition-all"
-                                    >
-                                        Execute Rollback
-                                    </Button>
-                                    <Button variant="ghost" className="h-12 rounded-2xl font-bold text-slate-500" onClick={() => setIsRollbackModalOpen(false)}>Abondon Reversion</Button>
-                                </div> */}
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            
 
             {/* rejection modal */}
             <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
