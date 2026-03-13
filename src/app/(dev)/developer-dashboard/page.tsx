@@ -402,8 +402,8 @@ export default function DeveloperDashboard() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Urgent Task Tracker */}
-                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-                    <div className="mb-10 flex items-center justify-between">
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                    <div className="mb-10 p-10 flex items-center justify-between">
                         <div>
                             <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
                                 Rejected & High Priority Tasks
@@ -424,31 +424,27 @@ export default function DeveloperDashboard() {
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead>
+                            <thead className='px-5'>
                                 <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                    <th className="pb-6 px-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
                                         Task
                                     </th>
-
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
                                         Priority
                                     </th>
-
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                                        Completion Percentage
+                                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Completion %
                                     </th>
-
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
                                         Rejected
                                     </th>
-
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                                        Remarks
+                                    <th className="pb-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Rejection Reason
                                     </th>
                                 </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50 px-5">
                                 {paginatedTasks?.map((task: any) => {
 
                                     const priorityColor =
@@ -459,15 +455,21 @@ export default function DeveloperDashboard() {
                                                 : "bg-indigo-600";
 
                                     return (
-                                        <tr key={task.TaskID} className="group hover:bg-slate-50/50 transition-colors">
-
+                                        <tr
+                                            key={task.TaskID}
+                                            className={cn(
+                                                "group transition-colors",
+                                                task?.IsRejected
+                                                    ? "bg-rose-50/50 hover:bg-rose-50"
+                                                    : "hover:bg-slate-50/50"
+                                            )}
+                                        >
                                             {/* Task */}
-                                            <td className="py-8">
+                                            <td className="py-2 px-4">
                                                 <div className="flex flex-col">
                                                     <span className="font-black text-base text-slate-900 dark:text-white uppercase tracking-tight">
                                                         {task.Title}
                                                     </span>
-
                                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
                                                         {task.ProjectName}
                                                     </span>
@@ -475,7 +477,7 @@ export default function DeveloperDashboard() {
                                             </td>
 
                                             {/* Priority */}
-                                            <td className="py-8">
+                                            <td className="py-2">
                                                 <span
                                                     className={cn(
                                                         "inline-flex items-center rounded-[0.75rem] px-4 py-2 text-[9px] font-black uppercase tracking-widest shadow-sm text-white",
@@ -487,43 +489,39 @@ export default function DeveloperDashboard() {
                                             </td>
 
                                             {/* Progress */}
-                                            <td className="py-8">
+                                            <td className="py-2">
                                                 <div className="flex flex-col">
-
                                                     <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
                                                         {task.StatusName}
                                                     </span>
-
                                                     <div className="mt-2 h-1.5 w-32 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
-
                                                         <div
                                                             className={cn("h-full", priorityColor)}
                                                             style={{
                                                                 width: `${task.ProgressPercentage || 0}%`
                                                             }}
                                                         />
-
                                                     </div>
-
                                                     <span className="text-[9px] text-slate-400 font-bold mt-1">
                                                         {task.ProgressPercentage || 0}%
                                                     </span>
-
                                                 </div>
                                             </td>
 
                                             {/* Rejected */}
-                                            <td className="py-8">
+                                            <td className="py-2">
                                                 <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
                                                     {task?.IsRejected ? "Yes" : "No"}
                                                 </span>
                                             </td>
 
                                             {/* Remarks */}
-                                            <td className="py-8">
-                                                <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
-                                                    {task?.Remarks || "N/A"}
-                                                </span>
+                                            <td className="py-2">
+                                                <div className="max-w-[160px] bg-slate-100 p-2 border rounded-xl overflow-hidden">
+                                                    <div className="max-h-20 overflow-y-auto text-[8px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full dark:[&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                                                        {task?.Remarks || "N/A"}
+                                                    </div>
+                                                </div>
                                             </td>
 
                                         </tr>
