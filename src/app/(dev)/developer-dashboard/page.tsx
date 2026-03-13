@@ -79,14 +79,14 @@ const StatCard = ({
             <div className="relative z-10 flex flex-col h-full">
 
                 {/* Top Row: Icon & Trend */}
-                <div className="grid grid-cols-3 items-center justify-between">
+                <div className="grid grid-cols-4 items-center justify-start">
                     {/* Icon */}
                     <div className={cn(
                         `flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-300 shadow-sm shadow-white/70 group-hover:scale-110 group-hover:-rotate-6 backdrop-blur-sm text-white bg-white/80 ${borderColor}`,
                     )}>
                         <Icon className={`h-7 w-7 ${iconColor}`} />
                     </div>
-                    <div className="col-span-2 text-md font-bold uppercase tracking-widest text-white/80">
+                    <div className="col-span-3 text-xl font-bold uppercase tracking-widest text-white/80">
                         {title}
                     </div>
                 </div>
@@ -231,7 +231,7 @@ export default function DeveloperDashboard() {
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Developer's Dashboard</span>
                     </div>
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{currentUser?.fullName?.split(' ')[0] || "Developer"}</span>
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{currentUser?.name || "User"}</span>
                     </h1>
                     <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Activity className="h-4 w-4 text-emerald-500" />

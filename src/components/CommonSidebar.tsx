@@ -124,7 +124,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                                {currentUser?.name || currentUser?.username || "Active User"}
+                                {currentUser?.name || currentUser?.username || "Guest User"}
                             </p>
                             <p className="truncate text-[11px] font-medium uppercase tracking-wider text-slate-500">
                                 {currentUser?.role.replace('_', ' ')}

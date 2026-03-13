@@ -9,19 +9,21 @@ import {
     Inbox, User as UserIcon, AlertCircle, Ban, Send, Pencil, Loader2,
     CheckCircle2Icon,
     CircleCheckBig,
-    CircleX
+    CircleX,
+    AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { Field, FieldGroup } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
 
@@ -114,6 +116,8 @@ export default function TaskManagementPage() {
     const [apiTasks, setApiTasks] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isRejectionModalOpen, setIsRejectionModalOpen] = useState<boolean>(false);
+    const [remarks, setRemarks] = useState("");
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
     const [rollbackTask, setRollbackTask] = useState<any>(null);
@@ -132,6 +136,7 @@ export default function TaskManagementPage() {
     const [validationTrigger, setValidationTrigger] = useState<number>(0);
     const [myTasks, setMyTasks] = useState<any[]>([]);  // Developer-specific: all assigned tasks
     const modalContentRef = React.useRef<HTMLDivElement>(null);
+    const [currentTask, setCurrentTask] = useState<any>(null);
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -367,7 +372,7 @@ export default function TaskManagementPage() {
                 TaskDescription: formData.description,
                 ProgressPercentage: Number(formData.progressPercentage),
                 Deadline: formData.deadline,
-                AssignedToUserID: Number(formData.assignedToUserId),
+                AssignedToUserID: Number(formData.assignedToUserId)
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -415,7 +420,7 @@ export default function TaskManagementPage() {
             if (!task) throw new Error('No task selected for update');
             const payload = {
                 TaskID: taskId,
-                TaskStatus: task.StatusID || task.statusId || 1,
+                TaskStatus: progress == 100 ? 3 : 2,
                 TaskTypeID: task.TypeID || task.typeId || 1,
                 ProjectID: task.ProjectID || task.projectId || 1,
                 Priority: task.PriorityID || task.priorityId || 1,
@@ -442,33 +447,24 @@ export default function TaskManagementPage() {
     };
 
 
-    const handleRollbackStatus = async (task: any, prevStatusId: number, explicitProgress?: number) => {
+    const handleRollbackStatus = async () => {
         // Find if we are reverting FROM "Completed"
-        const isFromCompleted = task.StatusName === "Completed";
 
-        if (isFromCompleted && explicitProgress === undefined) {
-            setRollbackTask(task);
-            setRollbackTargetStatusId(prevStatusId);
-            setRollbackProgress(90); // Default to 90%
-            setIsRollbackModalOpen(true);
-            return;
-        }
-
-        const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === prevStatusId)?.TaskStatusName}...`);
+        const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === 2)?.TaskStatusName}...`);
 
         try {
             const payload = {
-                TaskID: task.TaskID,
-                TaskStatus: prevStatusId,
-                TaskTypeID: task.TypeID,
-                ProjectID: task.ProjectID,
-                Priority: task.PriorityID,
-                Title: task.Title,
-                SubTitle: task.SubTitle || '',
-                TaskDescription: task.Description,
-                ProgressPercentage: explicitProgress !== undefined ? explicitProgress : task.ProgressPercentage,
-                Deadline: task.Deadline?.split('T')[0],
-                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0
+                TaskID: currentTask?.TaskID,
+                TaskStatus: 2,
+                TaskTypeID: currentTask.TypeID,
+                ProjectID: currentTask.ProjectID,
+                Priority: currentTask.PriorityID,
+                Title: currentTask.Title,
+                SubTitle: currentTask.SubTitle || '',
+                TaskDescription: currentTask.Description,
+                ProgressPercentage: 90,
+                Deadline: currentTask.Deadline?.split('T')[0],
+                AssignedToUserID: currentTask.AssignedToUsers?.[0]?.AssignedToUserID || currentTask.AssignedToUserID || 0
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -533,6 +529,12 @@ export default function TaskManagementPage() {
             toast.error('Task deleted');
         }
     };
+
+    const handleReject = () => {
+        console.log("Rejected with remarks:", remarks)
+        setRemarks("");
+        setIsRejectionModalOpen(false);
+    }
 
     return (
         <div className="max-w-[1500px] mx-auto space-y-8 p-2">
@@ -601,7 +603,7 @@ export default function TaskManagementPage() {
                                 // Find next/prev status for update
                                 const currentIndex = statusData.findIndex(s => s.TaskStatusID === activeStatusId);
                                 const nextStatus = statusData[currentIndex + 1];
-                                const prevStatus = statusData[currentIndex - 1];
+
 
                                 return (
                                     <TaskGridCard
@@ -620,7 +622,8 @@ export default function TaskManagementPage() {
                                         statusId={activeStatusId || null}
                                         onStatusChange={(id: string, sId: number) => {
                                             if (activeStatusId !== null && sId < activeStatusId) {
-                                                handleRollbackStatus(task, sId, 0);
+                                                setCurrentTask(task);
+                                                setIsRejectionModalOpen(true);
                                             } else {
                                                 handleAdvanceStatus(task, sId, 1);
                                             }
@@ -852,7 +855,7 @@ export default function TaskManagementPage() {
                                         {/* Progress Slider */}
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">My Progress</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Task Progress</label>
                                                 <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
                                                     {formData.progressPercentage}%
                                                 </span>
@@ -872,25 +875,6 @@ export default function TaskManagementPage() {
                                             </div>
                                         </div>
 
-                                        {/* Milestones */}
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {[25, 50, 75, 100].map(milestone => (
-                                                <button
-                                                    key={milestone}
-                                                    type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, progressPercentage: milestone }))}
-                                                    className={cn(
-                                                        "py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border transition-all",
-                                                        formData.progressPercentage >= milestone
-                                                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-indigo-300"
-                                                    )}
-                                                >
-                                                    {milestone}%
-                                                </button>
-                                            ))}
-                                        </div>
-
                                         <div className="pt-4 flex flex-col gap-3">
                                             <Button
                                                 onClick={() => handlePatchProgress(editingTask?.TaskID || editingTask?.id, formData.progressPercentage)}
@@ -899,7 +883,7 @@ export default function TaskManagementPage() {
                                             >
                                                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Progress</>}
                                             </Button>
-                                            <Button variant="ghost" className="h-11 rounded-2xl font-bold text-slate-500" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                            <Button variant="ghost" className="h-11 rounded-2xl font-bold text-slate-500" onClick={() => { setIsModalOpen(false); setFormData({ ...formData, progressPercentage: 0 }) }}>Cancel</Button>
                                         </div>
                                     </div>
                                 ) : (
@@ -1120,7 +1104,7 @@ export default function TaskManagementPage() {
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Note: Progress cannot be 100% when reverting from completed.</p>
                                 </div>
 
-                                <div className="flex flex-col gap-2 pt-4">
+                                {/* <div className="flex flex-col gap-2 pt-4">
                                     <Button
                                         onClick={() => handleRollbackStatus(rollbackTask, rollbackTargetStatusId!, rollbackProgress)}
                                         className="h-12 bg-slate-900 text-white hover:bg-slate-800 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl active:scale-[0.98] transition-all"
@@ -1128,7 +1112,7 @@ export default function TaskManagementPage() {
                                         Execute Rollback
                                     </Button>
                                     <Button variant="ghost" className="h-12 rounded-2xl font-bold text-slate-500" onClick={() => setIsRollbackModalOpen(false)}>Abondon Reversion</Button>
-                                </div>
+                                </div> */}
                             </div>
                         </motion.div>
                     </div>
@@ -1136,38 +1120,56 @@ export default function TaskManagementPage() {
             </AnimatePresence>
 
             {/* rejection modal */}
-             <Dialog>
-      <form>
-        <DialogTrigger asChild>
-          <Button variant="outline">Open Dialog</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Edit profile</DialogTitle>
-            <DialogDescription>
-              Make changes to your profile here. Click save when you&apos;re
-              done.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup>
-            <Field>
-              <Label htmlFor="name-1">Name</Label>
-              <Input id="name-1" name="name" defaultValue="Pedro Duarte" />
-            </Field>
-            <Field>
-              <Label htmlFor="username-1">Username</Label>
-              <Input id="username-1" name="username" defaultValue="@peduarte" />
-            </Field>
-          </FieldGroup>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button type="submit">Save changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </form>
-    </Dialog>
+            {/* Modal */}
+            <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="flex flex-col items-center text-center gap-3">
+
+                        {/* Warning Icon */}
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                            <AlertTriangle className="h-6 w-6 text-red-600" />
+                        </div>
+
+                        <DialogTitle className="text-lg font-semibold">
+                            Do you really want to reject this?
+                        </DialogTitle>
+
+                        <p className="text-sm text-muted-foreground">
+                            Please provide a reason for rejection.
+                        </p>
+                    </DialogHeader>
+
+                    {/* Remarks */}
+                    <div className="space-y-2 mt-4">
+                        <Label htmlFor="remarks">Rejection Remarks</Label>
+                        <Textarea
+                            id="remarks"
+                            placeholder="Write the reason for rejection..."
+                            className="min-h-[100px]"
+                            value={remarks}
+                            onChange={(e: any) => setRemarks(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Footer */}
+                    <DialogFooter className="mt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsRejectionModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            variant="destructive"
+                            disabled={!remarks.trim()}
+                            onClick={handleReject}
+                        >
+                            Reject
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
