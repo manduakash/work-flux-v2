@@ -107,8 +107,8 @@ export default function LoginPage() {
             }
         } catch (error: any) {
             console.error("Auth Critical Failure:", error);
-            toast.error("Connection Error", {
-                description: "Could not connect to the server. Please check your internet.",
+            toast.error("Authentication Failed", {
+                description: error.message || "An unexpected error occurred. Please try again.",
             });
             setIsLoading(false);
         }

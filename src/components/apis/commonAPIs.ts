@@ -41,10 +41,17 @@ export const callAPI = async (url: string, body: any) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+
   if (!response.ok) {
+    if (isJsonResponse(response)) {
+      const errorData = await response.json();
+      const message = errorData?.error?.message || errorData?.message || `Error ${response.status}: ${response.statusText}`;
+      throw new Error(message);
+    }
     let text = await response.text();
     throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
   }
+
   if (!isJsonResponse(response)) {
     let text = await response.text();
     throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
