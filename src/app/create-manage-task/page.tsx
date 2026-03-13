@@ -11,7 +11,8 @@ import {
     CircleCheckBig,
     CircleX,
     AlertTriangle,
-    ShieldAlert
+    ShieldAlert,
+    PenBoxIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -701,12 +702,13 @@ export default function TaskManagementPage() {
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Priority</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Assigned By</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Deadline & Progress</th>
-                                        <th className="px-6 py-4 text-right font-bold text-[10px] uppercase tracking-widest text-slate-400">Update</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Rejection Remarks</th>
+                                        <th className="px-6 py-4 text-right font-bold text-[10px] uppercase tracking-widest text-slate-400">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {paginatedTasks.length > 0 ? paginatedTasks.map((task) => (
-                                        <tr key={task.TaskID} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <tr key={task.TaskID} className={`group ${task?.IsRejected ? "bg-rose-50/50 hover:bg-rose-50 dark:hover:bg-rose-800/30" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"} transition-colors`}>
                                             <td className="px-6 py-4">
                                                 <p className="font-bold text-slate-900 dark:text-white">{task.Title}</p>
                                                 {task.SubTitle && <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">{task.SubTitle}</p>}
@@ -748,7 +750,17 @@ export default function TaskManagementPage() {
                                                     </div>
                                                 </div>
                                             </td>
+
+                                            {/* Remarks */}
                                             <td className="px-6 py-4 text-right">
+                                                {task?.IsRejected ? <div className="max-w-[160px] bg-slate-100 p-2 border rounded-xl overflow-hidden">
+                                                    <div className="max-h-20 overflow-y-auto text-[8px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full dark:[&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                                                        {task?.Remarks || "N/A"}
+                                                    </div>
+                                                </div> : ""
+                                                }
+                                            </td>
+                                            <td className="px-6 py-4 text-start">
                                                 <Button
                                                     variant="ghost" size="sm"
                                                     onClick={() => {
@@ -756,9 +768,9 @@ export default function TaskManagementPage() {
                                                         setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
                                                         setIsModalOpen(true);
                                                     }}
-                                                    className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-indigo-600 border border-indigo-100 hover:bg-indigo-50 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
+                                                    className="px-2 py-4.5 rounded-full cursor-pointer text-[9px] font-black uppercase tracking-widest bg-indigo-400 text-white/80 hover:text-white/90 border border-indigo-100 hover:bg-indigo-500 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
                                                 >
-                                                    <Activity size={12} className="mr-1.5" /> Update
+                                                    <PenBoxIcon />
                                                 </Button>
                                             </td>
                                         </tr>
