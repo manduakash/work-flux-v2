@@ -11,7 +11,8 @@ import {
     CircleCheckBig,
     CircleX,
     AlertTriangle,
-    ShieldAlert
+    ShieldAlert,
+    PenBoxIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -35,6 +36,15 @@ import { cn, formatDate, getStatusColor } from '@/lib/utils';
 import { TaskStatus, UserRole, Task } from '@/types';
 import { callGetAPIWithToken, callAPIWithToken, callPatchAPIWithToken, callDeleteAPIWithToken } from '@/components/apis/commonAPIs';
 import { getCookie } from '@/utils/cookies';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 // --- Sub-Component: Grid Card for Board View ---
 const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusChange, onDelete, onEdit, currentUser }: any) => (
@@ -75,7 +85,7 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
         </p>
 
         <div className="mt-auto space-y-4">
-            {task?.isRejected && (
+            {task?.isRejected ? (
                 <div className='flex flex-col gap-1.5'>
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-500">
                         <AlertCircle size={12} /> Rejection Remarks
@@ -84,21 +94,21 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
                         {task?.remarks}
                     </div>
                 </div>
-            )}
-            
+            ) : ""}
+
             <div className="space-y-3">
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400">
                     <div className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(task.deadline)}</div>
                     <span className="text-slate-900 dark:text-white font-black">{task.progressPercentage}% Complete</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                    <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${task.progressPercentage}%` }} 
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${task.progressPercentage}%` }}
                         className={cn(
                             "h-full shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full transition-all duration-500",
                             task?.isRejected ? "bg-rose-500 shadow-rose-500/20" : "bg-indigo-600 shadow-indigo-600/20"
-                        )} 
+                        )}
                     />
                 </div>
             </div>
@@ -476,11 +486,11 @@ export default function TaskManagementPage() {
 
     const handleUpdateTaskStatus = async (type: string) => {
         if (!currentTask) return;
-        
+
         const isRejected = type === "REJECTED";
         const targetStatusId = isRejected ? 2 : 4; // 2: In Progress/Revise, 4: Completed
         const statusName = statusData.find(s => s.TaskStatusID === targetStatusId)?.TaskStatusName || (isRejected ? 'Revision' : 'Completion');
-        
+
         const toastId = toast.loading(`Updating task status to ${statusName}...`);
 
         try {
@@ -581,10 +591,30 @@ export default function TaskManagementPage() {
 
             {/* Toolbar & Status Tabs */}
             <div className="space-y-6">
-                <div className="relative group max-w-xl">
-                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                    <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <div className='flex justify-between items-center gap-8'>
+                    <div className="relative group flex-1">
+                        <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                    </div>
+                    <div>
+                        <Select>
+                            <SelectTrigger className="w-full max-w-48">
+                                <SelectValue placeholder="Select a fruit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectLabel>Fruits</SelectLabel>
+                                    <SelectItem value="apple">Apple</SelectItem>
+                                    <SelectItem value="banana">Banana</SelectItem>
+                                    <SelectItem value="blueberry">Blueberry</SelectItem>
+                                    <SelectItem value="grapes">Grapes</SelectItem>
+                                    <SelectItem value="pineapple">Pineapple</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
+
 
                 {/* Status tabs only for team leads/admins */}
                 {viewMode === 'board' && !isDeveloper && (
@@ -677,12 +707,13 @@ export default function TaskManagementPage() {
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Priority</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Assigned By</th>
                                         <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Deadline & Progress</th>
-                                        <th className="px-6 py-4 text-right font-bold text-[10px] uppercase tracking-widest text-slate-400">Update</th>
+                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Rejection Remarks</th>
+                                        <th className="px-6 py-4 text-right font-bold text-[10px] uppercase tracking-widest text-slate-400">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {paginatedTasks.length > 0 ? paginatedTasks.map((task) => (
-                                        <tr key={task.TaskID} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <tr key={task.TaskID} className={`group ${task?.IsRejected ? "bg-rose-50/50 hover:bg-rose-50 dark:hover:bg-rose-800/30" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"} transition-colors`}>
                                             <td className="px-6 py-4">
                                                 <p className="font-bold text-slate-900 dark:text-white">{task.Title}</p>
                                                 {task.SubTitle && <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">{task.SubTitle}</p>}
@@ -724,7 +755,17 @@ export default function TaskManagementPage() {
                                                     </div>
                                                 </div>
                                             </td>
+
+                                            {/* Remarks */}
                                             <td className="px-6 py-4 text-right">
+                                                {task?.IsRejected ? <div className="max-w-[160px] bg-slate-100 p-2 border rounded-xl overflow-hidden">
+                                                    <div className="max-h-20 overflow-y-auto text-[8px] font-black text-slate-900 dark:text-white uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full dark:[&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                                                        {task?.Remarks || "N/A"}
+                                                    </div>
+                                                </div> : ""
+                                                }
+                                            </td>
+                                            <td className="px-6 py-4 text-start">
                                                 <Button
                                                     variant="ghost" size="sm"
                                                     onClick={() => {
@@ -732,9 +773,9 @@ export default function TaskManagementPage() {
                                                         setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
                                                         setIsModalOpen(true);
                                                     }}
-                                                    className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-indigo-600 border border-indigo-100 hover:bg-indigo-50 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
+                                                    className="px-2 py-4.5 rounded-full cursor-pointer text-[9px] font-black uppercase tracking-widest bg-indigo-400 text-white/80 hover:text-white/90 border border-indigo-100 hover:bg-indigo-500 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
                                                 >
-                                                    <Activity size={12} className="mr-1.5" /> Update
+                                                    <PenBoxIcon />
                                                 </Button>
                                             </td>
                                         </tr>
@@ -790,26 +831,26 @@ export default function TaskManagementPage() {
                                                 <div className="flex justify-end gap-1 items-center">
                                                     {task.StatusID === 3 && (
                                                         <>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
                                                                 title="Approve & Complete"
                                                                 onClick={() => {
                                                                     setCurrentTask(task);
                                                                     setIsTaskCompleteModalOpen(true);
-                                                                }} 
+                                                                }}
                                                                 className="h-8 w-8 rounded-lg text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
                                                             >
                                                                 <CircleCheckBig size={16} />
                                                             </Button>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
                                                                 title="Reject / Needs Revision"
                                                                 onClick={() => {
                                                                     setCurrentTask(task);
                                                                     setIsRejectionModalOpen(true);
-                                                                }} 
+                                                                }}
                                                                 className="h-8 w-8 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
                                                             >
                                                                 <CircleX size={16} />
@@ -1118,7 +1159,7 @@ export default function TaskManagementPage() {
                 )}
             </AnimatePresence>
             {/* Status Change Confirmation Modal */}
-            
+
 
             {/* rejection modal */}
             <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
