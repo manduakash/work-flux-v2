@@ -73,23 +73,23 @@ export default function ProfessionalDashboard() {
             try {
                 // In a real scenario, you'd have specific endpoints for these.
                 // Simulating comprehensive data fetch:
-                const [projectsRes,devRes] = await Promise.all([
+                const [projectsRes, devRes, weeklyRes] = await Promise.all([
                     callGetAPIWithToken('projects/projects-by-user-id'),
-                    callGetAPIWithToken('lead/dashboard/developer-wise-team-progress-graph')
+                    callGetAPIWithToken('lead/dashboard/developer-wise-team-progress-graph'),
+                    callGetAPIWithToken('lead/dashboard/weekly-task-progress-graph')
                 ]);
 
                 const transformedDevStats = (devRes.data || []).map((dev: any) => ({
-                name: dev.DeveloperName,
-                pending: Number(dev.NoOfInProgressTask),
-                completed: Number(dev.NoOfCompletedTask),
+                    name: dev.DeveloperName,
+                    pending: Number(dev.NoOfInProgressTask),
+                    completed: Number(dev.NoOfCompletedTask),
                 }));
-                // Mocking complex data structures for the requested charts based on project data
-                const mockWeeklyTasks = [
-                    { week: 'W1', pending: 20, completed: 15 },
-                    { week: 'W2', pending: 18, completed: 25 },
-                    { week: 'W3', pending: 25, completed: 20 },
-                    { week: 'W4', pending: 12, completed: 30 },
-                ];
+
+                const transformedWeeklyTasks = (weeklyRes.data || []).map((item: any) => ({
+                    week: `W${item.week_number}`,
+                    pending: Number(item.Pending),
+                    completed: Number(item.Completed),
+                }));
 
                 const mockUrgentTasks = [
                     { id: 1, title: 'API Authentication Fix', project: 'NexIntel', priority: 'Critical' },
@@ -98,7 +98,7 @@ export default function ProfessionalDashboard() {
 
                 setData({
                     projects: projectsRes.data || [],
-                    weeklyTasks: mockWeeklyTasks,
+                    weeklyTasks: transformedWeeklyTasks,
                     devStats: transformedDevStats,
                     urgentTasks: mockUrgentTasks,
                     staleTasks: [

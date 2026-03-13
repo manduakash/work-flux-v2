@@ -469,7 +469,7 @@ export default function TeamPage() {
                                 <div className="mx-auto w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-6 border border-rose-100">
                                     <ShieldAlert size={40} />
                                 </div>
-                                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Revoke System Access?</h2>
+                                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Remove User?</h2>
                                 <p className="text-sm font-medium text-slate-500 mt-2 italic px-8">
                                     Are you absolutely sure you want to remove <span className="text-rose-600 font-bold">{userToDelete?.name}</span>? This action is permanent.
                                 </p>
@@ -477,7 +477,7 @@ export default function TeamPage() {
 
                             <div className="px-10 pb-10 space-y-6">
                                 <div className="space-y-4">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Removal Justification *</Label>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Reason for removal *</Label>
                                     <textarea
                                         required
                                         value={removalReason}
@@ -505,7 +505,7 @@ export default function TeamPage() {
                                         className="flex-[2] rounded-2xl h-14 bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-rose-600/20 active:scale-95 transition-all"
                                     >
                                         {isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-3" size={18} />}
-                                        Revoke Access
+                                        Remove User
                                     </Button>
                                 </div>
                             </div>
