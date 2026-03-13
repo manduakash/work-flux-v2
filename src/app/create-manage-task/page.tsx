@@ -10,7 +10,8 @@ import {
     CheckCircle2Icon,
     CircleCheckBig,
     CircleX,
-    AlertTriangle
+    AlertTriangle,
+    ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,7 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate, getStatusColor } from '@/lib/utils';
 import { TaskStatus, UserRole, Task } from '@/types';
-import { callGetAPIWithToken, callAPIWithToken, callPatchAPIWithToken } from '@/components/apis/commonAPIs';
+import { callGetAPIWithToken, callAPIWithToken, callPatchAPIWithToken, callDeleteAPIWithToken } from '@/components/apis/commonAPIs';
 import { getCookie } from '@/utils/cookies';
 
 // --- Sub-Component: Grid Card for Board View ---
@@ -57,7 +58,7 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100" onClick={() => onEdit(task)}>
                             <Pencil size={14} className="text-indigo-600" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-rose-50" onClick={() => onDelete(task.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-rose-50" onClick={() => onDelete(task)}>
                             <Trash2 size={14} className="text-rose-500" />
                         </Button>
                     </>
@@ -74,13 +75,20 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
         </p>
 
         <div className="mt-auto space-y-4">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400">
+            {task?.isRejected ? <div className='flex flex-col gap-1'>
+                <Label>Rejection Remarks:</Label>
+                <div className='border bg-rose-50 rounded-xl text-sm p-2 border-rose-200 min-h-[50px] max-h-[80px] overflow-y-auto modal-scrollbar'>
+                    {task?.remarks}
+                </div>
+            </div> : <><div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400">
                 <div className="flex items-center gap-1.5"><Calendar size={12} /> {formatDate(task.deadline)}</div>
                 <span className="text-slate-900 dark:text-white">{task.progressPercentage}% Complete</span>
             </div>
-            <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${task.progressPercentage}%` }} className="h-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full" />
-            </div>
+                <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${task.progressPercentage}%` }} className="h-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)] rounded-full" />
+                </div></>}
+
+
 
             <div className="flex gap-2 items-center justify-between pt-2 border-t border-slate-50 dark:border-slate-800">
                 <div className="flex items-center gap-2">
@@ -142,6 +150,9 @@ export default function TaskManagementPage() {
         REJECTED: false,
         COMPLETE: false
     });
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState<any>(null);
+    const [isDeletingTask, setIsDeletingTask] = useState(false);
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -524,10 +535,31 @@ export default function TaskManagementPage() {
         }
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('Delete this task?')) {
-            deleteTask(id);
-            toast.error('Task deleted');
+    const handleDelete = (task: any) => {
+        setTaskToDelete(task);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteTask = async () => {
+        if (!taskToDelete) return;
+
+        setIsDeletingTask(true);
+        const toastId = toast.loading('Purging task from system...');
+        try {
+            const taskId = taskToDelete.TaskID || taskToDelete.id;
+            const result = await callDeleteAPIWithToken('tasks', { taskId: Number(taskId) });
+            if (result.success) {
+                toast.success('Task Purged Successfully', { id: toastId });
+                setIsDeleteModalOpen(false);
+                setTaskToDelete(null);
+                fetchTasks();
+            } else {
+                toast.error(result.message || 'Purge failed', { id: toastId });
+            }
+        } catch (error: any) {
+            toast.error(error.message || 'An error occurred during deletion', { id: toastId });
+        } finally {
+            setIsDeletingTask(false);
         }
     };
 
@@ -627,7 +659,9 @@ export default function TaskManagementPage() {
                                             title: task.Title,
                                             description: task.Description,
                                             progressPercentage: task.StatusName === "Completed" ? 100 : task.ProgressPercentage,
-                                            deadline: task.Deadline
+                                            deadline: task.Deadline,
+                                            isRejected: task.IsRejected,
+                                            remarks: task.Remarks
                                         }}
                                         project={{ name: task.ProjectName }}
                                         assignee={{ name: task.AssignedToUsers?.[0]?.AssignedToUserFullName || task.AssignedByUserFullName || 'Unassigned' }}
@@ -925,7 +959,7 @@ export default function TaskManagementPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Module</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Sub title</label>
                                                 <Input placeholder="e.g. Backend Development" value={formData.subTitle} onChange={e => setFormData({ ...formData, subTitle: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
                                             </div>
                                             <div className="space-y-1.5">
@@ -1018,7 +1052,7 @@ export default function TaskManagementPage() {
                                         <div className="space-y-3">
                                             <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.assignedToUserId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Assign Team Member</label>
                                             <div className={cn(
-                                                "flex flex-wrap gap-2 p-5 rounded-3xl bg-slate-50 border transition-all dark:bg-slate-950/50",
+                                                "flex flex-wrap gap-2 p-5 rounded-3xl bg-slate-50 border transition-all dark:bg-slate-950/50 max-h-[200px] overflow-y-auto modal-scrollbar",
                                                 !formData.assignedToUserId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-100 dark:border-slate-800"
                                             )}>
                                                 {availableDevs.length > 0 ? (
@@ -1231,6 +1265,69 @@ export default function TaskManagementPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Premium Delete Confirmation Modal */}
+            <AnimatePresence>
+                {isDeleteModalOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => !isDeletingTask && setIsDeleteModalOpen(false)}
+                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                        />
+
+                        <motion.div
+                            initial={{ scale: 0.95, y: 30, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 30, opacity: 0 }}
+                            className="relative w-full max-w-lg flex flex-col overflow-hidden rounded-[3rem] bg-white shadow-2xl border border-white dark:bg-slate-900 dark:border-slate-800"
+                        >
+                            <div className="p-10 pb-6 text-center">
+                                <div className="mx-auto w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-6 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30">
+                                    <ShieldAlert size={40} />
+                                </div>
+                                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight dark:text-white">Confirm Task Deletion?</h2>
+                                <p className="text-sm font-medium text-slate-500 mt-2 italic px-8 dark:text-slate-400">
+                                    You are about to permanently delete <span className="text-rose-600 font-bold dark:text-rose-400">{taskToDelete?.Title || taskToDelete?.title}</span>. This action cannot be undone.
+                                </p>
+                            </div>
+
+                            <div className="px-10 pb-10">
+                                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 mb-8 dark:bg-slate-800/50 dark:border-slate-800">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="text-amber-500" size={18} />
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">System Warning</p>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-600 mt-2 dark:text-slate-300 leading-relaxed">
+                                        Deleting this task will remove its history, progress tracking, and association with the project permanently.
+                                    </p>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant="ghost"
+                                        disabled={isDeletingTask}
+                                        onClick={() => setIsDeleteModalOpen(false)}
+                                        className="flex-1 rounded-2xl h-14 font-black text-[11px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        disabled={isDeletingTask}
+                                        onClick={confirmDeleteTask}
+                                        className="flex-[2] rounded-2xl h-14 bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-rose-600/20 active:scale-95 transition-all"
+                                    >
+                                        {isDeletingTask ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-3" size={18} />}
+                                        Yes, Purge Task
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

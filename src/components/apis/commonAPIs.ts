@@ -199,3 +199,34 @@ export const callPatchAPIWithToken = async (url: string, body: any) => {
   }
   return await response.json();
 }
+
+export const callDeleteAPIWithToken = async (url: string, body: any) => {
+  const fullUrl = `${BASE_URL}${url}`;
+  logApiUrl(fullUrl);
+  const response = await fetch(fullUrl, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 401) {
+    deleteCookie("token");
+    deleteCookie("user");
+    deleteCookie("role");
+    deleteCookie("role_id");
+    localStorage.clear();
+    window.location.href = "/session-expired";
+  }
+  if (!response.ok) {
+    if (isJsonResponse(response)) {
+      const errorData = await response.json();
+      throw new Error(errorData?.message || `Error ${response.status}: ${response.statusText}`);
+    }
+    let text = await response.text();
+    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+  }
+  if (!isJsonResponse(response)) {
+    let text = await response.text();
+    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+  }
+  return await response.json();
+}
