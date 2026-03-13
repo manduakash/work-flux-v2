@@ -92,10 +92,10 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
                 <div className="flex gap-2">
                     {statusId == 3 && (
                         <>
-                            <Button variant="outline" size="sm" title="Mark as Complete" onClick={() => onStatusChange(task.id, nextStatus.id)} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-full transition-all">
+                            <Button variant="outline" size="sm" title="Mark as Complete" onClick={() => onStatusChange(task.id, nextStatus.id, "COMPLETE")} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-full transition-all">
                                 <CircleCheckBig className='m-0 p-0' />
                             </Button>
-                            <Button variant="outline" size="sm" title="Mark as Incomplete" onClick={() => onStatusChange(task.id, nextStatus.id)} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white rounded-full transition-all">
+                            <Button variant="outline" size="sm" title="Mark as Incomplete" onClick={() => onStatusChange(task.id, nextStatus.id, "REJECTED")} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white rounded-full transition-all">
                                 <CircleX className='m-0 p-0' />
                             </Button>
                         </>
@@ -537,7 +537,8 @@ export default function TaskManagementPage() {
             setIsLoading({ ...isLoading, [type]: true });
             await handleUpdateTaskStatus(type);
             setRemarks("");
-            type === "REJECTED" ? setIsRejectionModalOpen(false) : setIsTaskCompleteModalOpen(false);
+            setIsRejectionModalOpen(false);
+            setIsTaskCompleteModalOpen(false);
         } catch (error: any) {
             console.error("Error updating task status:", error);
             toast.error("Action Failed", {
@@ -632,14 +633,12 @@ export default function TaskManagementPage() {
                                         assignee={{ name: task.AssignedToUsers?.[0]?.AssignedToUserFullName || task.AssignedByUserFullName || 'Unassigned' }}
                                         nextStatus={nextStatus ? { id: nextStatus.TaskStatusID, title: nextStatus.TaskStatusName } : null}
                                         statusId={activeStatusId || null}
-                                        onStatusChange={(id: string, sId: number) => {
-                                            if (activeStatusId !== null && sId < activeStatusId) {
-                                                setCurrentTask(task);
-                                                setIsRejectionModalOpen(true);
-                                                // handleTaskComplete(task, sId, 1);
-                                            } else {
-                                                setCurrentTask(task);
+                                        onStatusChange={(id: string, sId: number, status: string) => {
+                                            setCurrentTask(task);
+                                            if (status === "COMPLETE") {
                                                 setIsTaskCompleteModalOpen(true);
+                                            } else {
+                                                setIsRejectionModalOpen(true);
                                             }
                                         }}
                                         onDelete={handleDelete}
@@ -1176,7 +1175,7 @@ export default function TaskManagementPage() {
                         <Button
                             variant="destructive"
                             disabled={!remarks?.trim() || isLoading?.REJECTED}
-                            onClick={() => handleTaskCompleteOrRejection("REJECT")}
+                            onClick={() => handleTaskCompleteOrRejection("REJECTED")}
                         >
                             Reject
                         </Button>
@@ -1225,7 +1224,7 @@ export default function TaskManagementPage() {
                             variant="outline"
                             className='bg-emerald-100 text-emerald-700 hover:bg-emerald-300'
                             onClick={() => handleTaskCompleteOrRejection("COMPLETE")}
-                            disabled={isLoading?.COMPLETE}
+                            disabled={!!isLoading?.COMPLETE}
                         >
                             Complete
                         </Button>

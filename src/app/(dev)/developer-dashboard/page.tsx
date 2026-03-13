@@ -138,7 +138,7 @@ export default function DeveloperDashboard() {
             const projectsRes = await callGetAPIWithToken("projects/projects-by-user-id");
             const tasks = await callGetAPIWithToken("tasks?taskId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0");
             const user = getCookie("user");
-            const urgentTasks = tasks?.data?.filter((task: any) => task?.StatusID == 2 && (task?.PriorityID == 1 || task.PriorityID == 2))
+            const urgentTasks = tasks?.data?.filter((task: any) => task?.StatusID == 2 && (task?.PriorityID == 1 || task?.PriorityID == 2 || task?.IsRejected)) || [];
             setHighPriorityTasks(urgentTasks || []);
             setCurrentUser(user);
             setStats({
@@ -406,7 +406,7 @@ export default function DeveloperDashboard() {
                     <div className="mb-10 flex items-center justify-between">
                         <div>
                             <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                                Critical & High Priority Tasks
+                                Rejected & High Priority Tasks
                             </h3>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">
                                 Tactical impediments requiring immediate attention
@@ -416,7 +416,7 @@ export default function DeveloperDashboard() {
                         <Button
                             variant="ghost"
                             className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50"
-                        onClick={redirectToTaskPage}
+                            onClick={redirectToTaskPage}
                         >
                             Task Board <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
@@ -436,6 +436,14 @@ export default function DeveloperDashboard() {
 
                                     <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
                                         Completion Percentage
+                                    </th>
+
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Rejected
+                                    </th>
+
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Remarks
                                     </th>
                                 </tr>
                             </thead>
@@ -502,6 +510,20 @@ export default function DeveloperDashboard() {
                                                     </span>
 
                                                 </div>
+                                            </td>
+
+                                            {/* Rejected */}
+                                            <td className="py-8">
+                                                <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
+                                                    {task?.IsRejected ? "Yes" : "No"}
+                                                </span>
+                                            </td>
+
+                                            {/* Remarks */}
+                                            <td className="py-8">
+                                                <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
+                                                    {task?.Remarks || "N/A"}
+                                                </span>
                                             </td>
 
                                         </tr>
