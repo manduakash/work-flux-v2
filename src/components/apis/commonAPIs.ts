@@ -69,7 +69,11 @@ export const callAPIWithToken = async (url: string, body: any) => {
   });
   if (response.status === 401) {
     deleteCookie("token");
-    throw new Error(`Session expired. Please login again.`);
+    deleteCookie("user");
+    deleteCookie("role");
+    deleteCookie("role_id");
+    localStorage.clear();
+    window.location.href = "/session-expired";
   }
   if (!response.ok) {
     let text = await response.text();
@@ -91,7 +95,11 @@ export const callGetAPIWithToken = async (url: string) => {
   });
   if (response.status === 401) {
     deleteCookie("token");
-    throw new Error(`Session expired. Please login again.`);
+    deleteCookie("user");
+    deleteCookie("role");
+    deleteCookie("role_id");
+    localStorage.clear();
+    window.location.href = "/session-expired";
   }
   if (!response.ok) {
     let text = await response.text();
@@ -149,8 +157,11 @@ export const callPutAPIWithToken = async (url: string, body: any) => {
   });
   if (response.status === 401) {
     deleteCookie("token");
-    throw new Error(`Session expired. Please login again.`);
-    // redirect("/session-expired");
+    deleteCookie("user");
+    deleteCookie("role");
+    deleteCookie("role_id");
+    localStorage.clear();
+    window.location.href = "/session-expired";
   }
   if (!response.ok) {
     let text = await response.text();
@@ -172,7 +183,11 @@ export const callPatchAPIWithToken = async (url: string, body: any) => {
   });
   if (response.status === 401) {
     deleteCookie("token");
-    throw new Error(`Session expired. Please login again.`);
+    deleteCookie("user");
+    deleteCookie("role");
+    deleteCookie("role_id");
+    localStorage.clear();
+    window.location.href = "/session-expired";
   }
   if (!response.ok) {
     let text = await response.text();

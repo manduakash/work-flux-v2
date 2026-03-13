@@ -8,9 +8,24 @@ import {
     Activity, MessageSquare, X, ArrowUpDown, MoreHorizontal,
     Inbox, User as UserIcon, AlertCircle, Ban, Send, Pencil, Loader2,
     CheckCircle2Icon,
-    CircleCheckBig
+    CircleCheckBig,
+    CircleX,
+    AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Field, FieldGroup } from "@/components/ui/field"
+import { Label } from "@/components/ui/label"
 
 import { useStore } from "@/store/useStore";
 import { Button } from '@/components/ui/button';
@@ -76,9 +91,14 @@ const TaskGridCard = ({ task, project, assignee, nextStatus, statusId, onStatusC
                 {/* {(currentUser?.role_id == 3 && (nextStatus?.title?.toLowerCase() === "pending" || nextStatus?.title?.toLowerCase() === "in progress")) || (currentUser?.role_id == 2 && (nextStatus?.title?.toLowerCase() === "review" || nextStatus?.title?.toLowerCase() === "completed")) ? */}
                 <div className="flex gap-2">
                     {statusId == 3 && (
-                        <Button variant="outline" size="sm" onClick={() => onStatusChange(task.id, nextStatus.id)} className="h-7 px-3 text-[9px] font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-lg transition-all">
-                            <CircleCheckBig /> Complete
-                        </Button>
+                        <>
+                            <Button variant="outline" size="sm" title="Mark as Complete" onClick={() => onStatusChange(task.id, nextStatus.id)} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-indigo-100 text-indigo-600 hover:bg-indigo-500 hover:text-white rounded-full transition-all">
+                                <CircleCheckBig className='m-0 p-0' />
+                            </Button>
+                            <Button variant="outline" size="sm" title="Mark as Incomplete" onClick={() => onStatusChange(task.id, nextStatus.id)} className="text-[10px] p-0 font-black uppercase tracking-widest cursor-pointer border-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white rounded-full transition-all">
+                                <CircleX className='m-0 p-0' />
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -96,6 +116,8 @@ export default function TaskManagementPage() {
     const [apiTasks, setApiTasks] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isRejectionModalOpen, setIsRejectionModalOpen] = useState<boolean>(false);
+    const [remarks, setRemarks] = useState("");
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
     const [rollbackTask, setRollbackTask] = useState<any>(null);
@@ -114,6 +136,7 @@ export default function TaskManagementPage() {
     const [validationTrigger, setValidationTrigger] = useState<number>(0);
     const [myTasks, setMyTasks] = useState<any[]>([]);  // Developer-specific: all assigned tasks
     const modalContentRef = React.useRef<HTMLDivElement>(null);
+    const [currentTask, setCurrentTask] = useState<any>(null);
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -130,12 +153,21 @@ export default function TaskManagementPage() {
     });
 
     useEffect(() => {
-        const user = getCookie("user");
-        setCurrentUser(user);
-        if (user) {
-            fetchTasks(user);
+        const role_id = getCookie("role_id");
+        if (role_id) {
+            role_id == 2 ? setViewMode("board") : setViewMode("table");
         }
     }, []);
+
+    useEffect(() => {
+        const user = getCookie("user");
+        console.log("user", user);
+        setCurrentUser(user);
+        if (user) {
+            console.log("viewMode", viewMode);
+            fetchTasks(user);
+        }
+    }, [viewMode]);
 
     const fetchTasks = async (userOverride?: any) => {
         const user = userOverride || currentUser;
@@ -340,7 +372,7 @@ export default function TaskManagementPage() {
                 TaskDescription: formData.description,
                 ProgressPercentage: Number(formData.progressPercentage),
                 Deadline: formData.deadline,
-                AssignedToUserID: Number(formData.assignedToUserId),
+                AssignedToUserID: Number(formData.assignedToUserId)
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -388,7 +420,7 @@ export default function TaskManagementPage() {
             if (!task) throw new Error('No task selected for update');
             const payload = {
                 TaskID: taskId,
-                TaskStatus: task.StatusID || task.statusId || 1,
+                TaskStatus: progress == 100 ? 3 : 2,
                 TaskTypeID: task.TypeID || task.typeId || 1,
                 ProjectID: task.ProjectID || task.projectId || 1,
                 Priority: task.PriorityID || task.priorityId || 1,
@@ -415,33 +447,24 @@ export default function TaskManagementPage() {
     };
 
 
-    const handleRollbackStatus = async (task: any, prevStatusId: number, explicitProgress?: number) => {
+    const handleRollbackStatus = async () => {
         // Find if we are reverting FROM "Completed"
-        const isFromCompleted = task.StatusName === "Completed";
 
-        if (isFromCompleted && explicitProgress === undefined) {
-            setRollbackTask(task);
-            setRollbackTargetStatusId(prevStatusId);
-            setRollbackProgress(90); // Default to 90%
-            setIsRollbackModalOpen(true);
-            return;
-        }
-
-        const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === prevStatusId)?.TaskStatusName}...`);
+        const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === 2)?.TaskStatusName}...`);
 
         try {
             const payload = {
-                TaskID: task.TaskID,
-                TaskStatus: prevStatusId,
-                TaskTypeID: task.TypeID,
-                ProjectID: task.ProjectID,
-                Priority: task.PriorityID,
-                Title: task.Title,
-                SubTitle: task.SubTitle || '',
-                TaskDescription: task.Description,
-                ProgressPercentage: explicitProgress !== undefined ? explicitProgress : task.ProgressPercentage,
-                Deadline: task.Deadline?.split('T')[0],
-                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0
+                TaskID: currentTask?.TaskID,
+                TaskStatus: 2,
+                TaskTypeID: currentTask.TypeID,
+                ProjectID: currentTask.ProjectID,
+                Priority: currentTask.PriorityID,
+                Title: currentTask.Title,
+                SubTitle: currentTask.SubTitle || '',
+                TaskDescription: currentTask.Description,
+                ProgressPercentage: 90,
+                Deadline: currentTask.Deadline?.split('T')[0],
+                AssignedToUserID: currentTask.AssignedToUsers?.[0]?.AssignedToUserID || currentTask.AssignedToUserID || 0
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -459,7 +482,7 @@ export default function TaskManagementPage() {
         }
     };
 
-    const handleAdvanceStatus = async (task: any, nextStatusId: number) => {
+    const handleAdvanceStatus = async (task: any, nextStatusId: number, isCompleted: number) => {
         const toastId = toast.loading(`Updating status to ${statusData.find(s => s.TaskStatusID === nextStatusId)?.TaskStatusName}...`);
 
         try {
@@ -478,7 +501,9 @@ export default function TaskManagementPage() {
                 TaskDescription: task.Description,
                 ProgressPercentage: finalProgress,
                 Deadline: task.Deadline?.split('T')[0],
-                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0
+                AssignedToUserID: task.AssignedToUsers?.[0]?.AssignedToUserID || task.AssignedToUserID || 0,
+                IsRejected: isCompleted ? 0 : 1,
+                Remarks: isCompleted ? "Task Approved." : "Task is incomplete or requirement not fulfilled."
             };
 
             const result = await callAPIWithToken('tasks', payload);
@@ -505,6 +530,12 @@ export default function TaskManagementPage() {
         }
     };
 
+    const handleReject = () => {
+        console.log("Rejected with remarks:", remarks)
+        setRemarks("");
+        setIsRejectionModalOpen(false);
+    }
+
     return (
         <div className="max-w-[1500px] mx-auto space-y-8 p-2">
 
@@ -519,14 +550,6 @@ export default function TaskManagementPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800 shadow-inner">
-                        <button onClick={() => setViewMode('table')} className={cn("flex h-9 items-center gap-2 rounded-lg px-4 text-xs font-bold transition-all", viewMode === 'table' ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700")}>
-                            <List size={16} /> List
-                        </button>
-                        <button onClick={() => setViewMode('board')} className={cn("flex h-9 items-center gap-2 rounded-lg px-4 text-xs font-bold transition-all", viewMode === 'board' ? "bg-white text-indigo-600 shadow-sm dark:bg-slate-700 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700")}>
-                            <LayoutGrid size={16} /> Board
-                        </button>
-                    </div>
                     {currentUser?.role_id !== 3 && (
                         <Button onClick={handleOpenCreateModal} className="h-11 rounded-xl bg-slate-900 text-white px-6 font-bold shadow-xl shadow-slate-900/10 hover:scale-[1.02] active:scale-[0.98] transition-all">
                             <Plus className="mr-2 h-4 w-4 stroke-[3px]" /> New Task
@@ -580,7 +603,7 @@ export default function TaskManagementPage() {
                                 // Find next/prev status for update
                                 const currentIndex = statusData.findIndex(s => s.TaskStatusID === activeStatusId);
                                 const nextStatus = statusData[currentIndex + 1];
-                                const prevStatus = statusData[currentIndex - 1];
+
 
                                 return (
                                     <TaskGridCard
@@ -599,9 +622,10 @@ export default function TaskManagementPage() {
                                         statusId={activeStatusId || null}
                                         onStatusChange={(id: string, sId: number) => {
                                             if (activeStatusId !== null && sId < activeStatusId) {
-                                                handleRollbackStatus(task, sId);
+                                                setCurrentTask(task);
+                                                setIsRejectionModalOpen(true);
                                             } else {
-                                                handleAdvanceStatus(task, sId);
+                                                handleAdvanceStatus(task, sId, 1);
                                             }
                                         }}
                                         onDelete={handleDelete}
@@ -831,7 +855,7 @@ export default function TaskManagementPage() {
                                         {/* Progress Slider */}
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">My Progress</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Task Progress</label>
                                                 <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
                                                     {formData.progressPercentage}%
                                                 </span>
@@ -851,25 +875,6 @@ export default function TaskManagementPage() {
                                             </div>
                                         </div>
 
-                                        {/* Milestones */}
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {[25, 50, 75, 100].map(milestone => (
-                                                <button
-                                                    key={milestone}
-                                                    type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, progressPercentage: milestone }))}
-                                                    className={cn(
-                                                        "py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border transition-all",
-                                                        formData.progressPercentage >= milestone
-                                                            ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-indigo-300"
-                                                    )}
-                                                >
-                                                    {milestone}%
-                                                </button>
-                                            ))}
-                                        </div>
-
                                         <div className="pt-4 flex flex-col gap-3">
                                             <Button
                                                 onClick={() => handlePatchProgress(editingTask?.TaskID || editingTask?.id, formData.progressPercentage)}
@@ -878,44 +883,38 @@ export default function TaskManagementPage() {
                                             >
                                                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Progress</>}
                                             </Button>
-                                            <Button variant="ghost" className="h-11 rounded-2xl font-bold text-slate-500" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                            <Button variant="ghost" className="h-11 rounded-2xl font-bold text-slate-500" onClick={() => { setIsModalOpen(false); setFormData({ ...formData, progressPercentage: 0 }) }}>Cancel</Button>
                                         </div>
                                     </div>
                                 ) : (
                                     <form onSubmit={handleSubmitTask} className="space-y-8 pb-4">
-                                        <div className="space-y-1.5">
-                                            <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.projectId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Project</label>
-                                            <select
-                                                className={cn(
-                                                    "h-12 w-full rounded-2xl border bg-slate-50 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
-                                                    !formData.projectId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
-                                                )}
-                                                value={formData.projectId}
-                                                onChange={e => setFormData({ ...formData, projectId: e.target.value })}
-                                            >
-                                                <option value="">Select Project...</option>
-                                                {apiProjects.map(p => <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>)}
-                                            </select>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.projectId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Project</label>
+                                                <select
+                                                    className={cn(
+                                                        "h-12 w-full rounded-2xl border bg-slate-50 px-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:bg-slate-950",
+                                                        !formData.projectId && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200 dark:border-slate-800"
+                                                    )}
+                                                    value={formData.projectId}
+                                                    onChange={e => setFormData({ ...formData, projectId: e.target.value })}
+                                                >
+                                                    <option value="">Select Project...</option>
+                                                    {apiProjects.map(p => <option key={p.ProjectID} value={p.ProjectID}>{p.ProjectName}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Task Title</label>
+                                                <Input placeholder="Enter task title..." value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                                             <div className="space-y-1.5">
-                                                <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.title && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Task Title</label>
-                                                <Input
-                                                    placeholder="Enter task title..."
-                                                    required
-                                                    value={formData.title}
-                                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                                    className={cn("h-12 rounded-2xl border bg-white dark:bg-slate-950 px-4 font-bold", !formData.title && validationTrigger > 0 ? "border-rose-500 animate-shake" : "border-slate-200")}
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Sub Title</label>
+                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Module</label>
                                                 <Input placeholder="e.g. Backend Development" value={formData.subTitle} onChange={e => setFormData({ ...formData, subTitle: e.target.value })} className="h-12 rounded-2xl border-slate-200 bg-white dark:bg-slate-950 px-4 font-bold" />
                                             </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.typeId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Task Type</label>
                                                 <select
@@ -930,7 +929,11 @@ export default function TaskManagementPage() {
                                                     {typeData.map(t => <option key={t.TaskTypeID} value={t.TaskTypeID}>{t.TaskTypeName}</option>)}
                                                 </select>
                                             </div>
-                                            <div className="space-y-1.5">
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                            <div className="space-y-1.5 hidden">
                                                 <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.statusId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Current Status</label>
                                                 <select
                                                     className={cn(
@@ -973,7 +976,7 @@ export default function TaskManagementPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4">
+                                        <div className="space-y-4 hidden">
                                             <div className="flex justify-between items-center mb-1">
                                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Progress</label>
                                                 <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">{formData.progressPercentage}%</span>
@@ -1101,7 +1104,7 @@ export default function TaskManagementPage() {
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Note: Progress cannot be 100% when reverting from completed.</p>
                                 </div>
 
-                                <div className="flex flex-col gap-2 pt-4">
+                                {/* <div className="flex flex-col gap-2 pt-4">
                                     <Button
                                         onClick={() => handleRollbackStatus(rollbackTask, rollbackTargetStatusId!, rollbackProgress)}
                                         className="h-12 bg-slate-900 text-white hover:bg-slate-800 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl active:scale-[0.98] transition-all"
@@ -1109,12 +1112,64 @@ export default function TaskManagementPage() {
                                         Execute Rollback
                                     </Button>
                                     <Button variant="ghost" className="h-12 rounded-2xl font-bold text-slate-500" onClick={() => setIsRollbackModalOpen(false)}>Abondon Reversion</Button>
-                                </div>
+                                </div> */}
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* rejection modal */}
+            {/* Modal */}
+            <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="flex flex-col items-center text-center gap-3">
+
+                        {/* Warning Icon */}
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                            <AlertTriangle className="h-6 w-6 text-red-600" />
+                        </div>
+
+                        <DialogTitle className="text-lg font-semibold">
+                            Do you really want to reject this?
+                        </DialogTitle>
+
+                        <p className="text-sm text-muted-foreground">
+                            Please provide a reason for rejection.
+                        </p>
+                    </DialogHeader>
+
+                    {/* Remarks */}
+                    <div className="space-y-2 mt-4">
+                        <Label htmlFor="remarks">Rejection Remarks</Label>
+                        <Textarea
+                            id="remarks"
+                            placeholder="Write the reason for rejection..."
+                            className="min-h-[100px]"
+                            value={remarks}
+                            onChange={(e: any) => setRemarks(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Footer */}
+                    <DialogFooter className="mt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsRejectionModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            variant="destructive"
+                            disabled={!remarks.trim()}
+                            onClick={handleReject}
+                        >
+                            Reject
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

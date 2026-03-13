@@ -12,7 +12,7 @@ const Navbar = ({ setIsMobileOpen }: { setIsMobileOpen: (value: boolean) => void
     useEffect(() => setMounted(true), []);
 
     return (
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80 md:px-8">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-slate-200 px-4 backdrop-blur-3xl dark:border-slate-800 dark:bg-slate-950/80 md:px-8">
             <div className="flex items-center gap-4 flex-1">
                 <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(true)} className="lg:hidden">
                     <Menu size={20} />

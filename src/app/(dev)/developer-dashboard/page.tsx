@@ -16,7 +16,8 @@ import {
     Clock3,
     CheckCheck,
     ClockCheck,
-    ClipboardList
+    ClipboardList,
+    X
 } from 'lucide-react';
 
 import { useStore } from '@/store/useStore';
@@ -25,6 +26,7 @@ import { ProjectStatus, UserRole } from '@/types';
 import { getCookie } from '@/utils/cookies';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 // --- Components ---
 
@@ -77,14 +79,14 @@ const StatCard = ({
             <div className="relative z-10 flex flex-col h-full">
 
                 {/* Top Row: Icon & Trend */}
-                <div className="grid grid-cols-3 items-center justify-between">
+                <div className="grid grid-cols-4 items-center justify-start">
                     {/* Icon */}
                     <div className={cn(
                         `flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-300 shadow-sm shadow-white/70 group-hover:scale-110 group-hover:-rotate-6 backdrop-blur-sm text-white bg-white/80 ${borderColor}`,
                     )}>
                         <Icon className={`h-7 w-7 ${iconColor}`} />
                     </div>
-                    <div className="col-span-2 text-md font-bold uppercase tracking-widest text-white/80">
+                    <div className="col-span-3 text-xl font-bold uppercase tracking-widest text-white/80">
                         {title}
                     </div>
                 </div>
@@ -107,6 +109,7 @@ const StatCard = ({
 };
 
 export default function DeveloperDashboard() {
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [stats, setStats] = useState<any>({
@@ -114,31 +117,47 @@ export default function DeveloperDashboard() {
         InProgressTasks: 0,
         ReviewTasks: 0,
         CompletedTasks: 0,
+        RejectedTasks: 0,
+        TotalTasks: 0,
         ActiveProjects: 0
     });
     const [projects, setProjects] = useState<any>([]);
+    const [highPriorityTasks, setHighPriorityTasks] = useState<any>([]);
     const [chartsData, setChartsData] = useState<any>([
         { name: 'Pending Tasks', A: 0 },
         { name: 'In-Progress Tasks', A: 0 },
         { name: 'Review Pending Tasks', A: 0 },
         { name: 'Completed Tasks', A: 0 },
-        { name: 'Active Projects', A: 0 },
+        { name: 'Rejected Tasks', A: 0 },
     ]);
+    const [page, setPage] = useState(1);
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
             const countsRes = await callGetAPIWithToken("developer/dashboard/count");
-            const user = getCookie("user");
-            setCurrentUser(user);
             const projectsRes = await callGetAPIWithToken("projects/projects-by-user-id");
+            const tasks = await callGetAPIWithToken("tasks?taskId=0&projectId=0&taskStatus=0&taskTypeId=0&taskPriority=0");
+            const user = getCookie("user");
+            const urgentTasks = tasks?.data?.filter((task: any) => task?.StatusID == 2 && (task?.PriorityID == 1 || task.PriorityID == 2))
+            setHighPriorityTasks(urgentTasks || []);
+            setCurrentUser(user);
             setStats({
                 PendingTasks: countsRes?.data?.PendingTasks || 0,
                 InProgressTasks: countsRes?.data?.InProgressTasks || 0,
                 ReviewTasks: countsRes?.data?.ReviewTasks || 0,
                 CompletedTasks: countsRes?.data?.CompletedTasks || 0,
-                ActiveProjects: countsRes?.data?.ActiveProjects || 0
+                ActiveProjects: countsRes?.data?.ActiveProjects || 0,
+                TotalTasks: countsRes?.data?.TotalTasks || 0,
+                RejectedTasks: countsRes?.data?.RejectedTasks || 0
             });
             setProjects(projectsRes?.data || []);
+            setChartsData([
+                { name: `Pending Tasks (${countsRes?.data?.PendingTasks || 0})`, A: countsRes?.data?.PendingTasks || 0 },
+                { name: `In-Progress Tasks (${countsRes?.data?.InProgressTasks || 0})`, A: countsRes?.data?.InProgressTasks || 0 },
+                { name: `Review Pending Tasks (${countsRes?.data?.ReviewTasks || 0})`, A: countsRes?.data?.ReviewTasks || 0 },
+                { name: `Completed Tasks (${countsRes?.data?.CompletedTasks || 0})`, A: countsRes?.data?.CompletedTasks || 0 },
+                { name: `Rejected Tasks (${countsRes?.data?.RejectedTasks || 0})`, A: countsRes?.data?.RejectedTasks || 0 }
+            ]);
 
         } catch (error) {
             console.error("Dashboard error:", error);
@@ -147,20 +166,34 @@ export default function DeveloperDashboard() {
         }
     };
 
-    useMemo(() => {
-        if (!stats?.length) return null;
-        setChartsData([
-            { name: 'Pending Tasks', A: stats?.PendingTasks || 0 },
-            { name: 'In-Progress Tasks', A: stats?.InProgressTasks || 0 },
-            { name: 'Review Pending Tasks', A: stats?.ReviewTasks || 0 },
-            { name: 'Completed Tasks', A: stats?.CompletedTasks || 0 },
-            { name: 'Active Projects', A: stats?.ActiveProjects || 0 }
-        ]);
-    }, [stats])
+    const completionRate = stats?.TotalTasks
+        ? ((stats.CompletedTasks / stats.TotalTasks) * 100).toFixed(1)
+        : 0;
+
+    const pendingRate = stats?.TotalTasks
+        ? ((stats.PendingTasks / stats.TotalTasks) * 100).toFixed(1)
+        : 0;
+
+    const reviewRate = stats?.TotalTasks
+        ? ((stats.ReviewTasks / stats.TotalTasks) * 100).toFixed(1)
+        : 0;
+
+    const tasksPerPage = 3;
+
+    const totalPages = Math.ceil((highPriorityTasks?.length || 0) / tasksPerPage);
+
+    const paginatedTasks = highPriorityTasks?.slice(
+        (page - 1) * tasksPerPage,
+        page * tasksPerPage
+    );
 
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    const redirectToTaskPage = () => {
+        router.push("/create-manage-task");
+    }
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
@@ -198,7 +231,7 @@ export default function DeveloperDashboard() {
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Developer's Dashboard</span>
                     </div>
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{currentUser?.fullName?.split(' ')[0] || "Developer"}</span>
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{currentUser?.name || "User"}</span>
                     </h1>
                     <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <Activity className="h-4 w-4 text-emerald-500" />
@@ -217,7 +250,7 @@ export default function DeveloperDashboard() {
                 </div> */}
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <StatCard
                     title="Newly Assigned Tasks"
                     value={stats.PendingTasks}
@@ -271,11 +304,22 @@ export default function DeveloperDashboard() {
                 />
 
                 <StatCard
-                    title="Active Projects"
-                    value={stats.ActiveProjects}
+                    title="Approval Rejected Tasks"
+                    value={stats?.RejectedTasks}
+                    icon={X}
+                    color="bg-white/20 text-white border border-white/30 shadow-lg"
+                    description="Tasks rejected by team lead"
+                    bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700"
+                    iconColor="text-rose-500"
+                    borderColor="border-2 border-rose-400"
+                />
+
+                <StatCard
+                    title="On Going Projects"
+                    value={stats?.ActiveProjects}
                     icon={Rocket}
                     color="bg-white/20 text-white border border-white/30 shadow-lg"
-                    description="Projects currently underway by you"
+                    description="Projects currently in progress"
                     bgColor="bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-700"
                     iconColor="text-cyan-500"
                     borderColor="border-2 border-cyan-400"
@@ -286,11 +330,11 @@ export default function DeveloperDashboard() {
                 {/* 2. Technical Quality (Radar) */}
                 <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8">
-                        <ShieldCheck className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
+                        <ClipboardList className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
                     <div className="mb-10 relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Professional Saturation</h3>
-                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Skill metrics and technical proficiency index</p>
+                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Task Workflow Analytics</h3>
+                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Current Status Distribution Across Workflow Stages</p>
                     </div>
                     <div className="h-[450px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -310,6 +354,7 @@ export default function DeveloperDashboard() {
                                 />
                             </RadarChart>
                         </ResponsiveContainer>
+                        <div className='flex justify-center items-center text-2xl text-slate-400 font-bold gap-3'>Total Tasks: <span className='text-slate-600'>{stats?.TotalTasks || 0}</span></div>
                     </div>
                 </motion.div>
 
@@ -360,47 +405,139 @@ export default function DeveloperDashboard() {
                 <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <div className="mb-10 flex items-center justify-between">
                         <div>
-                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Verified Critical Tasks</h3>
-                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Tactical impediments requiring immediate attention</p>
+                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                Critical & High Priority Tasks
+                            </h3>
+                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">
+                                Tactical impediments requiring immediate attention
+                            </p>
                         </div>
-                        <Button variant="ghost" className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50">
+
+                        <Button
+                            variant="ghost"
+                            className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50"
+                        onClick={redirectToTaskPage}
+                        >
                             Task Board <ChevronRight className="ml-2 h-4 w-4" />
                         </Button>
                     </div>
+
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Operation</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Priority</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Lifecycle</th>
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Task
+                                    </th>
+
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Priority
+                                    </th>
+
+                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                                        Completion Percentage
+                                    </th>
                                 </tr>
                             </thead>
+
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {[
-                                    { name: 'Core API Optimization', priority: 'Critical', status: 'In Progress', color: 'bg-indigo-600' },
-                                    { name: 'Auth Module Redesign', priority: 'High', status: 'Reviewing', color: 'bg-rose-500' },
-                                    { name: 'CI/CD Pipeline Fix', priority: 'Emergency', status: 'Blocked', color: 'bg-amber-500' },
-                                ].map((task, i) => (
-                                    <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
-                                        <td className="py-8 font-black text-base text-slate-900 dark:text-white uppercase tracking-tight">{task.name}</td>
-                                        <td className="py-8">
-                                            <span className={cn("inline-flex items-center rounded-[0.75rem] px-4 py-2 text-[9px] font-black uppercase tracking-widest shadow-sm text-white", task.color)}>
-                                                {task.priority}
-                                            </span>
-                                        </td>
-                                        <td className="py-8">
-                                            <div className="flex flex-col">
-                                                <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{task.status}</span>
-                                                <div className="mt-2 h-1.5 w-32 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
-                                                    <div className={cn("h-full", task.color)} style={{ width: '65%' }} />
+                                {paginatedTasks?.map((task: any) => {
+
+                                    const priorityColor =
+                                        task.PriorityID === 1
+                                            ? "bg-rose-600"
+                                            : task.PriorityID === 2
+                                                ? "bg-amber-500"
+                                                : "bg-indigo-600";
+
+                                    return (
+                                        <tr key={task.TaskID} className="group hover:bg-slate-50/50 transition-colors">
+
+                                            {/* Task */}
+                                            <td className="py-8">
+                                                <div className="flex flex-col">
+                                                    <span className="font-black text-base text-slate-900 dark:text-white uppercase tracking-tight">
+                                                        {task.Title}
+                                                    </span>
+
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                        {task.ProjectName}
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+
+                                            {/* Priority */}
+                                            <td className="py-8">
+                                                <span
+                                                    className={cn(
+                                                        "inline-flex items-center rounded-[0.75rem] px-4 py-2 text-[9px] font-black uppercase tracking-widest shadow-sm text-white",
+                                                        priorityColor
+                                                    )}
+                                                >
+                                                    {task.PriorityName}
+                                                </span>
+                                            </td>
+
+                                            {/* Progress */}
+                                            <td className="py-8">
+                                                <div className="flex flex-col">
+
+                                                    <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
+                                                        {task.StatusName}
+                                                    </span>
+
+                                                    <div className="mt-2 h-1.5 w-32 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
+
+                                                        <div
+                                                            className={cn("h-full", priorityColor)}
+                                                            style={{
+                                                                width: `${task.ProgressPercentage || 0}%`
+                                                            }}
+                                                        />
+
+                                                    </div>
+
+                                                    <span className="text-[9px] text-slate-400 font-bold mt-1">
+                                                        {task.ProgressPercentage || 0}%
+                                                    </span>
+
+                                                </div>
+                                            </td>
+
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
+                        {totalPages > 1 && <div className="flex items-center justify-between mt-8">
+
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Page {page} of {totalPages || 1}
+                            </p>
+
+                            <div className="flex gap-2">
+
+                                <Button
+                                    variant="ghost"
+                                    disabled={page === 1}
+                                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                                    className="rounded-xl text-xs font-black uppercase tracking-widest"
+                                >
+                                    Previous
+                                </Button>
+
+                                <Button
+                                    variant="ghost"
+                                    disabled={page === totalPages}
+                                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                                    className="rounded-xl text-xs font-black uppercase tracking-widest"
+                                >
+                                    Next
+                                </Button>
+
+                            </div>
+
+                        </div>}
                     </div>
                 </motion.div>
 
@@ -408,43 +545,90 @@ export default function DeveloperDashboard() {
                 <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-900 p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div className="relative z-10">
                         <div className="mb-10 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">System Delivery</h3>
+                            <h3 className="text-2xl font-black uppercase tracking-tight">
+                                Task Completion
+                            </h3>
                             <TrendingUp className="h-6 w-6 text-indigo-400 animate-pulse" />
                         </div>
-                        <p className="text-4xl font-black tracking-tighter mb-2">99.4%</p>
-                        <p className="text-sm font-bold text-indigo-300/60 uppercase tracking-widest mb-10">Build integrity index</p>
+
+                        <p className="text-4xl font-black tracking-tighter mb-2">
+                            {completionRate}%
+                        </p>
+
+                        <p className="text-sm font-bold text-indigo-300/60 uppercase tracking-widest mb-10">
+                            Completed Task Ratio
+                        </p>
 
                         <div className="space-y-8">
+
+                            {/* Completion Progress */}
                             <div>
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Success Rate</span>
-                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Stable</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                                        Completion Rate
+                                    </span>
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                        Healthy
+                                    </span>
                                 </div>
+
                                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full w-[94%] bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]" />
+                                    <div
+                                        className="h-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]"
+                                        style={{ width: `${completionRate}%` }}
+                                    />
                                 </div>
                             </div>
 
+                            {/* Task Stats */}
                             <div className="grid grid-cols-2 gap-4">
+
                                 <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
-                                    <p className="text-[10px] font-black uppercase opacity-40">Failed</p>
-                                    <p className="text-2xl font-black">01</p>
+                                    <p className="text-[10px] font-black uppercase opacity-40">
+                                        Pending
+                                    </p>
+                                    <p className="text-2xl font-black">
+                                        {stats?.PendingTasks || 0}
+                                    </p>
                                 </div>
+
                                 <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
-                                    <p className="text-[10px] font-black uppercase opacity-40">Pipelines</p>
-                                    <p className="text-2xl font-black">04</p>
+                                    <p className="text-[10px] font-black uppercase opacity-40">
+                                        In Progress
+                                    </p>
+                                    <p className="text-2xl font-black">
+                                        {stats?.InProgressTasks || 0}
+                                    </p>
                                 </div>
+
                             </div>
 
+                            {/* Review Tasks */}
                             <div className="mt-8 p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-4">
                                 <div className="h-10 w-10 rounded-xl bg-indigo-500/20 flex items-center justify-center">
                                     <Zap className="h-5 w-5 text-indigo-400 fill-indigo-400/20" />
                                 </div>
+
                                 <div className="flex-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest">Last Deploy</p>
-                                    <p className="text-xs font-bold text-indigo-200">Production - 4h 12m ago</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">
+                                        Review Pending
+                                    </p>
+                                    <p className="text-xs font-bold text-indigo-200">
+                                        {stats?.ReviewTasks || 0} Tasks ({reviewRate}%)
+                                    </p>
                                 </div>
                             </div>
+
+                            {/* Total Tasks */}
+                            <div className="mt-4 p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-between">
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                                    Total Tasks
+                                </p>
+                                <p className="text-xl font-black">
+                                    {stats?.TotalTasks || 0}
+                                </p>
+                            </div>
+
                         </div>
                     </div>
                 </motion.div>

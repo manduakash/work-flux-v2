@@ -35,7 +35,7 @@ const itemVariants = {
 
 const StatCard = ({ title, value, icon: Icon, trend, trendValue, color, description }: any) => (
     <motion.div
-        variants={itemVariants}
+        
         className="group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 dark:border-slate-800 dark:bg-slate-950/50 backdrop-blur-xl"
     >
         <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-slate-50 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-slate-800/50" />
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Portfolio Growth */}
-                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
+                <motion.div  className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8">
                         <TrendingUp className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
                 </motion.div>
 
                 {/* Composition */}
-                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                <motion.div  className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Department Overview</h3>
                     <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Team distribution by department</p>
                     <div className="h-[300px] w-full relative">
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Strategic Initiatives */}
-                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                <motion.div  className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
                     <div className="mb-10 flex items-center justify-between">
                         <div>
                             <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Key Projects</h3>
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
                 </motion.div>
 
                 {/* Executive Action Feed */}
-                <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-950 p-10 text-white shadow-2xl relative overflow-hidden group">
+                <motion.div  className="rounded-[3.5rem] bg-indigo-950 p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div className="relative z-10">
                         <div className="mb-10 flex items-center justify-between">
                             <h3 className="text-2xl font-black uppercase tracking-tight">Recent Activity</h3>
