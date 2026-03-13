@@ -117,6 +117,7 @@ export default function TaskManagementPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isRejectionModalOpen, setIsRejectionModalOpen] = useState<boolean>(false);
+    const [isTaskCompleteModalOpen, setIsTaskCompleteModalOpen] = useState<boolean>(false);
     const [remarks, setRemarks] = useState("");
     const [editingTask, setEditingTask] = useState<any | null>(null);
     const [isRollbackModalOpen, setIsRollbackModalOpen] = useState(false);
@@ -137,6 +138,10 @@ export default function TaskManagementPage() {
     const [myTasks, setMyTasks] = useState<any[]>([]);  // Developer-specific: all assigned tasks
     const modalContentRef = React.useRef<HTMLDivElement>(null);
     const [currentTask, setCurrentTask] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState({
+        REJECTED: false,
+        COMPLETE: false
+    });
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -447,27 +452,23 @@ export default function TaskManagementPage() {
     };
 
 
-    const handleRollbackStatus = async () => {
+    const handleUpdateTaskStatus = async (type: string) => {
         // Find if we are reverting FROM "Completed"
 
         const toastId = toast.loading(`Changing status back to ${statusData.find(s => s.TaskStatusID === 2)?.TaskStatusName}...`);
 
         try {
+
             const payload = {
                 TaskID: currentTask?.TaskID,
-                TaskStatus: 2,
-                TaskTypeID: currentTask.TypeID,
-                ProjectID: currentTask.ProjectID,
-                Priority: currentTask.PriorityID,
-                Title: currentTask.Title,
-                SubTitle: currentTask.SubTitle || '',
-                TaskDescription: currentTask.Description,
-                ProgressPercentage: 90,
-                Deadline: currentTask.Deadline?.split('T')[0],
-                AssignedToUserID: currentTask.AssignedToUsers?.[0]?.AssignedToUserID || currentTask.AssignedToUserID || 0
-            };
+                TaskStatus: type == "REJECTED" ? 2 : 4,
+                IsRejected: type == "REJECTED" ? 1 : 0,
+                Remarks: remarks,
+                TaskPriority: currentTask.PriorityID,
+                TaskDeadline: currentTask.Deadline?.split('T')[0]
+            }
 
-            const result = await callAPIWithToken('tasks', payload);
+            const result = await callPatchAPIWithToken('tasks/status', payload);
 
             if (result.success) {
                 toast.success('Status Changed Successfully', { id: toastId });
@@ -482,7 +483,7 @@ export default function TaskManagementPage() {
         }
     };
 
-    const handleAdvanceStatus = async (task: any, nextStatusId: number, isCompleted: number) => {
+    const handleTaskComplete = async (task: any, nextStatusId: number, isCompleted: number) => {
         const toastId = toast.loading(`Updating status to ${statusData.find(s => s.TaskStatusID === nextStatusId)?.TaskStatusName}...`);
 
         try {
@@ -530,10 +531,21 @@ export default function TaskManagementPage() {
         }
     };
 
-    const handleReject = () => {
-        console.log("Rejected with remarks:", remarks)
-        setRemarks("");
-        setIsRejectionModalOpen(false);
+    const handleTaskCompleteOrRejection = async (type: string) => {
+        try {
+
+            setIsLoading({ ...isLoading, [type]: true });
+            await handleUpdateTaskStatus(type);
+            setRemarks("");
+            type === "REJECTED" ? setIsRejectionModalOpen(false) : setIsTaskCompleteModalOpen(false);
+        } catch (error: any) {
+            console.error("Error updating task status:", error);
+            toast.error("Action Failed", {
+                description: "Please check your network and try again."
+            });
+        } finally {
+            setIsLoading({ ...isLoading, [type]: false });
+        }
     }
 
     return (
@@ -624,8 +636,10 @@ export default function TaskManagementPage() {
                                             if (activeStatusId !== null && sId < activeStatusId) {
                                                 setCurrentTask(task);
                                                 setIsRejectionModalOpen(true);
+                                                // handleTaskComplete(task, sId, 1);
                                             } else {
-                                                handleAdvanceStatus(task, sId, 1);
+                                                setCurrentTask(task);
+                                                setIsTaskCompleteModalOpen(true);
                                             }
                                         }}
                                         onDelete={handleDelete}
@@ -1120,7 +1134,6 @@ export default function TaskManagementPage() {
             </AnimatePresence>
 
             {/* rejection modal */}
-            {/* Modal */}
             <Dialog open={isRejectionModalOpen} onOpenChange={setIsRejectionModalOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader className="flex flex-col items-center text-center gap-3">
@@ -1162,10 +1175,59 @@ export default function TaskManagementPage() {
 
                         <Button
                             variant="destructive"
-                            disabled={!remarks.trim()}
-                            onClick={handleReject}
+                            disabled={!remarks?.trim() || isLoading?.REJECTED}
+                            onClick={() => handleTaskCompleteOrRejection("REJECT")}
                         >
                             Reject
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* complete task modal */}
+            <Dialog open={isTaskCompleteModalOpen} onOpenChange={setIsTaskCompleteModalOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader className="flex flex-col items-center text-center gap-3">
+
+                        {/* Warning Icon */}
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                            <CircleCheckBig className="h-6 w-6 text-emerald-600" />
+                        </div>
+
+                        <DialogTitle className="text-lg font-semibold">
+                            Do you want to complete this?
+                        </DialogTitle>
+
+                    </DialogHeader>
+
+                    {/* Remarks */}
+                    <div className="space-y-2 mt-4">
+                        <Label htmlFor="remarks">Remarks <span className='text-slate-400 text-sm'>(optional)</span></Label>
+                        <Textarea
+                            id="remarks"
+                            placeholder="Write the remarks for any improvement..."
+                            className="min-h-[100px]"
+                            value={remarks}
+                            onChange={(e: any) => setRemarks(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Footer */}
+                    <DialogFooter className="mt-6">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsTaskCompleteModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className='bg-emerald-100 text-emerald-700 hover:bg-emerald-300'
+                            onClick={() => handleTaskCompleteOrRejection("COMPLETE")}
+                            disabled={isLoading?.COMPLETE}
+                        >
+                            Complete
                         </Button>
                     </DialogFooter>
                 </DialogContent>
