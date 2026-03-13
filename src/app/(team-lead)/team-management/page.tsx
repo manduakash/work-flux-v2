@@ -296,7 +296,13 @@ export default function TeamManagement() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="max-w-[1400px] mx-auto space-y-8 animate-in fade-in duration-700 pb-12">
+      <style jsx global>{`
+        .modal-scrollbar::-webkit-scrollbar { width: 6px; }
+        .modal-scrollbar::-webkit-scrollbar-track { background: transparent; margin-block: 20px; }
+        .modal-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .modal-scrollbar:hover::-webkit-scrollbar-thumb { background: #6366f1; }
+      `}</style>
 
       {/* Header Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -379,7 +385,7 @@ export default function TeamManagement() {
         </div>
 
         {/* Right Pane: Resource Allocation */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 sticky top-8 self-start max-h-[calc(100vh-2rem)] overflow-y-auto pr-2 modal-scrollbar">
           <AnimatePresence mode="wait">
             {selectedProjectId ? (
               <motion.div

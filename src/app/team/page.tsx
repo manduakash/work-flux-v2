@@ -2,14 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { callAPIWithToken, callGetAPIWithToken } from '@/components/apis/commonAPIs';
+import { callAPIWithToken, callGetAPIWithToken, callDeleteAPIWithToken } from '@/components/apis/commonAPIs';
 import { User, UserRole } from '@/types';
 import {
     Users, Mail, Phone, Shield, MoreHorizontal, Plus,
     X, Trash2, PenSquare, UserPlus, ShieldCheck,
     Briefcase, ExternalLink, Search, AtSign,
     Lock, Github, Key, Camera, Loader2, Eye, EyeOff,
-    User as UserIcon, AlertCircle
+    User as UserIcon, AlertCircle, ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,6 +34,10 @@ export default function TeamPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [removalReason, setRemovalReason] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
@@ -116,6 +120,34 @@ export default function TeamPage() {
         }
     };
 
+    const handleRemoveUser = async () => {
+        if (!userToDelete || !removalReason) return;
+
+        setIsDeleting(true);
+        const toastId = toast.loading('Revoking system access...');
+
+        try {
+            const response = await callDeleteAPIWithToken("users/remove-user", {
+                userId: parseInt(userToDelete.id),
+                removalReason: removalReason
+            });
+
+            if (response.success) {
+                toast.success('Member access revoked successfully', { id: toastId });
+                setIsDeleteModalOpen(false);
+                setUserToDelete(null);
+                setRemovalReason('');
+                fetchTeamProfiles();
+            } else {
+                toast.error(response.message || 'Removal failed', { id: toastId });
+            }
+        } catch (error: any) {
+            toast.error(error.message, { id: toastId });
+            console.log("Removal Error:", error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
     const filteredUsers = teamMembers.filter(u =>
         u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.role?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -199,8 +231,8 @@ export default function TeamPage() {
                                 </div>
 
                                 <div className="mt-10 flex gap-4 border-t border-slate-50 pt-8">
-                                    <Button 
-                                        variant="outline" 
+                                    <Button
+                                        variant="outline"
                                         onClick={() => setSelectedUser(user)}
                                         className="flex-1 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest border-slate-100 hover:bg-slate-50"
                                     >
@@ -209,7 +241,10 @@ export default function TeamPage() {
                                     <Button
                                         variant="outline"
                                         className="h-12 w-12 p-0 rounded-2xl text-rose-500 border-slate-100 hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all"
-                                        onClick={() => window.confirm('Are you sure you want to revoke system access?') && deleteUser(user.id)}
+                                        onClick={() => {
+                                            setUserToDelete(user);
+                                            setIsDeleteModalOpen(true);
+                                        }}
                                     >
                                         <Trash2 size={18} />
                                     </Button>
@@ -300,7 +335,7 @@ export default function TeamPage() {
 
                                     <div className="bg-indigo-50/30 p-8 rounded-[2.5rem] border border-indigo-100 space-y-6">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 flex items-center gap-2">
-                                            <Github size={14} /> Technical Sync Profile
+                                            <Github size={14} /> Additional Details
                                         </h4>
                                         <div className="grid grid-cols-2 gap-6">
                                             <Input value={formData.gitUsername} onChange={e => setFormData({ ...formData, gitUsername: e.target.value })} className="h-12 rounded-xl border-indigo-100/50 bg-white" placeholder="GitHub Handle" />
@@ -406,12 +441,73 @@ export default function TeamPage() {
                             </div>
 
                             <div className="p-10 pt-6 border-t border-slate-50 bg-white">
-                                <Button 
-                                    onClick={() => setSelectedUser(null)} 
+                                <Button
+                                    onClick={() => setSelectedUser(null)}
                                     className="w-full rounded-[1.5rem] h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
                                 >
                                     Dismiss Profile
                                 </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* User Removal Modal */}
+            <AnimatePresence>
+                {isDeleteModalOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !isDeleting && setIsDeleteModalOpen(false)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
+
+                        <motion.div
+                            initial={{ scale: 0.95, y: 30, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 30, opacity: 0 }}
+                            className="relative w-full max-w-lg flex flex-col overflow-hidden rounded-[3rem] bg-white shadow-2xl border border-white"
+                        >
+                            <div className="p-10 pb-6 text-center">
+                                <div className="mx-auto w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 mb-6 border border-rose-100">
+                                    <ShieldAlert size={40} />
+                                </div>
+                                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Revoke System Access?</h2>
+                                <p className="text-sm font-medium text-slate-500 mt-2 italic px-8">
+                                    Are you absolutely sure you want to remove <span className="text-rose-600 font-bold">{userToDelete?.name}</span>? This action is permanent.
+                                </p>
+                            </div>
+
+                            <div className="px-10 pb-10 space-y-6">
+                                <div className="space-y-4">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Removal Justification *</Label>
+                                    <textarea
+                                        required
+                                        value={removalReason}
+                                        onChange={(e) => setRemovalReason(e.target.value)}
+                                        className="w-full min-h-[120px] rounded-2xl bg-slate-50 border border-slate-100 p-5 font-bold text-slate-800 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-rose-500/10 transition-all focus:outline-none resize-none"
+                                        placeholder="e.g. Project completion, misaligned technical priorities, or contract termination..."
+                                    />
+                                </div>
+
+                                <div className="flex gap-4 pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        disabled={isDeleting}
+                                        onClick={() => {
+                                            setIsDeleteModalOpen(false);
+                                            setRemovalReason('');
+                                        }}
+                                        className="flex-1 rounded-2xl h-14 font-black text-[11px] uppercase tracking-widest hover:bg-slate-50"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        disabled={isDeleting || !removalReason.trim()}
+                                        onClick={handleRemoveUser}
+                                        className="flex-[2] rounded-2xl h-14 bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-rose-600/20 active:scale-95 transition-all"
+                                    >
+                                        {isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-3" size={18} />}
+                                        Revoke Access
+                                    </Button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
