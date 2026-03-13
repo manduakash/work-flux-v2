@@ -6,6 +6,7 @@ import {
     Sun, Moon, Menu,
     LogOut,
     Users,
+    ShieldCheck,
     ListChecks,
     BarChartHorizontal,
     Globe,
@@ -26,7 +27,8 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     const leadNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
         { icon: Plus, label: 'Add Project', href: '/project-create' },
-        { icon: Users, label: 'Team Assignment', href: '/team-management' },
+        { icon: Users, label: 'Team', href: '/team' },
+        { icon: ShieldCheck, label: 'Assignments', href: '/team-management' },
         { icon: ListChecks, label: 'Assign Tasks', href: '/create-manage-task' },
         { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
         { icon: BarChartHorizontal, label: 'Stats', href: '/performance' },
