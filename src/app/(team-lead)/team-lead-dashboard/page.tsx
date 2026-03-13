@@ -9,7 +9,8 @@ import {
 import {
     Activity, ShieldCheck, AlertCircle, TrendingUp, Clock,
     Zap, FolderKanban, Users, Briefcase, Calendar,
-    CheckCircle2, Timer, Flame, ChevronRight, BarChart3
+    CheckCircle2, Timer, Flame, ChevronRight, BarChart3,
+    AlertTriangle, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 import { useStore } from '@/store/useStore';
@@ -49,6 +50,12 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
+const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export default function ProfessionalDashboard() {
     const { currentUser } = useStore();
     const [loading, setLoading] = useState(true);
@@ -59,6 +66,8 @@ export default function ProfessionalDashboard() {
         urgentTasks: [],
         staleTasks: []
     });
+
+    const [isOverdueExpanded, setIsOverdueExpanded] = useState(false);
 
     const [projectDashboardData, setProjectDashboardData] = useState<any>(null);
 
@@ -73,10 +82,11 @@ export default function ProfessionalDashboard() {
             try {
                 // In a real scenario, you'd have specific endpoints for these.
                 // Simulating comprehensive data fetch:
-                const [projectsRes, devRes, weeklyRes] = await Promise.all([
+                const [projectsRes, devRes, weeklyRes, overdueRes] = await Promise.all([
                     callGetAPIWithToken('projects/projects-by-user-id'),
                     callGetAPIWithToken('lead/dashboard/developer-wise-team-progress-graph'),
-                    callGetAPIWithToken('lead/dashboard/weekly-task-progress-graph')
+                    callGetAPIWithToken('lead/dashboard/weekly-task-progress-graph'),
+                    callGetAPIWithToken('lead/dashboard/deadline-crossed')
                 ]);
 
                 const transformedDevStats = (devRes.data || []).map((dev: any) => ({
@@ -91,6 +101,14 @@ export default function ProfessionalDashboard() {
                     completed: Number(item.Completed),
                 }));
 
+                const transformedOverdueTasks = (overdueRes.data || []).map((task: any) => ({
+                    id: task.TaskID,
+                    title: task.TaskTitle,
+                    deadline: task.TaskDeadline,
+                    owner: task.AssignedToName,
+                    progress: task.TaskProgress
+                }));
+
                 const mockUrgentTasks = [
                     { id: 1, title: 'API Authentication Fix', project: 'NexIntel', priority: 'Critical' },
                     { id: 2, title: 'Database Migration', project: 'CloudSync', priority: 'High' },
@@ -101,10 +119,7 @@ export default function ProfessionalDashboard() {
                     weeklyTasks: transformedWeeklyTasks,
                     devStats: transformedDevStats,
                     urgentTasks: mockUrgentTasks,
-                    staleTasks: [
-                        { id: 101, title: 'Documentation Update', age: '24 days', owner: 'Alex' },
-                        { id: 105, title: 'Legacy Cleanup', age: '31 days', owner: 'John' }
-                    ]
+                    staleTasks: transformedOverdueTasks
                 });
             } catch (error) {
                 console.error("Data Fetch Error:", error);
@@ -332,21 +347,49 @@ export default function ProfessionalDashboard() {
                 {/* 7. Pending tasks more than 3 weeks */}
                 <motion.div variants={itemVariants} className="bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="h-10 w-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
-                            <Timer className="h-6 w-6" />
+                        <div className="h-10 w-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center">
+                            <AlertTriangle className="h-6 w-6" />
                         </div>
-                        <h3 className="font-black uppercase tracking-tight">Old Tasks (&gt;21 Days)</h3>
+                        <h3 className="font-black uppercase tracking-tight">Breached Deadlines</h3>
                     </div>
-                    <div className="space-y-4">
-                        {data.staleTasks.map((task: any) => (
-                            <div key={task.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-                                <div>
-                                    <p className="text-sm font-bold uppercase">{task.title}</p>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase">Assigned to: {task.owner}</p>
-                                </div>
-                                <span className="text-[10px] font-black bg-rose-50 text-rose-600 px-3 py-1 rounded-full uppercase">{task.age}</span>
+                    <div className={cn("space-y-4 pr-2 transition-all duration-500 overflow-hidden", isOverdueExpanded ? "max-h-[800px] overflow-y-auto" : "max-h-[360px]")}>
+                        {data.staleTasks.length > 0 ? (
+                            <>
+                                {(isOverdueExpanded ? data.staleTasks : data.staleTasks.slice(0, 3)).map((task: any) => (
+                                    <div key={task.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-rose-200 transition-colors group">
+                                        <div className="min-w-0 flex-1 pr-4">
+                                            <p className="text-sm font-bold uppercase truncate text-slate-900 dark:text-white group-hover:text-rose-600 transition-colors">{task.title}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase truncate">Assigned to: {task.owner}</p>
+                                                <div className="w-1 h-1 rounded-full bg-slate-300" />
+                                                <p className="text-[10px] text-indigo-500 font-bold uppercase">{task.progress}% Done</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Missed On</p>
+                                            <p className="text-[11px] font-black text-slate-700 dark:text-slate-300">{formatDate(task.deadline)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {data.staleTasks.length > 3 && (
+                                    <button
+                                        onClick={() => setIsOverdueExpanded(!isOverdueExpanded)}
+                                        className="w-full py-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors group/btn"
+                                    >
+                                        {isOverdueExpanded ? (
+                                            <>Show Less <ChevronUp size={14} className="group-hover/btn:-translate-y-0.5 transition-transform" /></>
+                                        ) : (
+                                            <>View All Breached ({data.staleTasks.length}) <ChevronDown size={14} className="group-hover/btn:translate-y-0.5 transition-transform" /></>
+                                        )}
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <div className="text-center py-10">
+                                <p className="text-xs font-bold text-slate-300 uppercase italic">No deadlines breached</p>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </motion.div>
 
