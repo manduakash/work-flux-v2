@@ -27,6 +27,7 @@ import { getCookie } from '@/utils/cookies';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // --- Components ---
 
@@ -50,7 +51,8 @@ const StatCard = ({
     description,
     bgColor,
     iconColor,
-    borderColor
+    borderColor,
+    link
 }: any) => {
 
     const isPositive = trend === 'up';
@@ -63,47 +65,49 @@ const StatCard = ({
                 bgColor // Applies the vibrant gradient you passed in
             )}
         >
-            {/* 1. Modern Noise/Grain Texture */}
-            <div
-                className="absolute inset-0 opacity-[0.8] pointer-events-none"
-                style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")' }}
-            />
+            <Link href={link}>
+                {/* 1. Modern Noise/Grain Texture */}
+                <div
+                    className="absolute inset-0 opacity-[0.8] pointer-events-none"
+                    style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")' }}
+                />
 
-            {/* 2. Glassy Shine / Reflection Effect on Hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+                {/* 2. Glassy Shine / Reflection Effect on Hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
 
-            {/* 3. Subtle Inner Glow Ring */}
-            <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/20 pointer-events-none" />
+                {/* 3. Subtle Inner Glow Ring */}
+                <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/20 pointer-events-none" />
 
-            {/* Content Container (z-10 to stay above backgrounds) */}
-            <div className="relative z-10 flex flex-col h-full">
+                {/* Content Container (z-10 to stay above backgrounds) */}
+                <div className="relative z-10 flex flex-col h-full">
 
-                {/* Top Row: Icon & Trend */}
-                <div className="grid grid-cols-4 items-center justify-start">
-                    {/* Icon */}
-                    <div className={cn(
-                        `flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-300 shadow-sm shadow-white/70 group-hover:scale-110 group-hover:-rotate-6 backdrop-blur-sm text-white bg-white/80 ${borderColor}`,
-                    )}>
-                        <Icon className={`h-7 w-7 ${iconColor}`} />
+                    {/* Top Row: Icon & Trend */}
+                    <div className="grid grid-cols-4 items-center justify-start">
+                        {/* Icon */}
+                        <div className={cn(
+                            `flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-300 shadow-sm shadow-white/70 group-hover:scale-110 group-hover:-rotate-6 backdrop-blur-sm text-white bg-white/80 ${borderColor}`,
+                        )}>
+                            <Icon className={`h-7 w-7 ${iconColor}`} />
+                        </div>
+                        <div className="col-span-3 text-xl font-bold uppercase tracking-widest text-white/80">
+                            {title}
+                        </div>
                     </div>
-                    <div className="col-span-3 text-xl font-bold uppercase tracking-widest text-white/80">
-                        {title}
+
+                    {/* Bottom Row: Text content */}
+                    <div className="mt-8">
+
+                        <h3 className="mt-2 text-4xl font-black tracking-tight text-white drop-shadow-md">
+                            {value}
+                        </h3>
+                        {description && (
+                            <p className="mt-2 text-sm tracking-tight line-height-tighter font-medium text-white/65">
+                                {description}
+                            </p>
+                        )}
                     </div>
                 </div>
-
-                {/* Bottom Row: Text content */}
-                <div className="mt-8">
-
-                    <h3 className="mt-2 text-4xl font-black tracking-tight text-white drop-shadow-md">
-                        {value}
-                    </h3>
-                    {description && (
-                        <p className="mt-2 text-sm tracking-tight line-height-tighter font-medium text-white/65">
-                            {description}
-                        </p>
-                    )}
-                </div>
-            </div>
+            </Link>
         </motion.div>
     );
 };
@@ -211,7 +215,7 @@ export default function DeveloperDashboard() {
                 <div className="relative">
                     <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
                 </div>
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Loading...</p>
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Please Wait...</p>
             </div>
         );
     }
@@ -262,6 +266,7 @@ export default function DeveloperDashboard() {
                     bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700"
                     iconColor="text-purple-500"
                     borderColor="border-2 border-purple-500"
+                    link={`/create-manage-task?__st=${btoa("1")}`}
                 />
 
                 <StatCard
@@ -275,6 +280,7 @@ export default function DeveloperDashboard() {
                     bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700"
                     iconColor="text-indigo-500"
                     borderColor="border-2 border-indigo-400"
+                    link={`/create-manage-task?__st=${btoa("2")}`}
                 />
 
                 <StatCard
@@ -288,6 +294,7 @@ export default function DeveloperDashboard() {
                     description="Tasks submitted and awaiting review & approval of your team lead"
                     iconColor="text-amber-500"
                     borderColor="border-2 border-amber-400"
+                    link={`/create-manage-task?__st=${btoa("3")}`}
                 />
 
                 <StatCard
@@ -301,6 +308,7 @@ export default function DeveloperDashboard() {
                     bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700"
                     iconColor="text-emerald-500"
                     borderColor="border-2 border-emerald-400"
+                    link={`/create-manage-task?__st=${btoa("4")}`}
                 />
 
                 <StatCard
@@ -312,9 +320,10 @@ export default function DeveloperDashboard() {
                     bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700"
                     iconColor="text-rose-500"
                     borderColor="border-2 border-rose-400"
+                    link={`/create-manage-task?__x=${btoa("1")}&__st=${btoa("2")}`}
                 />
 
-                <StatCard
+                {/* <StatCard
                     title="On Going Projects"
                     value={stats?.ActiveProjects}
                     icon={Rocket}
@@ -323,7 +332,8 @@ export default function DeveloperDashboard() {
                     bgColor="bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-700"
                     iconColor="text-cyan-500"
                     borderColor="border-2 border-cyan-400"
-                />
+                    link="/create-manage-task?__st="
+                /> */}
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
