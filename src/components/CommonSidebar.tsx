@@ -115,14 +115,25 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                 {!isCollapsed && <div className="rounded-2xl mt-2 border border-slate-100 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
                     <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[13px] font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                            {currentUser?.avatar ? (
-                                <img src={currentUser?.avatar} className="h-full w-full object-cover rounded-full ring-2 ring-sky-500 dark:ring-sky-600" alt="Profile" />
-                            ) :
-                                (
-                                    <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-xl rounded-full">
-                                        {currentUser?.name?.charAt(0) || "AS"}
+                            {(() => {
+                                const localImg = typeof window !== 'undefined' ? localStorage.getItem('profile_image') : null;
+                                const avatarUrl = currentUser?.avatar || currentUser?.profile_image || (localImg !== "null" && localImg !== "undefined" ? localImg : null);
+                                
+                                if (avatarUrl) {
+                                    return (
+                                        <img 
+                                            src={avatarUrl} 
+                                            className="h-full w-full object-cover rounded-full ring-2 ring-sky-500 dark:ring-sky-600 shadow-sm" 
+                                            alt="Profile" 
+                                        />
+                                    );
+                                }
+                                return (
+                                    <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-xs rounded-full uppercase tracking-tighter">
+                                        {(currentUser?.name || currentUser?.username || "??").substring(0, 2)}
                                     </div>
-                                )}
+                                );
+                            })()}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
