@@ -76,8 +76,8 @@ export const callAPIWithToken = async (url: string, body: any) => {
     window.location.href = "/session-expired";
   }
   if (!response.ok) {
-    let text = await response.text();
-    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+    let data = await response.json();
+    throw new Error(data?.error?.message);
   }
   if (!isJsonResponse(response)) {
     let text = await response.text();

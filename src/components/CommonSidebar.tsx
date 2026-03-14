@@ -146,7 +146,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                     </div>
 
                     <button
-                        onClick={()=>handleLogout}
+                        onClick={()=>handleLogout()}
                         className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-white py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900/30 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-900/20"
                     >
                         <LogOut size={14} />

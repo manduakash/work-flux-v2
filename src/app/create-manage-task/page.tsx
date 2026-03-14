@@ -210,6 +210,7 @@ export default function TaskManagementPage() {
         const user = userOverride || currentUser;
         if (!user) return;
         try {
+            setIsLoading((prev: any) => ({ ...prev, TASKS: true }));
             console.log("user", user);
             const userId = user?.id?.toString().replace(/\D/g, '') || user?.UserID?.toString().replace(/\D/g, '') || '0';
             const isDeveloper = user?.role_id == 3;
@@ -226,6 +227,9 @@ export default function TaskManagementPage() {
             }
         } catch (error) {
             console.error("Failed to fetch tasks", error);
+        } finally {
+            setIsLoading((prev: any) => ({ ...prev, TASKS: false }));
+
         }
     };
 
@@ -333,8 +337,6 @@ export default function TaskManagementPage() {
             return matchesSearch && matchesType && matchesStatus && matchesPriority && matchesCompleted;
         });
     }, [apiTasks, myTasks, searchQuery, isDeveloper, activeStatusId, viewMode, filter]);
-
-    console.log("filteredTasks", filteredTasks)
 
     const paginatedTasks = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -820,81 +822,89 @@ export default function TaskManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {paginatedTasks.length > 0 ? paginatedTasks.map((task) => (
-                                        <tr key={task.TaskID} className={`group ${task?.IsRejected ? "bg-rose-50/50 hover:bg-rose-50 dark:hover:bg-rose-800/30" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"} transition-colors`}>
-                                            <td className="px-6 py-4">
-                                                <p className="font-bold text-slate-900 dark:text-white">{task.Title}</p>
-                                                {task.SubTitle && <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">{task.SubTitle}</p>}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider">{task.ProjectName}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>{task.StatusName}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={cn(
-                                                    "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
-                                                    task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30' :
-                                                        task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' :
-                                                            'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
-                                                )}>{task.PriorityName}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                                                        {task.AssignedByUserFullName?.charAt(0)}
-                                                    </div>
-                                                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{task.AssignedByUserFullName}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="space-y-1.5 min-w-[140px]">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] text-slate-400">{formatDate(task.Deadline)}</span>
-                                                        <span className="text-[10px] font-black text-indigo-500">{task.ProgressPercentage}%</span>
-                                                    </div>
-                                                    <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${task.ProgressPercentage}%` }}
-                                                            className="h-full bg-indigo-600 rounded-full"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Remarks */}
-                                            <td className="px-6 py-4 text-right">
-                                                {task?.IsRejected ? <div className="max-w-[160px] bg-slate-100 p-2 border border-slate-300/90 rounded-xl overflow-hidden">
-                                                    <div className="max-h-20 overflow-y-auto text-[8px] font-black text-rose-700 dark:text-white uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full dark:[&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
-                                                        {task?.Remarks || "N/A"}
-                                                    </div>
-                                                </div> : ""
-                                                }
-                                            </td>
-                                            <td className="px-6 py-4 text-start">
-                                                <Button
-                                                    variant="ghost" size="sm"
-                                                    onClick={() => {
-                                                        setEditingTask(task);
-                                                        setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
-                                                        setIsModalOpen(true);
-                                                    }}
-                                                    className="px-2 py-4.5 rounded-full cursor-pointer text-[9px] font-black uppercase tracking-widest bg-indigo-400 text-white/80 hover:text-white/90 border border-indigo-100 hover:bg-indigo-500 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
-                                                >
-                                                    <PenBoxIcon />
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    )) : (
+                                    {isLoading?.TASKS ?
                                         <tr>
                                             <td colSpan={7} className="py-20 text-center">
-                                                <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
-                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks assigned to you</p>
+                                                <Loader2 size={40} className="mx-auto text-indigo-600 mb-3 animate-spin" />
+                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">Tasks Loading...</p>
                                             </td>
                                         </tr>
-                                    )}
+                                        :
+                                        paginatedTasks?.length > 0 ? paginatedTasks.map((task) => (
+                                            <tr key={task.TaskID} className={`group ${task?.IsRejected ? "bg-rose-50/50 hover:bg-rose-50 dark:hover:bg-rose-800/30" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"} transition-colors`}>
+                                                <td className="px-6 py-4">
+                                                    <p className="font-bold text-slate-900 dark:text-white">{task.Title}</p>
+                                                    {task.SubTitle && <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">{task.SubTitle}</p>}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider">{task.ProjectName}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>{task.StatusName}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={cn(
+                                                        "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
+                                                        task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30' :
+                                                            task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' :
+                                                                'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                                                    )}>{task.PriorityName}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white shrink-0">
+                                                            {task.AssignedByUserFullName?.charAt(0)}
+                                                        </div>
+                                                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{task.AssignedByUserFullName}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="space-y-1.5 min-w-[140px]">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[10px] text-slate-400">{formatDate(task.Deadline)}</span>
+                                                            <span className="text-[10px] font-black text-indigo-500">{task.ProgressPercentage}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${task.ProgressPercentage}%` }}
+                                                                className="h-full bg-indigo-600 rounded-full"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* Remarks */}
+                                                <td className="px-6 py-4 text-right">
+                                                    {task?.IsRejected ? <div className="max-w-[160px] bg-slate-100 p-2 border border-slate-300/90 rounded-xl overflow-hidden">
+                                                        <div className="max-h-20 overflow-y-auto text-[8px] font-black text-rose-700 dark:text-white uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full dark:[&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                                                            {task?.Remarks || "N/A"}
+                                                        </div>
+                                                    </div> : ""
+                                                    }
+                                                </td>
+                                                <td className="px-6 py-4 text-start">
+                                                    <Button
+                                                        variant="ghost" size="sm"
+                                                        onClick={() => {
+                                                            setEditingTask(task);
+                                                            setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
+                                                            setIsModalOpen(true);
+                                                        }}
+                                                        className="px-2 py-4.5 rounded-full cursor-pointer text-[9px] font-black uppercase tracking-widest bg-indigo-400 text-white/80 hover:text-white/90 border border-indigo-100 hover:bg-indigo-500 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
+                                                    >
+                                                        <PenBoxIcon />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={7} className="py-20 text-center">
+                                                    <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
+                                                    <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks found.</p>
+                                                </td>
+                                            </tr>
+                                        )}
                                 </tbody>
                             </table>
                         </div>
@@ -923,71 +933,79 @@ export default function TaskManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {paginatedTasks.length > 0 ? paginatedTasks.map((task) => (
-                                        <tr key={task.TaskID} className="group hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{task.Title}</td>
-                                            <td className="px-6 py-4"><span className="text-indigo-600 font-semibold">{task.ProjectName}</span></td>
-                                            <td className="px-6 py-4"><span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>{task.StatusName}</span></td>
-                                            <td className="px-6 py-4 text-xs font-medium text-slate-600">{task.AssignedToUsers?.[0]?.AssignedToUserFullName || task.AssignedByUserFullName || 'Unassigned'}</td>
-                                            <td className="px-6 py-4 text-xs text-slate-400">
-                                                <div className="flex flex-col gap-1">
-                                                    <span>{formatDate(task.Deadline)}</span>
-                                                    <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{task.StatusName === "Completed" ? 100 : task.ProgressPercentage}% Progress</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-1 items-center">
-                                                    {task.StatusID === 3 && (
-                                                        <>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                title="Approve & Complete"
-                                                                onClick={() => {
-                                                                    setCurrentTask(task);
-                                                                    setIsTaskCompleteModalOpen(true);
-                                                                }}
-                                                                className="h-8 w-8 rounded-lg text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
-                                                            >
-                                                                <CircleCheckBig size={16} />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                title="Reject / Needs Revision"
-                                                                onClick={() => {
-                                                                    setCurrentTask(task);
-                                                                    setIsRejectionModalOpen(true);
-                                                                }}
-                                                                className="h-8 w-8 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
-                                                            >
-                                                                <CircleX size={16} />
-                                                            </Button>
-                                                            <div className="w-px h-4 bg-slate-100 mx-1" />
-                                                        </>
-                                                    )}
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleOpenEditModal({
-                                                        ...task,
-                                                        id: task.TaskID.toString(),
-                                                        projectId: task.ProjectID.toString(),
-                                                        title: task.Title,
-                                                        description: task.Description,
-                                                        progressPercentage: task.ProgressPercentage,
-                                                        deadline: task.Deadline,
-                                                        status: task.StatusName as any
-                                                    })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleDelete(task)}><Trash2 size={14} className="text-slate-400 hover:text-rose-500" /></Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )) : (
+                                    {isLoading?.TASKS ?
                                         <tr>
                                             <td colSpan={6} className="py-20 text-center">
-                                                <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
-                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks found</p>
+                                                <Loader2 size={40} className="mx-auto text-indigo-600 mb-3 animate-spin" />
+                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">Tasks Loading...</p>
                                             </td>
                                         </tr>
-                                    )}
+                                        : paginatedTasks?.length > 0 ?
+                                            paginatedTasks?.map((task) => (
+                                                <tr key={task.TaskID} className="group hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{task.Title}</td>
+                                                    <td className="px-6 py-4"><span className="text-indigo-600 font-semibold">{task.ProjectName}</span></td>
+                                                    <td className="px-6 py-4"><span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>{task.StatusName}</span></td>
+                                                    <td className="px-6 py-4 text-xs font-medium text-slate-600">{task.AssignedToUsers?.[0]?.AssignedToUserFullName || task.AssignedByUserFullName || 'Unassigned'}</td>
+                                                    <td className="px-6 py-4 text-xs text-slate-400">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span>{formatDate(task.Deadline)}</span>
+                                                            <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{task.StatusName === "Completed" ? 100 : task.ProgressPercentage}% Progress</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-1 items-center">
+                                                            {task.StatusID === 3 && (
+                                                                <>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        title="Approve & Complete"
+                                                                        onClick={() => {
+                                                                            setCurrentTask(task);
+                                                                            setIsTaskCompleteModalOpen(true);
+                                                                        }}
+                                                                        className="h-8 w-8 rounded-lg text-emerald-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all"
+                                                                    >
+                                                                        <CircleCheckBig size={16} />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        title="Reject / Needs Revision"
+                                                                        onClick={() => {
+                                                                            setCurrentTask(task);
+                                                                            setIsRejectionModalOpen(true);
+                                                                        }}
+                                                                        className="h-8 w-8 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                                                    >
+                                                                        <CircleX size={16} />
+                                                                    </Button>
+                                                                    <div className="w-px h-4 bg-slate-100 mx-1" />
+                                                                </>
+                                                            )}
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleOpenEditModal({
+                                                                ...task,
+                                                                id: task.TaskID.toString(),
+                                                                projectId: task.ProjectID.toString(),
+                                                                title: task.Title,
+                                                                description: task.Description,
+                                                                progressPercentage: task.ProgressPercentage,
+                                                                deadline: task.Deadline,
+                                                                status: task.StatusName as any
+                                                            })}><Pencil size={14} className="text-slate-400 hover:text-indigo-600" /></Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleDelete(task)}><Trash2 size={14} className="text-slate-400 hover:text-rose-500" /></Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )) : (
+                                                <tr>
+                                                    <td colSpan={6} className="py-20 text-center">
+                                                        <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
+                                                        <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks found</p>
+                                                    </td>
+                                                </tr>
+                                            )}
                                 </tbody>
                             </table>
                         </div>
