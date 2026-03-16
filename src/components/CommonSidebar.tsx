@@ -29,7 +29,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         { icon: Plus, label: 'Add Project', href: '/project-create' },
         { icon: Users, label: 'Team', href: '/team' },
         { icon: ShieldCheck, label: 'Assignments', href: '/team-management' },
-        { icon: ListChecks, label: 'Assign Tasks', href: '/create-manage-task' },
+        { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
         { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
         { icon: BarChartHorizontal, label: 'Stats', href: '/performance' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
@@ -37,7 +37,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     const devNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/developer-dashboard' },
-        { icon: ListChecks, label: 'Assigned Tasks', href: '/create-manage-task' },
+        { icon: ListChecks, label: 'My Tasks', href: '/create-manage-task' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 

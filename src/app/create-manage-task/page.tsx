@@ -824,7 +824,7 @@ export default function TaskManagementPage() {
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {isLoading?.TASKS ?
                                         <tr>
-                                            <td colSpan={7} className="py-20 text-center">
+                                            <td colSpan={8} className="py-20 text-center">
                                                 <Loader2 size={40} className="mx-auto text-indigo-600 mb-3 animate-spin" />
                                                 <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">Tasks Loading...</p>
                                             </td>
