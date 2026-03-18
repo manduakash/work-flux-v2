@@ -1,7 +1,28 @@
 import { deleteCookie, getCookie } from "@/utils/cookies";
-import { redirect } from "next/navigation";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+let activeRequests = 0;
+
+const showLoader = () => {
+  activeRequests++;
+  if (activeRequests === 1) {
+    // Only dispatch when the FIRST request starts
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('showGlobalLoader'));
+    }
+  }
+};
+
+const hideLoader = () => {
+  activeRequests = Math.max(0, activeRequests - 1);
+  if (activeRequests === 0) {
+    // Only dispatch when the LAST request finishes
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('hideGlobalLoader'));
+    }
+  }
+};
 
 function isJsonResponse(response: Response) {
   const contentType = response.headers.get('content-type');
@@ -60,56 +81,80 @@ export const callAPI = async (url: string, body: any) => {
 }
 
 export const callAPIWithToken = async (url: string, body: any) => {
-  const fullUrl = `${BASE_URL}${url}`;
-  logApiUrl(fullUrl);
-  const response = await fetch(fullUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
-    body: JSON.stringify(body),
-  });
-  if (response.status === 401) {
-    deleteCookie("token");
-    deleteCookie("user");
-    deleteCookie("role");
-    deleteCookie("role_id");
-    localStorage.clear();
-    window.location.href = "/session-expired";
+  showLoader(); // Trigger loader start
+
+  try {
+    const fullUrl = `${BASE_URL}${url}`;
+    logApiUrl(fullUrl);
+
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getCookie('token')}`
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (response.status === 401) {
+      deleteCookie("token");
+      deleteCookie("user");
+      deleteCookie("role");
+      deleteCookie("role_id");
+      localStorage.clear();
+      window.location.href = "/session-expired";
+      return; // Stop execution here
+    }
+
+    if (!response.ok) {
+      let data = await response.json();
+      throw new Error(data?.error?.message);
+    }
+
+    if (!isJsonResponse(response)) {
+      let text = await response.text();
+      throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+    }
+
+    return await response.json();
+
+  } finally {
+    // This will ALWAYS run, whether the API succeeds or throws an error
+    hideLoader();
   }
-  if (!response.ok) {
-    let data = await response.json();
-    throw new Error(data?.error?.message);
-  }
-  if (!isJsonResponse(response)) {
-    let text = await response.text();
-    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
-  }
-  return await response.json();
-}
+};
 
 export const callGetAPIWithToken = async (url: string) => {
-  const fullUrl = `${BASE_URL}${url}`;
-  logApiUrl(fullUrl);
-  const response = await fetch(fullUrl, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
-  });
-  if (response.status === 401) {
-    deleteCookie("token");
-    deleteCookie("user");
-    deleteCookie("role");
-    deleteCookie("role_id");
-    localStorage.clear();
-    window.location.href = "/session-expired";
+  try {
+    showLoader();
+    const fullUrl = `${BASE_URL}${url}`;
+    logApiUrl(fullUrl);
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getCookie('token')}` },
+    });
+    if (response.status === 401) {
+      deleteCookie("token");
+      deleteCookie("user");
+      deleteCookie("role");
+      deleteCookie("role_id");
+      localStorage.clear();
+      window.location.href = "/session-expired";
+    }
+    if (!response.ok) {
+      let text = await response.text();
+      throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
+    }
+    if (!isJsonResponse(response)) {
+      let text = await response.text();
+      throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
+    }
+    return await response.json();
+  } catch (error: any) {
+    throw new Error(error?.message)
+  } finally {
+    hideLoader();
   }
-  if (!response.ok) {
-    let text = await response.text();
-    throw new Error(`API Error: ${response.status} ${response.statusText}. Response: ${text.slice(0, 200)}`);
-  }
-  if (!isJsonResponse(response)) {
-    let text = await response.text();
-    throw new Error(`API did not return JSON. Response: ${text.slice(0, 200)}`);
-  }
-  return await response.json();
 }
 
 export const uploadDocumentAPI = async (

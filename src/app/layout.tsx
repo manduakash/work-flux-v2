@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider";
+import dynamic from "next/dynamic";
+const GlobalLoader = dynamic(() => import('@/components/GlobalLoader'), { ssr: true });
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,8 +38,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-
           <Toaster position="top-center" richColors />
+
+          <GlobalLoader />
           {children}
         </ThemeProvider>
       </body>

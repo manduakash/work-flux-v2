@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard, FolderKanban, CheckSquare,
@@ -12,6 +12,8 @@ import { useStore } from '@/store/useStore';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/CommonSidebar';
 import { getCookie } from '@/utils/cookies';
+import Loader from './loading';
+import Page from './page';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -66,7 +68,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         className="absolute inset-0 opacity-[0.2] pointer-events-none"
                         style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diagonal-striped-brick.png")' }}
                     />
-                    {children}
+                    <Suspense fallback={<Loader />} />
+                    <Page />
                 </main>
             </div>
         </div>
