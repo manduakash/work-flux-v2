@@ -178,7 +178,7 @@ export default function ProfessionalDashboard() {
     return (
         <motion.div
             initial="hidden" animate="visible" variants={containerVariants}
-            className="max-w-[1600px] mx-auto p-6 space-y-8 bg-slate-50/50 dark:bg-transparent min-h-screen"
+            className="max-w-[1600px] mx-auto p-6 space-y-8  dark:bg-transparent min-h-screen"
         >
             {/* Header section with Requirement 9: Total Active Project Days */}
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">

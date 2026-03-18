@@ -40,7 +40,7 @@ export default function LeadDashboardLayout({ children }: { children: React.Reac
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
             {/* Mobile Overlay */}
             {isMobileOpen && (
                 <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileOpen(false)} />
@@ -56,8 +56,15 @@ export default function LeadDashboardLayout({ children }: { children: React.Reac
                 {/* Navbar */}
                 <Navbar setIsMobileOpen={setIsMobileOpen} />
 
-                <main className="flex-1 overflow-y-auto p-8 bg-slate-50/50 dark:bg-slate-950/50 custom-scrollbar">
-                    {children}
+                <main className="flex-1 overflow-y-auto p-8 custom-scrollbar z-0 relative h-full">
+                    <div
+                        className="absolute inset-0 opacity-[0.7] pointer-events-none bg-fixed"
+                        style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dimension.png")' }}
+                    />
+
+                    <div className='absolute inset-0 overflow-y-auto p-8 custom-scrollbar z-10'>
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>
