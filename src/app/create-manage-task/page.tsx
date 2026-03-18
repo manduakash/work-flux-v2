@@ -705,109 +705,111 @@ export default function TaskManagementPage() {
 
             {/* Toolbar & Status Tabs */}
             <div className="space-y-6">
-                <div className='flex justify-between items-center gap-4'>
-                    <div className="relative group flex-1">
-                        <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
-                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                    </div>
+                {currentUser?.role_id == 3 &&
+                    <div className='flex justify-between items-center gap-4'>
+                        <div className="relative group flex-1">
+                            <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
+                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                        </div>
 
-                    {/* Task Status Dropdown */}
-                    <div>
-                        <Select value={filter?.status?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({ ...prev, status: value.toString() }))
-                            }
-                        >
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Task Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Task Status</SelectLabel>
-                                    <SelectItem value="0">All Status</SelectItem>
-                                    {statusData?.map((status: any, key: number) =>
-                                        <SelectItem key={key} value={status?.TaskStatusID?.toString()}>{status?.TaskStatusName}</SelectItem>
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* Task Status Dropdown */}
+                        <div>
+                            <Select value={filter?.status?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({ ...prev, status: value.toString() }))
+                                }
+                            >
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Task Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Task Status</SelectLabel>
+                                        <SelectItem value="0">All Status</SelectItem>
+                                        {statusData?.map((status: any, key: number) =>
+                                            <SelectItem key={key} value={status?.TaskStatusID?.toString()}>{status?.TaskStatusName}</SelectItem>
+                                        )}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Task Priority Dropdown */}
-                    <div>
-                        <Select
-                            value={filter?.priority?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({
-                                    ...prev,
-                                    priority: value?.toString()
-                                }))
-                            }>
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Task Priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Task Priority</SelectLabel>
-                                    <SelectItem value="0">All Priorities</SelectItem>
-                                    {priorityData?.map((priority: any, key: number) =>
-                                        <SelectItem key={key} value={priority?.PriorityID?.toString()}>{priority?.PriorityName}</SelectItem>
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* Task Priority Dropdown */}
+                        <div>
+                            <Select
+                                value={filter?.priority?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({
+                                        ...prev,
+                                        priority: value?.toString()
+                                    }))
+                                }>
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Task Priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Task Priority</SelectLabel>
+                                        <SelectItem value="0">All Priorities</SelectItem>
+                                        {priorityData?.map((priority: any, key: number) =>
+                                            <SelectItem key={key} value={priority?.PriorityID?.toString()}>{priority?.PriorityName}</SelectItem>
+                                        )}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Task Type Dropdown */}
-                    <div>
-                        <Select
-                            value={filter?.type?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({
-                                    ...prev,
-                                    type: value?.toString()
-                                }))
-                            }>
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Task Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Task Type</SelectLabel>
-                                    <SelectItem value="0">All Types</SelectItem>
-                                    {typeData?.map((type: any, key: number) =>
-                                        <SelectItem key={key} value={type?.TaskTypeID?.toString()}>{type?.TaskTypeName}</SelectItem>
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* Task Type Dropdown */}
+                        <div>
+                            <Select
+                                value={filter?.type?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({
+                                        ...prev,
+                                        type: value?.toString()
+                                    }))
+                                }>
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Task Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Task Type</SelectLabel>
+                                        <SelectItem value="0">All Types</SelectItem>
+                                        {typeData?.map((type: any, key: number) =>
+                                            <SelectItem key={key} value={type?.TaskTypeID?.toString()}>{type?.TaskTypeName}</SelectItem>
+                                        )}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Rejected/Completed Dropdown */}
-                    <div>
-                        <Select
-                            value={filter?.isRejected?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({
-                                    ...filter,
-                                    isRejected: value.toString(),
-                                    status: value == "1" ? "2" : value == "0" ? "4" : "",
-                                }))
-                            }>
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Review Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Completed/Incomplete Task</SelectLabel>
-                                    <SelectItem value="-1">All Tasks</SelectItem>
-                                    <SelectItem value="1">Incompleted Marked Tasks</SelectItem>
-                                    <SelectItem value="0">Approved Tasks</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                        {/* Rejected/Completed Dropdown */}
+                        <div>
+                            <Select
+                                value={filter?.isRejected?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({
+                                        ...filter,
+                                        isRejected: value.toString(),
+                                        status: value == "1" ? "2" : value == "0" ? "4" : "",
+                                    }))
+                                }>
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Review Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Completed/Incomplete Task</SelectLabel>
+                                        <SelectItem value="-1">All Tasks</SelectItem>
+                                        <SelectItem value="1">Incompleted Marked Tasks</SelectItem>
+                                        <SelectItem value="0">Approved Tasks</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                </div>
+                }
 
 
                 {/* Status tabs only for team leads/admins */}

@@ -1,72 +1,70 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-    LayoutDashboard, FolderKanban, CheckSquare,
-    Rocket,
-    BarChart3,
-    Settings
+    LayoutDashboard, Users, FolderKanban, ListChecks,
+    BarChartHorizontal, Settings, ChevronLeft, Search, Bell,
+    Sun, Moon, Menu, ShieldCheck, Briefcase
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useTheme } from 'next-themes';
+import Sidebar from '@/components/CommonSidebar';
 import { useStore } from '@/store/useStore';
 import Navbar from '@/components/Navbar';
-import Sidebar from '@/components/CommonSidebar';
 
-const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
-    { icon: FolderKanban, label: 'Projects', href: '/projects' },
-    { icon: CheckSquare, label: 'Tasks', href: '/create-manage-task' },
-    { icon: Rocket, label: 'Deployments', href: '/deployments' },
-    { icon: BarChart3, label: 'Reports', href: '/reports' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
+const leadNavItems = [
+    { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
+    { icon: Users, label: 'Team Management', href: '/team' },
+    { icon: FolderKanban, label: 'Project Oversight', href: '/projects' },
+    { icon: ListChecks, label: 'Create & Manage Task', href: '/create-manage-task' },
+    { icon: BarChartHorizontal, label: 'Performance', href: '/performance' },
+    { icon: Settings, label: 'Governance', href: '/settings' },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function LeadDashboardLayout({ children }: { children: React.ReactNode }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const pathname = usePathname();
+    const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const { currentUser, logout } = useStore();
     const router = useRouter();
+
+    useEffect(() => setMounted(true), []);
 
     const handleLogout = () => {
         logout();
         router.push('/login');
     };
 
-    useEffect(() => setMounted(true), []);
-
     return (
-        // FIX 1: Set the parent to h-screen and overflow-hidden
         <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-
             {/* Mobile Overlay */}
             {isMobileOpen && (
-                <div
-                    className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
-                    onClick={() => setIsMobileOpen(false)}
-                />
+                <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileOpen(false)} />
             )}
 
             {/* Sidebar */}
             <Sidebar isMobileOpen={isMobileOpen} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} pathname={pathname} currentUser={currentUser} handleLogout={handleLogout} />
 
-            {/* Main Wrapper */}
+
+            {/* Content Wrapper */}
             <div className="flex flex-1 flex-col h-full overflow-hidden">
 
                 {/* Navbar */}
                 <Navbar setIsMobileOpen={setIsMobileOpen} />
 
-                {/* Main Content */}
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                <main className="flex-1 overflow-y-auto p-8 custom-scrollbar z-0 relative h-full">
+                    <div
+                        className="absolute inset-0 opacity-[0.6] pointer-events-none bg-fixed"
+                        style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dimension.png")' }}
+                    />
 
-                    <Suspense fallback={"Loading..."}>
+                    <div className='absolute inset-0 overflow-y-auto p-8 custom-scrollbar z-10'>
                         {children}
-                    </Suspense>
-                    {/* <div
-                        className="absolute inset-0 opacity-[0.2] pointer-events-none"
-                        style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diagonal-striped-brick.png")' }}
-                    /> */}
+                    </div>
                 </main>
             </div>
         </div>

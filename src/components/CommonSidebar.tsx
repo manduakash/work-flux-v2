@@ -27,11 +27,11 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     const leadNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
         { icon: Plus, label: 'Add Project', href: '/project-create' },
-        { icon: Users, label: 'Team', href: '/team' },
-        { icon: ShieldCheck, label: 'Assignments', href: '/team-management' },
-        { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
         { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
-        { icon: BarChartHorizontal, label: 'Stats', href: '/performance' },
+        { icon: Users, label: 'User Management', href: '/team' },
+        { icon: ShieldCheck, label: 'Project Assignments', href: '/team-management' },
+        { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
+        // { icon: BarChartHorizontal, label: 'Stats', href: '/performance' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
@@ -118,13 +118,13 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                             {(() => {
                                 const localImg = typeof window !== 'undefined' ? localStorage.getItem('profile_image') : null;
                                 const avatarUrl = currentUser?.avatar || currentUser?.profile_image || (localImg !== "null" && localImg !== "undefined" ? localImg : null);
-                                
+
                                 if (avatarUrl) {
                                     return (
-                                        <img 
-                                            src={avatarUrl} 
-                                            className="h-full w-full object-cover rounded-full ring-2 ring-sky-500 dark:ring-sky-600 shadow-sm" 
-                                            alt="Profile" 
+                                        <img
+                                            src={avatarUrl}
+                                            className="h-full w-full object-cover rounded-full ring-2 ring-sky-500 dark:ring-sky-600 shadow-sm"
+                                            alt="Profile"
                                         />
                                     );
                                 }
@@ -146,7 +146,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                     </div>
 
                     <button
-                        onClick={()=>handleLogout()}
+                        onClick={() => handleLogout()}
                         className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-white py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900/30 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-900/20"
                     >
                         <LogOut size={14} />

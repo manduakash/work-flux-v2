@@ -164,7 +164,7 @@ const ProjectCreation = () => {
 
         // Redirect after a short delay
         setTimeout(() => {
-          router.push('/team-lead-dashboard');
+          router.push('/project-oversight');
         }, 1500);
 
       } else {
@@ -183,18 +183,21 @@ const ProjectCreation = () => {
 
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+    <div className="min-h-screen p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Create New Project</h1>
-          <p className="text-slate-500">Enter project details to get started.</p>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
           {/* FORM SECTION */}
-          <div className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+          <div className="lg:col-span-7 bg-white rounded-3xl p-0 shadow-sm border border-slate-200 overflow-hidden">
+            <div className={`p-6 flex bg-gradient-to-r to-cyan-600 from-blue-700 items-center justify-between text-white relative overflow-hidden mb-10`}>
+              <div className="absolute inset-0 opacity-70 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/straws.png')] " />
+              <div className="relative">
+                <h1 className="text-3xl font-bold text-white">Create New Project</h1>
+                <p className="text-slate-200">Enter project details to get started.</p>
+              </div>
+            </div>
+            <form className="space-y-6 p-8" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Project Name</label>
                 <input

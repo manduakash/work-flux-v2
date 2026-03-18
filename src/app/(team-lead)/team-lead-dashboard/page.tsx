@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { UserRole } from '@/types';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 // --- Theme Colors ---
 const COLORS = {
@@ -183,7 +184,7 @@ export default function ProfessionalDashboard() {
             {/* Header section with Requirement 9: Total Active Project Days */}
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter uppercase">Management <span className="text-indigo-600">Overview</span></h1>
+                    <h1 className="text-4xl font-black tracking-tighter uppercase">Team Lead Management <span className="text-indigo-600">Overview</span></h1>
                     <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-1 flex items-center gap-2">
                         Tracking {data?.projects?.length} Projects
                     </p>
@@ -205,18 +206,18 @@ export default function ProfessionalDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* 4. Task Summary Total */}
                 <motion.div variants={itemVariants} className="lg:col-span-4 grid grid-cols-6 gap-4">
-                    <SummaryCard label="Total Tasks" value={taskSummary.total} color="text-rose-500" bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700" icon={Clock} />
-                    <SummaryCard label="Task Submmision Pending" value={taskSummary.pending} color="text-rose-500" bgColor="bg-gradient-to-br from-amber-600 via-orange-500 to-amber-700" icon={Clock} />
-                    <SummaryCard label="Waiting for Your Review" value={taskSummary.review} color="text-amber-500" bgColor="bg-gradient-to-br from-cyan-600 via-teal-500 to-cyan-700" icon={ShieldCheck} />
-                    <SummaryCard label="Rejected Tasks by You" value={taskSummary.rejected} color="text-rose-500" bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700" icon={Clock} />
-                    <SummaryCard label="Active Projects" value={taskSummary.inProgress} color="text-blue-500" bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-700" icon={Activity} />
-                    <SummaryCard label="Task Approved by You" value={taskSummary.completed} color="text-emerald-500" bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700" icon={CheckCircle2} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("0")}`} label="Total Tasks" value={taskSummary.total} color="text-rose-500" bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700" icon={Clock} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("2")}`} label="Task Submmision Pending" value={taskSummary.pending} color="text-rose-500" bgColor="bg-gradient-to-br from-amber-600 via-orange-500 to-amber-700" icon={Clock} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("3")}`} label="Waiting for Your Review" value={taskSummary.review} color="text-amber-500" bgColor="bg-gradient-to-br from-cyan-600 via-teal-500 to-cyan-700" icon={ShieldCheck} />
+                    <SummaryCard link={`/create-manage-task?__x=${btoa("1")}&__st=${btoa("2")}`} label="Rejected Tasks by You" value={taskSummary.rejected} color="text-rose-500" bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700" icon={Clock} />
+                    <SummaryCard link="/project-oversight" label="Active Projects" value={taskSummary.inProgress} color="text-blue-500" bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-700" icon={Activity} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("4")}`} label="Task Approved by You" value={taskSummary.completed} color="text-emerald-500" bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700" icon={CheckCircle2} />
                 </motion.div>
 
                 {/* 3. Resources (Developers) per Project */}
                 <motion.div variants={itemVariants} className="lg:col-span-4 bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h3 className="font-black uppercase tracking-tight mb-6 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-indigo-500" /> Team Member Distribution
+                        <Users className="h-5 w-5 text-indigo-500" /> Project-wise Manpower Distribution
                     </h3>
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -268,7 +269,7 @@ export default function ProfessionalDashboard() {
 
                 {/* 2. All Projects Donut */}
                 <motion.div variants={itemVariants} className="bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <h3 className="font-black uppercase tracking-tight mb-6">Status Breakdown</h3>
+                    <h3 className="font-black uppercase tracking-tight mb-6">Project-wise Status Breakdown</h3>
                     <div className="h-[250px] relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -425,9 +426,10 @@ export default function ProfessionalDashboard() {
 }
 
 // Sub-component for Task Summary Cards
-function SummaryCard({ label, value, color, bgColor, icon: Icon }: any) {
+function SummaryCard({ label, value, color, bgColor, icon: Icon, link }: any) {
     return (
-        <div
+        <Link
+            href={link}
             className={cn(
                 "relative hover:translate-y-1.5 hover:shadow-2xl cursor-pointer overflow-hidden p-6 rounded-[2rem] border shadow-sm transition-all duration-600",
                 "border-slate-200 dark:border-slate-800",
@@ -461,6 +463,6 @@ function SummaryCard({ label, value, color, bgColor, icon: Icon }: any) {
                     {value}
                 </p>
             </div>
-        </div>
+        </Link>
     );
 }
