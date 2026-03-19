@@ -811,7 +811,6 @@ export default function TaskManagementPage() {
                     </div>
                 }
 
-
                 {/* Status tabs only for team leads/admins */}
                 {viewMode === 'board' && !isDeveloper && (
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide border-b border-slate-100 dark:border-slate-800">
