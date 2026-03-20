@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard, Users, FolderKanban, ListChecks,
@@ -63,7 +63,9 @@ export default function LeadDashboardLayout({ children }: { children: React.Reac
                     />
 
                     <div className='absolute inset-0 overflow-y-auto p-8 custom-scrollbar z-10'>
-                        {children}
+                        <Suspense>
+                            {children}
+                        </Suspense>
                     </div>
                 </main>
             </div>
