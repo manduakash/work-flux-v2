@@ -1,8 +1,14 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button';
-import { Menu, Search, Bell, Sun, Moon } from 'lucide-react';
+import {
+    Menu, Search, Sun, Moon, Bell,
+    Folder,
+    Calendar,
+    User
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
+import Notifications from './Notifications';
 
 
 const Navbar = ({ setIsMobileOpen }: { setIsMobileOpen: (value: boolean) => void }) => {
@@ -32,10 +38,10 @@ const Navbar = ({ setIsMobileOpen }: { setIsMobileOpen: (value: boolean) => void
                         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                     </Button>
                 )}
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell size={18} />
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-950" />
-                </Button>
+
+                {/* Notification Drawer */}
+                <Notifications />
+
                 <div className="ml-2 flex items-center gap-3 rounded-xl border border-slate-200 p-1 pl-3 dark:border-slate-800">
                     <span className="hidden text-xs font-black uppercase text-slate-500 lg:block">Dev_Team</span>
                     <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-xs">JS</div>
@@ -44,5 +50,6 @@ const Navbar = ({ setIsMobileOpen }: { setIsMobileOpen: (value: boolean) => void
         </header>
     )
 }
+
 
 export default Navbar;

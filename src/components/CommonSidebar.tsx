@@ -88,7 +88,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         )}>
             {/* Background Pattern Layer */}
             <div
-                className="absolute inset-0 pointer-events-none opacity-50"
+                className="absolute inset-0 pointer-events-none opacity-40"
                 style={{ backgroundImage: patternDots }}
             />
 
