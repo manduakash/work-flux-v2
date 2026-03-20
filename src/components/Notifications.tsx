@@ -115,14 +115,16 @@ const Notifications = () => {
                 {`
                     @keyframes bell-ring {
                         0%, 100% { transform: rotate(0deg); }
-                        10% { transform: rotate(5deg); }
-                        20% { transform: rotate(-10deg); }
-                        30% { transform: rotate(5deg); }
-                        40% { transform: rotate(-0deg); }
-                        50% { transform: rotate(10deg); }
+                        10% { transform: rotate(2deg); }
+                        20% { transform: rotate(-5deg); }
+                        30% { transform: rotate(0deg); }
+                        40% { transform: rotate(-5deg); }
+                        50% { transform: rotate(2deg); }
                     }
                     .animate-bell-ring {
-                        animation: bell-ring 1s infinite ease-in-out;
+                        animation: bell-ring 0.5s infinite ease-in-out;
+                        animation-delay: 8s;
+                        animation-fill-mode: backwards;
                         transform-origin: top center;
                     }
                 `}
@@ -131,9 +133,9 @@ const Notifications = () => {
             <Drawer direction="right">
                 <DrawerTrigger asChild>
                     <Button variant="ghost" size="icon" className={`relative ${unreadCount && "animate-bell-ring"}`}>
-                        {unreadCount ? <BellRing size={20} className="z-10" /> : <Bell size={20} />}
+                        {unreadCount ? <Bell size={20} className="z-10" /> : <Bell size={20} />}
                         {unreadCount && (
-                            <span className="absolute right-2 top-2 h-1.5 w-1.5 z-9 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-950" />
+                            <span className="absolute right-2 top-2 h-1.5 w-1.5 z-9 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-950 animate-caret-blink" />
                         )}
                     </Button>
                 </DrawerTrigger>

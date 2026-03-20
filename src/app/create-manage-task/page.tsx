@@ -913,10 +913,10 @@ export default function TaskManagementPage() {
                                         const strokeDashoffset = isCompleted ? 0 : circumference - ((task.ProgressPercentage || 0) / 100) * circumference;
 
                                         return (
-                                            <div className="bg-white" key={task?.TaskID}>
+                                            <div className="bg-white h-fit" key={task?.TaskID}>
                                                 <div
                                                     className={cn(
-                                                        "group relative flex flex-col bg-white dark:bg-[#292929] border rounded-md shadow-sm p-4 min-h-[140px] transition-all",
+                                                        "group relative flex flex-col bg-white dark:bg-[#292929] border rounded-md shadow-sm px-4 py-8 min-h-[140px] transition-all",
                                                         isRejected
                                                             ? "border-rose-300 dark:border-rose-900/50 bg-rose-50/30 dark:bg-[#3f2a2e]/40 hover:border-rose-400 dark:hover:border-rose-700/80"
                                                             : "border-slate-200 dark:border-[#3b3b3b] hover:border-indigo-500/50"
@@ -984,7 +984,7 @@ export default function TaskManagementPage() {
                                                                 task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400' :
                                                                     'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
                                                         )}>
-                                                            {task.PriorityName}
+                                                            {task.PriorityName} Priority
                                                         </span>
                                                     </div>
 
