@@ -19,7 +19,7 @@ export default function ProjectOversight() {
   const { users, updateProject } = useStore();
   const [apiProjects, setApiProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Track which project's team is currently visible
   const [expandedTeamId, setExpandedTeamId] = useState<number | null>(null);
 
@@ -77,14 +77,14 @@ export default function ProjectOversight() {
   const handleOpenEditModal = (project: any) => {
     setEditingProject(project);
     setFormData({
-        name: project.ProjectName || '',
-        description: project.ProjectDescription || '',
-        deadline: (project.ProjectDeadline || project.Deadline) ? (project.ProjectDeadline || project.Deadline).split('T')[0] : '',
-        progress: project.ProgressPercentage || 0,
-        statusId: statusData.find(s => s.ProjectStatusName === project.ProjectStatusName)?.ProjectStatusID?.toString() || '',
-        priorityId: priorityData.find(p => p?.PriorityName === project.ProjectPriorityName)?.PriorityID?.toString() || '',
-        typeId: typeData.find(t => t.ProjectTypeName === project.ProjectTypeName)?.ProjectTypeID?.toString() || ''
-      });
+      name: project.ProjectName || '',
+      description: project.ProjectDescription || '',
+      deadline: (project.ProjectDeadline || project.Deadline) ? (project.ProjectDeadline || project.Deadline).split('T')[0] : '',
+      progress: project.ProgressPercentage || 0,
+      statusId: statusData.find(s => s.ProjectStatusName === project.ProjectStatusName)?.ProjectStatusID?.toString() || '',
+      priorityId: priorityData.find(p => p?.PriorityName === project.ProjectPriorityName)?.PriorityID?.toString() || '',
+      typeId: typeData.find(t => t.ProjectTypeName === project.ProjectTypeName)?.ProjectTypeID?.toString() || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -93,17 +93,17 @@ export default function ProjectOversight() {
     setIsUpdating(true);
     const toastId = toast.loading('Saving changes...');
     try {
-        const payload = {
-            ProjectID: editingProject.ProjectID,
-            ProjectName: formData.name,
-            ProjectDescription: formData.description,
-            ProjectType: Number(formData.typeId),
-            ProjectPriority: Number(formData.priorityId),
-            ProjectStatus: Number(formData.statusId),
-            ProjectDeadline: formData.deadline,
-            ProgressPercentage: Number(formData.progress),
-            ProjectLeadID: Number(getUserIdFromToken() || 0),
-          };
+      const payload = {
+        ProjectID: editingProject.ProjectID,
+        ProjectName: formData.name,
+        ProjectDescription: formData.description,
+        ProjectType: Number(formData.typeId),
+        ProjectPriority: Number(formData.priorityId),
+        ProjectStatus: Number(formData.statusId),
+        ProjectDeadline: formData.deadline,
+        ProgressPercentage: Number(formData.progress),
+        ProjectLeadID: Number(getUserIdFromToken() || 0),
+      };
       const result = await callAPIWithToken('projects', payload);
       if (result.success) {
         toast.success('Updated successfully', { id: toastId });
@@ -115,7 +115,7 @@ export default function ProjectOversight() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-700">
-      
+
       {/* Header */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <h1 className="text-3xl font-black tracking-tight uppercase text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400">
@@ -124,11 +124,21 @@ export default function ProjectOversight() {
       </div>
 
       <div className="rounded-[2.5rem] border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900 min-h-[400px]">
-        <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between dark:border-slate-800">
-          <h3 className="text-xl font-black uppercase tracking-tight leading-none">Management Ledger</h3>
+        {/* <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between dark:border-slate-800">
+          <h3 className="text-xl font-black uppercase tracking-tight leading-none">Project Details & List</h3>
           <Button variant="outline" className="h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest border-slate-200">
             <Filter size={14} className="mr-2" /> Global Filter
           </Button>
+        </div> */}
+
+        <div className={`p-6 bg-gradient-to-r to-purple-400 from-indigo-600 text-white relative overflow-hidden mb-0`}>
+          <div className="absolute inset-0 opacity-70 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/straws.png')] " />
+          <div className="relative flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-white">Project List & Details</h1>
+            <Button variant="outline" className="h-10 rounded-xl font-bold text-[10px] bg-transparent uppercase tracking-widest border-slate-200">
+              <Filter size={14} className="mr-2" /> Global Filter
+            </Button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -165,7 +175,7 @@ export default function ProjectOversight() {
                           <span className="font-bold text-slate-900 dark:text-white text-base leading-tight">{p?.ProjectName}</span>
                         </div>
                       </td>
-                      
+
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-2.5">
                           <div className="h-7 w-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 dark:bg-indigo-950">
@@ -188,10 +198,10 @@ export default function ProjectOversight() {
                       <td className="px-8 py-6 min-w-[150px]">
                         <div className="flex items-center gap-3">
                           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
-                            <motion.div 
-                                initial={{ width: 0 }} 
-                                animate={{ width: `${p?.ProgressPercentage || 0}%` }} 
-                                className="h-full bg-indigo-600 rounded-full" 
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${p?.ProgressPercentage || 0}%` }}
+                              className="h-full bg-indigo-600 rounded-full"
                             />
                           </div>
                           <span className="text-xs font-black text-slate-700">{p?.ProgressPercentage || 0}%</span>
@@ -213,24 +223,20 @@ export default function ProjectOversight() {
                           </Button>
 
                           {/* MIDDLE BUTTON: TEAM DISPLAY */}
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => setExpandedTeamId(expandedTeamId === p?.ProjectID ? null : p?.ProjectID)}
                             className={cn(
-                                "h-9 w-9 rounded-xl border transition-all duration-300",
-                                expandedTeamId === p?.ProjectID 
-                                ? "bg-indigo-600 text-white border-indigo-600" 
+                              "h-9 w-9 rounded-xl border transition-all duration-300",
+                              expandedTeamId === p?.ProjectID
+                                ? "bg-indigo-600 text-white border-indigo-600"
                                 : "hover:bg-white border-transparent hover:border-slate-200 text-slate-400 hover:text-indigo-600"
                             )}
                           >
                             <Users size={16} />
                           </Button>
 
-                          {/* DETAILS BUTTON */}
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-white border border-transparent hover:border-slate-200">
-                            <ChevronRight size={18} className="text-slate-300" />
-                          </Button>
                         </div>
                       </td>
                     </motion.tr>
@@ -248,17 +254,17 @@ export default function ProjectOversight() {
                             >
                               <div className="px-10 py-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <div className="space-y-1">
-                                    <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600">Assigned Resources</h4>
-                                    <p className="text-xs text-slate-400 font-medium italic">Active contributors on this workspace</p>
+                                  <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-600">Assigned Resources</h4>
+                                  <p className="text-xs text-slate-400 font-medium italic">Active contributors on this workspace</p>
                                 </div>
-                                
+
                                 <div className="flex flex-wrap gap-4">
                                   {parseDevelopers(p?.DeveloperArray).length > 0 ? (
                                     parseDevelopers(p?.DeveloperArray).map((dev, i) => (
-                                      <motion.div 
-                                        key={i} 
-                                        initial={{ x: -10, opacity: 0 }} 
-                                        animate={{ x: 0, opacity: 1 }} 
+                                      <motion.div
+                                        key={i}
+                                        initial={{ x: -10, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
                                         transition={{ delay: i * 0.05 }}
                                         className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm"
                                       >
@@ -403,45 +409,45 @@ export default function ProjectOversight() {
 
       {/* 3. Portfolio Allocation (Insights) */}
       {/* Team Workload and Updates & Tips sections removed as requested */}
-    {/* Developer Popover */}
-    {devPopover.open && (
-      <div
-        className="fixed inset-0 z-50"
-        onClick={() => setDevPopover({ open: false, devs: [], anchor: null })}
-        style={{ pointerEvents: 'auto' }}
-      >
+      {/* Developer Popover */}
+      {devPopover.open && (
         <div
-          className="absolute"
-          style={{
-            left: devPopover.anchor?.getBoundingClientRect().left ?? 0,
-            top: (devPopover.anchor?.getBoundingClientRect().bottom ?? 0) + window.scrollY + 8,
-            minWidth: 200,
-            background: 'white',
-            borderRadius: '1rem',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-            border: '1px solid #e2e8f0',
-            padding: '1rem',
-            zIndex: 1000
-          }}
-          onClick={e => e.stopPropagation()}
+          className="fixed inset-0 z-50"
+          onClick={() => setDevPopover({ open: false, devs: [], anchor: null })}
+          style={{ pointerEvents: 'auto' }}
         >
-          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Developers</div>
-          {devPopover.devs.length > 0 ? (
-            <ul className="space-y-1">
-              {devPopover.devs.map((dev, idx) => (
-                <li key={idx} className="text-sm font-semibold text-slate-700 py-1 px-2 rounded hover:bg-slate-100">{dev}</li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-xs text-slate-400 italic">No developers assigned</div>
-          )}
-          <button
-            className="mt-4 w-full py-1.5 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-xs hover:bg-indigo-100 transition"
-            onClick={() => setDevPopover({ open: false, devs: [], anchor: null })}
-          >Close</button>
+          <div
+            className="absolute"
+            style={{
+              left: devPopover.anchor?.getBoundingClientRect().left ?? 0,
+              top: (devPopover.anchor?.getBoundingClientRect().bottom ?? 0) + window.scrollY + 8,
+              minWidth: 200,
+              background: 'white',
+              borderRadius: '1rem',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+              border: '1px solid #e2e8f0',
+              padding: '1rem',
+              zIndex: 1000
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Developers</div>
+            {devPopover.devs.length > 0 ? (
+              <ul className="space-y-1">
+                {devPopover.devs.map((dev, idx) => (
+                  <li key={idx} className="text-sm font-semibold text-slate-700 py-1 px-2 rounded hover:bg-slate-100">{dev}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-xs text-slate-400 italic">No developers assigned</div>
+            )}
+            <button
+              className="mt-4 w-full py-1.5 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-xs hover:bg-indigo-100 transition"
+              onClick={() => setDevPopover({ open: false, devs: [], anchor: null })}
+            >Close</button>
+          </div>
         </div>
-      </div>
-    )}
+      )}
     </div>
   );
 }

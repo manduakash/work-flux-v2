@@ -12,7 +12,17 @@ import {
     CircleX,
     AlertTriangle,
     ShieldAlert,
-    PenBoxIcon
+    PenBoxIcon,
+    CalendarDays,
+    Check,
+    Circle,
+    ArrowRight,
+    FolderOpen,
+    Tag,
+    Flag,
+    BookA,
+    Eye,
+    CheckCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -179,6 +189,7 @@ export default function TaskManagementPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState<any>(null);
     const [isDeletingTask, setIsDeletingTask] = useState(false);
+    const [isCompletingTask, setIsCompletingTask] = useState(false);
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -550,6 +561,74 @@ export default function TaskManagementPage() {
         }
     };
 
+    const handleCompleteTask = async (task: any) => {
+        console.log("task", task)
+        if (!task) return;
+
+        try {
+            setIsCompletingTask(task?.TaskID);
+            const payload = {
+                TaskID: task?.TaskID || task?.id,
+                TaskStatus: 3,
+                IsRejected: 0,
+                Remarks: "Task Completed",
+                TaskPriority: task?.PriorityID,
+                TaskDeadline: (task?.Deadline)?.split('T')[0]
+            };
+
+            const result = await callPatchAPIWithToken('tasks/status', payload);
+
+            if (result.success) {
+                toast.success(`Task has been completed!`);
+                setIsRejectionModalOpen(false);
+                setIsTaskCompleteModalOpen(false);
+                setRemarks("");
+                fetchTasks();
+            } else {
+                throw new Error(result.error?.message || result.message || 'Status update failed');
+            }
+        } catch (error: any) {
+            console.error("Status update error:", error);
+            toast.error(error.message || "Action Failed",);
+        } finally {
+            setIsCompletingTask(false);
+        }
+    };
+
+    const handleUndoCompleteTask = async (task: any) => {
+        console.log("task", task)
+        if (!task) return;
+
+        try {
+            setIsCompletingTask(task?.TaskID);
+            const payload = {
+                TaskID: task?.TaskID || task?.id,
+                TaskStatus: 3,
+                IsRejected: 0,
+                Remarks: "Task Completed",
+                TaskPriority: task?.PriorityID,
+                TaskDeadline: (task?.Deadline)?.split('T')[0]
+            };
+
+            const result = await callPatchAPIWithToken('tasks/status', payload);
+
+            if (result.success) {
+                toast.success(`Task has been completed!`);
+                setIsRejectionModalOpen(false);
+                setIsTaskCompleteModalOpen(false);
+                setRemarks("");
+                fetchTasks();
+            } else {
+                throw new Error(result.error?.message || result.message || 'Status update failed');
+            }
+        } catch (error: any) {
+            console.error("Status update error:", error);
+            toast.error(error.message || "Action Failed",);
+        } finally {
+            setIsCompletingTask(false);
+        }
+    };
+
 
     const handleDelete = (task: any) => {
         setTaskToDelete(task);
@@ -597,6 +676,12 @@ export default function TaskManagementPage() {
         }
     }
 
+    const getInitials = (name: string) => {
+        if (!name) return 'U';
+        const parts = name.split(' ').filter(Boolean);
+        return parts.map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
+
     return (
         <div className="max-w-[1500px] mx-auto space-y-8 p-2">
 
@@ -621,110 +706,111 @@ export default function TaskManagementPage() {
 
             {/* Toolbar & Status Tabs */}
             <div className="space-y-6">
-                <div className='flex justify-between items-center gap-4'>
-                    <div className="relative group flex-1">
-                        <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
-                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                    </div>
+                {currentUser?.role_id == 3 &&
+                    <div className='flex justify-between items-center gap-4'>
+                        <div className="relative group flex-1">
+                            <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
+                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                        </div>
 
-                    {/* Task Status Dropdown */}
-                    <div>
-                        <Select value={filter?.status?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({ ...prev, status: value.toString() }))
-                            }
-                        >
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Task Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Task Status</SelectLabel>
-                                    <SelectItem value="0">All Status</SelectItem>
-                                    {statusData?.map((status: any, key: number) =>
-                                        <SelectItem key={key} value={status?.TaskStatusID?.toString()}>{status?.TaskStatusName}</SelectItem>
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* Task Status Dropdown */}
+                        <div>
+                            <Select value={filter?.status?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({ ...prev, status: value.toString() }))
+                                }
+                            >
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Task Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Task Status</SelectLabel>
+                                        <SelectItem value="0">All Status</SelectItem>
+                                        {statusData?.map((status: any, key: number) =>
+                                            <SelectItem key={key} value={status?.TaskStatusID?.toString()}>{status?.TaskStatusName}</SelectItem>
+                                        )}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Task Priority Dropdown */}
-                    <div>
-                        <Select
-                            value={filter?.priority?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({
-                                    ...prev,
-                                    priority: value?.toString()
-                                }))
-                            }>
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Task Priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Task Priority</SelectLabel>
-                                    <SelectItem value="0">All Priorities</SelectItem>
-                                    {priorityData?.map((priority: any, key: number) =>
-                                        <SelectItem key={key} value={priority?.PriorityID?.toString()}>{priority?.PriorityName}</SelectItem>
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* Task Priority Dropdown */}
+                        <div>
+                            <Select
+                                value={filter?.priority?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({
+                                        ...prev,
+                                        priority: value?.toString()
+                                    }))
+                                }>
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Task Priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Task Priority</SelectLabel>
+                                        <SelectItem value="0">All Priorities</SelectItem>
+                                        {priorityData?.map((priority: any, key: number) =>
+                                            <SelectItem key={key} value={priority?.PriorityID?.toString()}>{priority?.PriorityName}</SelectItem>
+                                        )}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Task Type Dropdown */}
-                    <div>
-                        <Select
-                            value={filter?.type?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({
-                                    ...prev,
-                                    type: value?.toString()
-                                }))
-                            }>
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Task Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Task Type</SelectLabel>
-                                    <SelectItem value="0">All Types</SelectItem>
-                                    {typeData?.map((type: any, key: number) =>
-                                        <SelectItem key={key} value={type?.TaskTypeID?.toString()}>{type?.TaskTypeName}</SelectItem>
-                                    )}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                        {/* Task Type Dropdown */}
+                        <div>
+                            <Select
+                                value={filter?.type?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({
+                                        ...prev,
+                                        type: value?.toString()
+                                    }))
+                                }>
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Task Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Task Type</SelectLabel>
+                                        <SelectItem value="0">All Types</SelectItem>
+                                        {typeData?.map((type: any, key: number) =>
+                                            <SelectItem key={key} value={type?.TaskTypeID?.toString()}>{type?.TaskTypeName}</SelectItem>
+                                        )}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Rejected/Completed Dropdown */}
-                    <div>
-                        <Select
-                            value={filter?.isRejected?.toString()}
-                            onValueChange={(value) =>
-                                setFilter((prev: any) => ({
-                                    ...filter,
-                                    isRejected: value.toString(),
-                                    status: value == "1" ? "2" : value == "0" ? "4" : "",
-                                }))
-                            }>
-                            <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
-                                <SelectValue placeholder="Select Review Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectLabel>Completed/Incomplete Task</SelectLabel>
-                                    <SelectItem value="-1">All Tasks</SelectItem>
-                                    <SelectItem value="1">Incompleted Marked Tasks</SelectItem>
-                                    <SelectItem value="0">Approved Tasks</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                        {/* Rejected/Completed Dropdown */}
+                        <div>
+                            <Select
+                                value={filter?.isRejected?.toString()}
+                                onValueChange={(value) =>
+                                    setFilter((prev: any) => ({
+                                        ...filter,
+                                        isRejected: value.toString(),
+                                        status: value == "1" ? "2" : value == "0" ? "4" : "",
+                                    }))
+                                }>
+                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                    <SelectValue placeholder="Select Review Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Completed/Incomplete Task</SelectLabel>
+                                        <SelectItem value="-1">All Tasks</SelectItem>
+                                        <SelectItem value="1">Incompleted Marked Tasks</SelectItem>
+                                        <SelectItem value="0">Approved Tasks</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                </div>
-
+                }
 
                 {/* Status tabs only for team leads/admins */}
                 {viewMode === 'board' && !isDeveloper && (
@@ -733,7 +819,7 @@ export default function TaskManagementPage() {
                             const isActive = activeStatusId === status.TaskStatusID;
                             return (
                                 <button
-                                    key={status.TaskStatusID}
+                                    key={status?.TaskStatusID}
                                     onClick={() => setActiveStatusId(status.TaskStatusID)}
                                     className={cn(
                                         "relative flex items-center gap-3 px-6 py-4 text-xs font-black uppercase tracking-widest transition-all",
@@ -806,114 +892,172 @@ export default function TaskManagementPage() {
                     </motion.div>
                 ) : isDeveloper ? (
                     /* ── Developer: flat table from my-tasks API ── */
-                    <motion.div key="dev-table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xl shadow-slate-200/20 dark:border-slate-800 dark:bg-slate-900">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead>
-                                    <tr className="border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Task</th>
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Project</th>
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Status</th>
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Priority</th>
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Assigned By</th>
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Deadline & Progress</th>
-                                        <th className="px-6 py-4 font-bold text-[10px] uppercase tracking-widest text-slate-400">Rejection Remarks</th>
-                                        <th className="px-6 py-4 text-right font-bold text-[10px] uppercase tracking-widest text-slate-400">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {isLoading?.TASKS ?
-                                        <tr>
-                                            <td colSpan={7} className="py-20 text-center">
-                                                <Loader2 size={40} className="mx-auto text-indigo-600 mb-3 animate-spin" />
-                                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">Tasks Loading...</p>
-                                            </td>
-                                        </tr>
-                                        :
-                                        paginatedTasks?.length > 0 ? paginatedTasks.map((task) => (
-                                            <tr key={task.TaskID} className={`group ${task?.IsRejected ? "bg-rose-50/50 hover:bg-rose-50 dark:hover:bg-rose-800/30" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"} transition-colors`}>
-                                                <td className="px-6 py-4">
-                                                    <p className="font-bold text-slate-900 dark:text-white">{task.Title}</p>
-                                                    {task.SubTitle && <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wider">{task.SubTitle}</p>}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider">{task.ProjectName}</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>{task.StatusName}</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={cn(
-                                                        "px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border",
-                                                        task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30' :
-                                                            task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30' :
-                                                                'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
-                                                    )}>{task.PriorityName}</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-7 w-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                                                            {task.AssignedByUserFullName?.charAt(0)}
-                                                        </div>
-                                                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{task.AssignedByUserFullName}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="space-y-1.5 min-w-[140px]">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-[10px] text-slate-400">{formatDate(task.Deadline)}</span>
-                                                            <span className="text-[10px] font-black text-indigo-500">{task.ProgressPercentage}%</span>
-                                                        </div>
-                                                        <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                                                            <motion.div
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${task.ProgressPercentage}%` }}
-                                                                className="h-full bg-indigo-600 rounded-full"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </td>
+                    <motion.div key="dev-table" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-full">
+                        <div className="overflow-y-auto pb-6">
+                            {isLoading?.TASKS ? (
+                                <div className="py-20 text-center flex flex-col items-center justify-center">
+                                    <Loader2 size={40} className="text-indigo-600 mb-4 animate-spin" />
+                                    <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">Tasks Loading...</p>
+                                </div>
+                            ) : paginatedTasks?.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+                                    {paginatedTasks.map((task) => {
+                                        const isCompleted = task.StatusID > 2;
+                                        const isRejected = task?.IsRejected && task?.StatusID == 2;
+                                        const assignerName = task.AssignedByUserFullName || 'Unassigned';
+                                        const initials = getInitials(assignerName);
 
-                                                {/* Remarks */}
-                                                <td className="px-6 py-4 text-right">
-                                                    {task?.IsRejected ? <div className="max-w-[160px] bg-slate-100 p-2 border border-slate-300/90 rounded-xl overflow-hidden">
-                                                        <div className="max-h-20 overflow-y-auto text-[8px] font-black text-rose-700 dark:text-white uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full dark:[&::-webkit-scrollbar-track]:bg-slate-800/50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
-                                                            {task?.Remarks || "N/A"}
+                                        // Progress SVG logic
+                                        const radius = 6;
+                                        const circumference = 2 * Math.PI * radius;
+                                        const strokeDashoffset = isCompleted ? 0 : circumference - ((task.ProgressPercentage || 0) / 100) * circumference;
+
+                                        return (
+                                            <div className="bg-white" key={task?.TaskID}>
+                                                <div
+                                                    className={cn(
+                                                        "group relative flex flex-col bg-white dark:bg-[#292929] border rounded-md shadow-sm p-4 min-h-[140px] transition-all",
+                                                        isRejected
+                                                            ? "border-rose-300 dark:border-rose-900/50 bg-rose-50/30 dark:bg-[#3f2a2e]/40 hover:border-rose-400 dark:hover:border-rose-700/80"
+                                                            : "border-slate-200 dark:border-[#3b3b3b] hover:border-indigo-500/50"
+                                                    )}
+                                                >
+                                                    {/* Actions overlay (appears on hover) */}
+                                                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 dark:bg-[#292929]/90 backdrop-blur-sm px-1 py-0.5 rounded-md shadow-sm z-10 border border-slate-100 dark:border-slate-700">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingTask(task);
+                                                                setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
+                                                                setIsModalOpen(true);
+                                                            }}
+                                                            className="p-1.5 text-indigo-500 cursor-pointer rounded flex items-center gap-1.5"
+                                                            title="View Task"
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
+                                                    </div>
+
+                                                    {/* Header: Project Name & More Icon */}
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <span className="text-[11px] font-semibold text-indigo-600 dark:text-[#8378f4] uppercase tracking-wide truncate pr-4">
+                                                            {task.ProjectName}
+                                                        </span>
+                                                        <MoreHorizontal size={16} className="text-slate-400 dark:text-[#a19f9d] opacity-100 group-hover:opacity-0 transition-opacity shrink-0" />
+                                                    </div>
+
+                                                    {/* Main Body: Checkbox & Title */}
+                                                    <div className="flex items-start gap-3 mb-2 flex-grow">
+                                                        <div className="mt-0.5 shrink-0">
+                                                            {isCompleted ? (
+                                                                <div className="bg-emerald-600 dark:bg-[#7b83eb] rounded-full w-[22px] h-[22px] flex items-center justify-center">
+                                                                    <CheckCheck size={14} className="text-white dark:text-[#292929] stroke-[3]" />
+                                                                </div>
+                                                            ) : (
+                                                                <button className="m-0 p-0 bg-transparent" onClick={() => handleCompleteTask(task)}>{isCompletingTask == task?.TaskID ? <Loader2 className="text-slate-400 w-6 h-6 animate-spin cursor-progress" /> : task?.StatusID == 3 ? <CheckCircle2 className='h-6 w-6 text-emerald-500 m-0' /> : <Circle className='h-6 w-6 text-slate-500 m-0 cursor-pointer' />}</button>
+                                                            )}
                                                         </div>
-                                                    </div> : ""
-                                                    }
-                                                </td>
-                                                <td className="px-6 py-4 text-start">
-                                                    <Button
-                                                        variant="ghost" size="sm"
-                                                        onClick={() => {
-                                                            setEditingTask(task);
-                                                            setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
-                                                            setIsModalOpen(true);
-                                                        }}
-                                                        className="px-2 py-4.5 rounded-full cursor-pointer text-[9px] font-black uppercase tracking-widest bg-indigo-400 text-white/80 hover:text-white/90 border border-indigo-100 hover:bg-indigo-500 dark:border-indigo-900/30 dark:hover:bg-indigo-900/20"
-                                                    >
-                                                        <PenBoxIcon />
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        )) : (
-                                            <tr>
-                                                <td colSpan={7} className="py-20 text-center">
-                                                    <Inbox size={40} className="mx-auto text-slate-200 mb-3" />
-                                                    <p className="text-slate-400 font-bold italic uppercase tracking-widest text-xs">No tasks found.</p>
-                                                </td>
-                                            </tr>
-                                        )}
-                                </tbody>
-                            </table>
+                                                        <div className="flex flex-col">
+                                                            <span title="Task Title" className={cn(
+                                                                "text-[15px] leading-snug break-words font-medium",
+                                                                isCompleted
+                                                                    ? "line-through text-slate-500 dark:text-[#a19f9d]"
+                                                                    : "text-slate-900 dark:text-[#f5f5f5]"
+                                                            )}>
+                                                                {task.Title}
+                                                            </span>
+                                                            {task.SubTitle && (
+                                                                <span title="Task Module" className="text-[10px] text-slate-400 dark:text-[#a19f9d] font-medium mt-1 uppercase tracking-wider">
+                                                                    {task.SubTitle}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Tags: Priority & Status */}
+                                                    <div className="flex flex-wrap gap-2 ml-8 mb-4">
+                                                        <span title="Current Stage of Task" className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>
+                                                            {task?.StatusID == 1 ? "New Task" : task?.StatusID == 2 ? "In Progress" : task?.StatusID == 3 ? "Review Pending" : task?.StatusID == 4 ? "Approved by Lead" : task?.StatusName}
+                                                        </span>
+                                                        <span title="Task Urgency" className={cn(
+                                                            "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border",
+                                                            task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30 dark:text-rose-400' :
+                                                                task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400' :
+                                                                    'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
+                                                        )}>
+                                                            {task.PriorityName}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Rejection Remarks Box */}
+                                                    {(isRejected && task?.Remarks) ? (
+                                                        <div className="ml-8 mb-4 bg-rose-50/80 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-lg p-2.5 flex items-start gap-2">
+                                                            <AlertCircle size={14} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                                            <div className="max-h-16 overflow-y-auto text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-rose-200 dark:[&::-webkit-scrollbar-thumb]:bg-rose-800 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
+                                                                {task.Remarks}
+                                                            </div>
+                                                        </div>
+                                                    ) : <div title="Task Description" className="ml-8 mb-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-lg p-2.5 flex items-start gap-2">
+                                                        <BookA size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                                                        <div className="max-h-16 overflow-y-auto text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-indigo-200 dark:[&::-webkit-scrollbar-thumb]:bg-indigo-800 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
+                                                            {task?.Description || "Not Given!"}
+                                                        </div>
+                                                    </div>}
+
+                                                    {/* Progress Icon */}
+                                                    {!isCompleted && task.ProgressPercentage > 0 && (
+                                                        <div className="ml-8 mb-3 flex items-center gap-2">
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" className="transform -rotate-90">
+                                                                <circle cx="8" cy="8" r="6" fill="transparent" stroke="currentColor" strokeWidth="2" className="text-slate-200 dark:text-[#424242]" />
+                                                                <circle cx="8" cy="8" r="6" fill="transparent" stroke="#3b82f6" strokeWidth="2" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-500" />
+                                                            </svg>
+                                                            <span className="text-[10px] font-bold text-blue-500 dark:text-[#7b83eb]">{task.ProgressPercentage}%</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Footer: Date & Assigner */}
+                                                    <div className="flex justify-between items-end mt-auto pt-2 ml-8 border-t border-slate-100 dark:border-[#3b3b3b] min-h-[32px]">
+                                                        {/* Date Badge */}
+                                                        <div className={cn(
+                                                            "text-[11px] px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm",
+                                                            isCompleted ? "bg-slate-100 text-slate-500 dark:bg-[#3b3b3b] dark:text-[#a19f9d]" : "bg-rose-600 dark:bg-[#c93b51] text-white"
+                                                        )}>
+                                                            <CalendarDays size={13} strokeWidth={2.5} />
+                                                            <span className="font-medium pt-px">{formatDate(task.Deadline)}</span>
+                                                        </div>
+
+                                                        {/* Assigner */}
+                                                        <div className="flex items-center gap-1.5" title={`Assigned by: ${assignerName}`}>
+                                                            <span className="text-[9px] font-bold text-slate-400 dark:text-[#a19f9d] uppercase tracking-widest">By</span>
+                                                            <div className="w-[24px] h-[24px] rounded-full bg-indigo-600 dark:bg-[#5850c4] flex items-center justify-center shadow-sm">
+                                                                <span className="text-[10px] font-bold text-white">{initials}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="py-20 text-center flex flex-col items-center justify-center">
+                                    <Inbox size={50} className="text-slate-300 dark:text-slate-700 mb-4" />
+                                    <p className="text-slate-400 dark:text-slate-500 font-bold italic uppercase tracking-widest text-xs">No tasks found.</p>
+                                </div>
+                            )}
                         </div>
+
                         {/* Pagination */}
-                        <div className="flex items-center justify-between border-t border-slate-100 p-6 dark:border-slate-800">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Showing {paginatedTasks.length} of {filteredTasks.length} tasks</p>
+                        <div className="flex items-center justify-between border-t border-slate-200 dark:border-[#3b3b3b] pt-4 mt-auto">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                Showing {paginatedTasks?.length || 0} of {filteredTasks?.length || 0} tasks
+                            </p>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl"><ChevronLeft size={16} /></Button>
-                                <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl"><ChevronRight size={16} /></Button>
+                                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-slate-200 dark:border-[#3b3b3b] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                    <ChevronLeft size={16} />
+                                </Button>
+                                <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-slate-200 dark:border-[#3b3b3b] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                    <ChevronRight size={16} />
+                                </Button>
                             </div>
                         </div>
                     </motion.div>
@@ -1030,83 +1174,181 @@ export default function TaskManagementPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsModalOpen(false)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm"
                         />
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[2.5rem] bg-white flex flex-col shadow-2xl dark:bg-slate-900"
+                            className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-[2rem] bg-white flex flex-col shadow-2xl dark:bg-[#1e1e1e] border border-slate-200 dark:border-slate-800"
                         >
                             {/* Modal Header */}
-                            <div className="p-8 pb-4 flex items-center justify-between shrink-0">
-                                <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
-                                    {currentUser?.role_id === 3 ? 'Update Progress' : (editingTask ? 'Edit Task' : 'Add New Task')}
-                                </h2>
-                                <Button variant="ghost" size="icon" className="rounded-2xl h-10 w-10 hover:bg-slate-100" onClick={() => setIsModalOpen(false)}>
-                                    <X size={20} />
+                            <div className="p-6 md:p-8 pb-4 flex items-center justify-between shrink-0 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-[#1e1e1e]">
+                                <div className="flex flex-col">
+                                    <h2 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
+                                        {currentUser?.role_id === 3 ? 'Task Details & Progress' : (editingTask ? 'Edit Task' : 'Add New Task')}
+                                    </h2>
+                                    {currentUser?.role_id === 3 && editingTask?.SubTitle && (
+                                        <span className="text-xs font-bold text-indigo-500 mt-1 uppercase tracking-widest">{editingTask.SubTitle}</span>
+                                    )}
+                                </div>
+                                <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-200 dark:hover:bg-slate-800 bg-slate-100 dark:bg-slate-800/50 transition-colors" onClick={() => setIsModalOpen(false)}>
+                                    <X size={18} className="text-slate-600 dark:text-slate-400" />
                                 </Button>
                             </div>
 
                             {/* Scrollable Modal Content */}
-                            <div ref={modalContentRef} className="flex-1 overflow-y-auto p-8 pt-2 scrollbar-hide">
+                            <div ref={modalContentRef} className="flex-1 overflow-y-auto p-6 md:p-8 pt-6 scrollbar-hide bg-white dark:bg-[#1e1e1e]">
                                 {currentUser?.role_id === 3 ? (
-                                    /* Developer-only: Progress Update View */
-                                    <div className="space-y-8 pb-4">
-                                        {/* Task Info */}
-                                        <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 p-5 space-y-3">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Task</p>
-                                            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">{editingTask?.Title || editingTask?.title}</h3>
-                                            <p className="text-xs text-slate-500">{editingTask?.Description || editingTask?.description}</p>
-                                            <div className="flex flex-wrap gap-3 pt-2">
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-wider">
-                                                    <Activity size={10} /> {editingTask?.StatusName || editingTask?.status}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider">
-                                                    <Calendar size={10} /> Due: {formatDate(editingTask?.Deadline || editingTask?.deadline)}
-                                                </span>
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider">
-                                                    {editingTask?.ProjectName}
-                                                </span>
+                                    /* Developer-only: Detailed Task View & Progress Update */
+                                    <div className="space-y-6 pb-4">
+
+                                        {/* Rejection Alert Banner */}
+                                        {editingTask?.IsRejected === 1 && (
+                                            <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-4 flex gap-4 items-start shadow-sm">
+                                                <div className="bg-rose-100 dark:bg-rose-900/50 p-2 rounded-xl shrink-0 mt-0.5">
+                                                    <AlertTriangle size={20} className="text-rose-600 dark:text-rose-400" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <h4 className="text-[13px] font-black uppercase tracking-widest text-rose-700 dark:text-rose-400 mb-1">Task Needs Revision</h4>
+                                                    <p className="text-sm font-medium text-rose-600 dark:text-rose-300 leading-relaxed">
+                                                        <span className="font-bold">Remarks:</span> {editingTask?.Remarks || "No remarks provided."}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Description Section */}
+                                        <div className="rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80 p-5 md:p-6 shadow-sm">
+                                            <h3 className="text-lg md:text-xl font-black text-slate-900 dark:text-white leading-tight mb-3">
+                                                {editingTask?.Title || editingTask?.title}
+                                            </h3>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                                                {editingTask?.Description || editingTask?.description || "No description provided."}
+                                            </p>
+                                        </div>
+
+                                        {/* Metadata Bento Grid */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {/* Project */}
+                                            <div className="flex flex-col p-4 rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80">
+                                                <FolderOpen size={16} className="text-indigo-500 mb-2" />
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Project</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{editingTask?.ProjectName || '-'}</span>
+                                            </div>
+
+                                            {/* Task Type */}
+                                            <div className="flex flex-col p-4 rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80">
+                                                <Tag size={16} className="text-blue-500 mb-2" />
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Task Type</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{editingTask?.TypeName || '-'}</span>
+                                            </div>
+
+                                            {/* Priority */}
+                                            <div className="flex flex-col p-4 rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80">
+                                                <Flag size={16} className={cn("mb-2",
+                                                    editingTask?.PriorityName === 'Critical' ? 'text-rose-500' :
+                                                        editingTask?.PriorityName === 'High' ? 'text-amber-500' : 'text-emerald-500')}
+                                                />
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Priority</span>
+                                                <span className={cn("text-sm font-bold truncate",
+                                                    editingTask?.PriorityName === 'Critical' ? 'text-rose-600 dark:text-rose-400' :
+                                                        editingTask?.PriorityName === 'High' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                                                )}>{editingTask?.PriorityName || '-'}</span>
+                                            </div>
+
+                                            {/* Status */}
+                                            <div className="flex flex-col p-4 rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80">
+                                                <Activity size={16} className="text-indigo-500 mb-2" />
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Current Status</span>
+                                                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate">{editingTask?.StatusName || '-'}</span>
                                             </div>
                                         </div>
 
-                                        {/* Progress Slider */}
-                                        <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {/* Assignments Block */}
+                                            <div className="flex flex-col justify-center p-5 rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Assignment Flow</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Assigned By</span>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-black">
+                                                                {editingTask?.AssignedByUserFullName?.charAt(0) || 'U'}
+                                                            </div>
+                                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]">{editingTask?.AssignedByUserFullName}</span>
+                                                        </div>
+                                                    </div>
+                                                    <ArrowRight size={14} className="text-slate-300 dark:text-slate-600 mt-3" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Assigned To</span>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xs font-black">
+                                                                {editingTask?.AssignedToUserFullName?.charAt(0) || 'U'}
+                                                            </div>
+                                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]">{editingTask?.AssignedToUserFullName}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Timeline Block */}
+                                            <div className="flex flex-col justify-center p-5 rounded-2xl bg-slate-50 dark:bg-[#252525] border border-slate-100 dark:border-slate-800/80">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Timeline</span>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="bg-rose-100 dark:bg-rose-900/30 p-2.5 rounded-xl shrink-0">
+                                                        <Clock size={18} className="text-rose-600 dark:text-rose-400" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Deadline Date</span>
+                                                        <span className="text-sm font-black text-slate-800 dark:text-slate-200 mt-0.5">{formatDate(editingTask?.Deadline)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Update Progress Section */}
+                                        {editingTask?.StatusID == 2 ? <div className="mt-4 pt-6 border-t border-slate-100 dark:border-slate-800/80 space-y-5">
                                             <div className="flex justify-between items-center">
-                                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Task Progress</label>
-                                                <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+                                                <label className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 dark:text-white">Update Progress</label>
+                                                <span className="text-lg font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-4 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm">
                                                     {formData.progressPercentage}%
                                                 </span>
                                             </div>
-                                            <div className="relative h-3 w-full">
-                                                <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(79,70,229,0.3)]" style={{ width: `${formData.progressPercentage}%` }} />
+                                            <div className="relative h-4 w-full px-2">
+                                                <div className="absolute inset-y-0 left-2 right-2 bg-slate-100 dark:bg-[#2a2a2a] rounded-full" />
+                                                <div className="absolute inset-y-0 left-2 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(79,70,229,0.4)]" style={{ width: `calc(${formData.progressPercentage}% - ${formData.progressPercentage === 100 ? 0 : 4}px)` }} />
                                                 <input
                                                     type="range" min="0" max="100"
-                                                    className="absolute inset-0 w-full h-full appearance-none bg-slate-100 dark:bg-slate-700 rounded-full cursor-pointer focus:outline-none"
+                                                    className="absolute inset-0 w-full h-full appearance-none bg-transparent rounded-full cursor-pointer focus:outline-none z-10"
                                                     value={formData.progressPercentage}
                                                     onChange={e => setFormData({ ...formData, progressPercentage: Number(e.target.value) })}
-                                                    style={{ WebkitAppearance: 'none', background: 'transparent' }}
+                                                    style={{ WebkitAppearance: 'none' }}
                                                 />
                                             </div>
-                                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400 px-2">
+                                                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span className="text-indigo-500">100%</span>
                                             </div>
-                                        </div>
 
-                                        <div className="pt-4 flex flex-col gap-3">
-                                            <Button
-                                                onClick={() => handlePatchProgress(editingTask?.TaskID || editingTask?.id, formData.progressPercentage)}
-                                                disabled={isSubmitting}
-                                                className="h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30"
-                                            >
-                                                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Progress</>}
-                                            </Button>
-                                            <Button variant="ghost" className="h-11 rounded-2xl font-bold text-slate-500" onClick={() => { setIsModalOpen(false); setFormData({ ...formData, progressPercentage: 0 }) }}>Cancel</Button>
-                                        </div>
+                                            {/* Actions */}
+                                            <div className="pt-4 flex justify-end gap-3">
+                                                <Button variant="ghost" className="h-12 px-6 rounded-2xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => { setIsModalOpen(false); setFormData({ ...formData, progressPercentage: 0 }) }}>
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handlePatchProgress(editingTask?.TaskID || editingTask?.id, formData.progressPercentage)}
+                                                    disabled={isSubmitting}
+                                                    className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98]"
+                                                >
+                                                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Progress</>}
+                                                </Button>
+                                            </div>
+                                        </div> : null}
                                     </div>
                                 ) : (
+                                    /* ADMIN / LEAD FORM SECTION REMAINS EXACTLY THE SAME */
                                     <form onSubmit={handleSubmitTask} className="space-y-8 pb-4">
+                                        {/* ... Your Existing Form Code here ... */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className={cn("text-[10px] font-black uppercase tracking-[0.2em] ml-1 transition-colors", !formData.projectId && validationTrigger > 0 ? "text-rose-600" : "text-slate-400")}>Project</label>
@@ -1265,12 +1507,12 @@ export default function TaskManagementPage() {
 
                             {/* Modal Footer — only for team leads / admins */}
                             {currentUser?.role_id !== 3 && (
-                                <div className="p-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-                                    <Button variant="ghost" type="button" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-50" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                                <div className="p-6 md:p-8 pt-4 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-[#1e1e1e] flex justify-end gap-3 shrink-0">
+                                    <Button variant="ghost" type="button" className="rounded-2xl h-12 px-8 font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                                     <Button
                                         onClick={handleSubmitTask}
                                         disabled={isSubmitting}
-                                        className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 active:scale-[0.98] transition-all"
+                                        className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-indigo-600/20 active:scale-[0.98] transition-all"
                                     >
                                         {isSubmitting ? (
                                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>

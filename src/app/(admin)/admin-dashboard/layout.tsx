@@ -3,34 +3,33 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-    LayoutDashboard, Globe, Briefcase, PieChart,
-    ShieldAlert, Settings, ChevronLeft, Search, Bell,
-    Sun, Moon, Menu, Gavel, Landmark,
-    LogOut
+    LayoutDashboard, Users, FolderKanban, ListChecks,
+    BarChartHorizontal, Settings, ChevronLeft, Search, Bell,
+    Sun, Moon, Menu, ShieldCheck, Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
-import { useStore } from '@/store/useStore';
 import Sidebar from '@/components/CommonSidebar';
+import { useStore } from '@/store/useStore';
 import Navbar from '@/components/Navbar';
 
-const adminNavItems = [
-    { icon: LayoutDashboard, label: 'Global Overview', href: '/admin-dashboard' },
-    { icon: Globe, label: 'Project Portfolio', href: '/portfolio' },
-    { icon: Landmark, label: 'Financials & Burn', href: '/financials' },
-    { icon: PieChart, label: 'Resource Analytics', href: '/analytics' },
-    { icon: ShieldAlert, label: 'Risk & Compliance', href: '/governance' },
-    { icon: Settings, label: 'System Settings', href: '/settings' },
+const leadNavItems = [
+    { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
+    { icon: Users, label: 'Team Management', href: '/team' },
+    { icon: FolderKanban, label: 'Project Oversight', href: '/projects' },
+    { icon: ListChecks, label: 'Create & Manage Task', href: '/create-manage-task' },
+    { icon: BarChartHorizontal, label: 'Performance', href: '/performance' },
+    { icon: Settings, label: 'Governance', href: '/settings' },
 ];
 
-export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
+export default function LeadDashboardLayout({ children }: { children: React.ReactNode }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const pathname = usePathname();
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
-    const { currentUser, logout, isDarkMode, toggleDarkMode } = useStore();
+    const { currentUser, logout } = useStore();
     const router = useRouter();
 
     useEffect(() => setMounted(true), []);
@@ -41,7 +40,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+            {/* Mobile Overlay */}
             {isMobileOpen && (
                 <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileOpen(false)} />
             )}
@@ -50,13 +50,21 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
             <Sidebar isMobileOpen={isMobileOpen} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} pathname={pathname} currentUser={currentUser} handleLogout={handleLogout} />
 
 
+            {/* Content Wrapper */}
             <div className="flex flex-1 flex-col h-full overflow-hidden">
 
                 {/* Navbar */}
                 <Navbar setIsMobileOpen={setIsMobileOpen} />
 
-                <main className="flex-1 overflow-y-auto p-8 bg-slate-50/30 dark:bg-slate-950/50 custom-scrollbar">
-                    {children}
+                <main className="flex-1 overflow-y-auto p-8 custom-scrollbar z-0 relative h-full">
+                    <div
+                        className="absolute inset-0 opacity-[0.6] pointer-events-none bg-fixed"
+                        style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dimension.png")' }}
+                    />
+
+                    <div className='absolute inset-0 overflow-y-auto p-8 custom-scrollbar z-10'>
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

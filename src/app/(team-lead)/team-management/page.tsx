@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Search, UserPlus, UserMinus,
   FolderKanban, ArrowRight, ShieldCheck,
-  Briefcase, Activity, ChevronRight, Target
+  Briefcase, Activity, ChevronRight, Target,
+  CheckCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -113,7 +114,7 @@ const DeveloperCard = ({ dev, activeProjects, selectedProjectId, onAssign }: any
                 animate={{ scale: 1 }}
                 className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 border-2 border-white dark:border-slate-950"
               >
-                <ShieldCheck size={12} className="text-white" />
+                <CheckCheck size={12} className="text-white" />
               </motion.div>
             )}
           </div>
@@ -352,7 +353,7 @@ export default function TeamManagement() {
                       key={project.ProjectID}
                       onClick={() => setSelectedProjectId(project.ProjectID.toString())}
                       className={cn(
-                        "w-full text-left p-5 rounded-[2rem] border transition-all duration-300",
+                        "w-full text-left p-5 rounded-[2rem] border transition-all duration-300 cursor-pointer",
                         selectedProjectId === project.ProjectID.toString()
                           ? "bg-white border-indigo-600 shadow-xl shadow-indigo-500/10 ring-1 ring-indigo-600 dark:bg-slate-900"
                           : "bg-white border-slate-100 hover:border-indigo-200 dark:bg-slate-900/50 dark:border-slate-800"
@@ -431,7 +432,7 @@ export default function TeamManagement() {
                 )}
               </motion.div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center rounded-[2.5rem] border-2 border-dashed border-slate-200 p-20 text-center dark:border-slate-800">
+              <div className="h-full flex flex-col items-center justify-center rounded-[2.5rem] border-2 border-dashed border-slate-200 p-20 text-center bg-slate-100/50 dark:border-slate-800">
                 <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-6 dark:bg-slate-900">
                   <Briefcase className="text-slate-300" size={32} />
                 </div>

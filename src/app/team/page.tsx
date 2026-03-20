@@ -234,13 +234,13 @@ export default function TeamPage() {
                                     <Button
                                         variant="outline"
                                         onClick={() => setSelectedUser(user)}
-                                        className="flex-1 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest border-slate-100 hover:bg-slate-50"
+                                        className="flex-1 h-12 rounded-2xl text-[10px] text-purple-500 font-extrabold uppercase tracking-widest border-purple-600/30 bg-purple-50 hover:bg-purple-600 hover:text-white cursor-pointer"
                                     >
                                         Profile Info
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        className="h-12 w-12 p-0 rounded-2xl text-rose-500 border-slate-100 hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all"
+                                        className="h-12 w-12 cursor-pointer p-0 rounded-2xl text-rose-500 border-slate-100 hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all"
                                         onClick={() => {
                                             setUserToDelete(user);
                                             setIsDeleteModalOpen(true);

@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { UserRole } from '@/types';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 // --- Theme Colors ---
 const COLORS = {
@@ -71,10 +72,11 @@ export default function ProfessionalDashboard() {
 
     const [projectDashboardData, setProjectDashboardData] = useState<any>(null);
 
-    useEffect(() =>{
+    useEffect(() => {
         callGetAPIWithToken('lead/dashboard/team-member-graph').then((res) => {
             setProjectDashboardData(res.data);
-        }).catch((err) => {            console.error("Dashboard Data Fetch Error:", err);
+        }).catch((err) => {
+            console.error("Dashboard Data Fetch Error:", err);
         })
     }, []);
     useEffect(() => {
@@ -156,7 +158,7 @@ export default function ProfessionalDashboard() {
         projects: 0
     });
 
-   useEffect(() =>{
+    useEffect(() => {
         callGetAPIWithToken('lead/dashboard/count').then((res) => {
             setTaskSummary({
                 pending: Number(res.data.PendingTasks),
@@ -167,7 +169,8 @@ export default function ProfessionalDashboard() {
                 total: Number(res.data.TotalTasks),
                 projects: Number(res.data.ActiveProjects)
             });
-        }).catch((err) => {            console.error("Dashboard Data Fetch Error:", err);
+        }).catch((err) => {
+            console.error("Dashboard Data Fetch Error:", err);
         })
     }, []);
 
@@ -176,12 +179,12 @@ export default function ProfessionalDashboard() {
     return (
         <motion.div
             initial="hidden" animate="visible" variants={containerVariants}
-            className="max-w-[1600px] mx-auto p-6 space-y-8 bg-slate-50/50 dark:bg-transparent min-h-screen"
+            className="max-w-[1600px] mx-auto p-6 space-y-8  dark:bg-transparent min-h-screen"
         >
             {/* Header section with Requirement 9: Total Active Project Days */}
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter uppercase">Management <span className="text-indigo-600">Overview</span></h1>
+                    <h1 className="text-4xl font-black tracking-tighter uppercase">Team Lead Management <span className="text-indigo-600">Overview</span></h1>
                     <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-1 flex items-center gap-2">
                         Tracking {data?.projects?.length} Projects
                     </p>
@@ -202,17 +205,19 @@ export default function ProfessionalDashboard() {
             {/* Second Row: 3. Resources/Devs & 4. Task Summary */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* 4. Task Summary Total */}
-                <motion.div variants={itemVariants} className="lg:col-span-4 grid grid-cols-4 gap-4">
-                    <SummaryCard label="Pending" value={taskSummary.pending} color="bg-rose-500" icon={Clock} />
-                    <SummaryCard label="Active" value={taskSummary.inProgress} color="bg-blue-500" icon={Activity} />
-                    <SummaryCard label="In Review" value={taskSummary.review} color="bg-amber-500" icon={ShieldCheck} />
-                    <SummaryCard label="Finished" value={taskSummary.completed} color="bg-emerald-500" icon={CheckCircle2} />
+                <motion.div variants={itemVariants} className="lg:col-span-4 grid grid-cols-6 gap-4">
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("0")}`} label="Total Tasks" value={taskSummary.total} color="text-rose-500" bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700" icon={Clock} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("2")}`} label="Task Submmision Pending" value={taskSummary.pending} color="text-rose-500" bgColor="bg-gradient-to-br from-amber-600 via-orange-500 to-amber-700" icon={Clock} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("3")}`} label="Waiting for Your Review" value={taskSummary.review} color="text-amber-500" bgColor="bg-gradient-to-br from-cyan-600 via-teal-500 to-cyan-700" icon={ShieldCheck} />
+                    <SummaryCard link={`/create-manage-task?__x=${btoa("1")}&__st=${btoa("2")}`} label="Rejected Tasks by You" value={taskSummary.rejected} color="text-rose-500" bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700" icon={Clock} />
+                    <SummaryCard link="/project-oversight" label="Active Projects" value={taskSummary.inProgress} color="text-blue-500" bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-700" icon={Activity} />
+                    <SummaryCard link={`/create-manage-task?__st=${btoa("4")}`} label="Task Approved by You" value={taskSummary.completed} color="text-emerald-500" bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700" icon={CheckCircle2} />
                 </motion.div>
 
                 {/* 3. Resources (Developers) per Project */}
                 <motion.div variants={itemVariants} className="lg:col-span-4 bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h3 className="font-black uppercase tracking-tight mb-6 flex items-center gap-2">
-                        <Users className="h-5 w-5 text-indigo-500" /> Team Member Distribution
+                        <Users className="h-5 w-5 text-indigo-500" /> Project-wise Manpower Distribution
                     </h3>
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -264,7 +269,7 @@ export default function ProfessionalDashboard() {
 
                 {/* 2. All Projects Donut */}
                 <motion.div variants={itemVariants} className="bg-white dark:bg-slate-950 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <h3 className="font-black uppercase tracking-tight mb-6">Status Breakdown</h3>
+                    <h3 className="font-black uppercase tracking-tight mb-6">Project-wise Status Breakdown</h3>
                     <div className="h-[250px] relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -421,14 +426,43 @@ export default function ProfessionalDashboard() {
 }
 
 // Sub-component for Task Summary Cards
-function SummaryCard({ label, value, color, icon: Icon }: any) {
+function SummaryCard({ label, value, color, bgColor, icon: Icon, link }: any) {
     return (
-        <div className="bg-white dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg", color)}>
-                <Icon className="h-5 w-5" />
+        <Link
+            href={link}
+            className={cn(
+                "relative hover:translate-y-1.5 hover:shadow-2xl cursor-pointer overflow-hidden p-6 rounded-[2rem] border shadow-sm transition-all duration-600",
+                "border-slate-200 dark:border-slate-800",
+                bgColor || "bg-white dark:bg-slate-950"
+            )}
+        >
+            {/* 🔹 Pattern Overlay */}
+            <div
+                className="absolute inset-0 opacity-[0.9] pointer-events-none"
+                style={{
+                    backgroundImage:
+                        'url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")',
+                }}
+            />
+
+            {/* 🔹 Content */}
+            <div className="relative z-10">
+                <div
+                    className={cn(
+                        "h-10 w-10 rounded-xl flex items-center justify-center bg-white/5 text-white border border-slate-100/40 backdrop-blur-2xl mb-4 shadow-lg"
+                    )}
+                >
+                    <Icon className="h-5 w-5" />
+                </div>
+
+                <p className="text-[10px] font-black uppercase text-slate-100 tracking-widest">
+                    {label}
+                </p>
+
+                <p className="text-3xl font-black mt-1 text-slate-200 dark:text-white">
+                    {value}
+                </p>
             </div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
-            <p className="text-3xl font-black mt-1">{value}</p>
-        </div>
+        </Link>
     );
 }
