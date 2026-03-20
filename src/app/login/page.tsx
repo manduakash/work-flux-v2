@@ -141,7 +141,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className="relative z-10 w-full max-w-[420px] px-6"
             >
-                <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-8 shadow-2xl backdrop-blur-xl dark:bg-slate-900/40">
+                <div className="overflow-hidden rounded-3xl border border-white/20 bg-slate-900/40 p-8 shadow-2xl backdrop-blur-xl">
 
                     {/* Header/Logo */}
                     <div className="mb-8 text-center">
@@ -247,7 +247,7 @@ export default function LoginPage() {
 
                 {/* Optional: Footer text */}
                 <p className="mt-8 text-center text-sm text-slate-400">
-                    Secure & end-to-end encrypted. <br />
+                    AES-256 enc. & end-to-end encrypted. <br />
                     &copy; {new Date().getFullYear()} Work-Flux
                 </p>
             </motion.div>

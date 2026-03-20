@@ -1,71 +1,155 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Radar, RadarChart, PolarGrid, PolarAngleAxis, LineChart, Line
+    LineChart, Line, ComposedChart, Legend, Scatter
 } from 'recharts';
 import {
-    Activity, Globe, ShieldCheck, AlertCircle, TrendingUp, Clock,
-    Zap, Target, PieChart as PieChartIcon, ArrowUpRight, ArrowDownRight,
-    Loader2, Sparkles, Binary, ChevronRight, FolderKanban,
-    DollarSign, Briefcase, Award, Users, ShieldAlert, Gavel
+    Activity, Globe, ShieldCheck, TrendingUp,
+    Target, Loader2, Sparkles, ChevronRight,
+    DollarSign, Briefcase, Users, ShieldAlert,
+    CheckCircle2, AlertCircle, Clock, PauseCircle,
+    UserCheck, HardHat, CalendarDays
 } from 'lucide-react';
 
 import { useStore } from '@/store/useStore';
-import { cn, formatDate } from '@/lib/utils';
-import { UserRole } from '@/types';
+import { cn } from '@/lib/utils';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 import { getCookie } from '@/utils/cookies';
 import { Button } from '@/components/ui/button';
 
-// --- Variants ---
+// --- Theme & Styles ---
+const COLORS = {
+    assigned: '#94a3b8',   // slate-400
+    inProgress: '#3b82f6', // blue-500
+    completed: '#10b981',  // emerald-500
+    onHold: '#f59e0b',     // amber-500
+    danger: '#ef4444',     // red-500
+    primary: '#6366f1',    // indigo-500
+};
 
+// SVG Patterns for Action Cards
+const patternDots = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.15' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='2'/%3E%3C/g%3E%3C/svg%3E")`;
+const patternLines = `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`;
+const patternGrid = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0L0 20' stroke='%23ffffff' stroke-width='1' stroke-opacity='0.15' fill='none'/%3E%3C/svg%3E")`;
+const diamonUpholstery = `url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")`;
+
+// --- Variants ---
 const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
 };
 
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
 };
 
-const StatCard = ({ title, value, icon: Icon, trend, trendValue, color, description }: any) => (
-    <motion.div
-        
-        className="group relative overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 dark:border-slate-800 dark:bg-slate-950/50 backdrop-blur-xl"
-    >
-        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-slate-50 opacity-0 transition-opacity group-hover:opacity-100 dark:bg-slate-800/50" />
-        <div className="relative flex items-center justify-between">
-            <div className={cn("flex h-14 w-14 items-center justify-center rounded-[1.25rem] shadow-inner transition-transform group-hover:scale-110 group-hover:rotate-3", color)}>
-                <Icon className="h-7 w-7" />
+// --- Custom Components ---
+
+const ActionCard = ({ title, subtitle, value, icon: Icon, gradient, pattern }: any) => (
+    <motion.div variants={itemVariants} className={cn("relative overflow-hidden rounded-[2rem] p-6 text-white shadow-xl transition-transform hover:scale-[1.02]", gradient)}>
+        <div className="absolute inset-0 opacity-80 mix-blend-hard-light " style={{ backgroundImage: pattern }} />
+        <div className="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative z-10 flex justify-between items-start">
+            <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{title}</p>
+                <h3 className="mt-2 text-4xl font-black tracking-tighter">{value}</h3>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-white/70">{subtitle}</p>
             </div>
-            {trend && (
-                <div className={cn(
-                    "flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest",
-                    trend === 'up' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30" : "bg-rose-50 text-rose-600 dark:bg-rose-950/30"
-                )}>
-                    {trend === 'up' ? <ArrowUpRight className="mr-1 h-3.5 w-3.5" /> : <ArrowDownRight className="mr-1 h-3.5 w-3.5" />}
-                    {trendValue}%
-                </div>
-            )}
-        </div>
-        <div className="mt-8">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
-            <h3 className="mt-2 text-4xl font-black tracking-tight text-slate-900 dark:text-white uppercase leading-none">{value}</h3>
-            {description && <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">{description}</p>}
+            <div className="rounded-2xl bg-white/20 p-3 backdrop-blur-md shadow-inner border border-white/10">
+                <Icon className="h-6 w-6 text-white" />
+            </div>
         </div>
     </motion.div>
 );
+
+const ChartWrapper = ({ title, subtitle, children }: any) => (
+    <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm flex flex-col">
+        <div className="mb-6">
+            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{title}</h3>
+            {subtitle && <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{subtitle}</p>}
+        </div>
+        <div className="flex-1 w-full min-h-[300px]">
+            {children}
+        </div>
+    </motion.div>
+);
+
+// --- Mock Data Generators (Replace with real API data) ---
+const mockProjectTaskData = [
+    { name: 'Alpha Redesign', assigned: 15, inProgress: 45, completed: 120 },
+    { name: 'Beta API', assigned: 30, inProgress: 20, completed: 80 },
+    { name: 'Omega Security', assigned: 5, inProgress: 60, completed: 40 },
+    { name: 'Delta Mobile', assigned: 25, inProgress: 35, completed: 90 },
+    { name: 'Gamma Cloud', assigned: 10, inProgress: 15, completed: 150 },
+];
+
+const mockProjectManpower = [
+    { name: 'Alpha', devs: 12, leads: 2, QA: 4 },
+    { name: 'Beta', devs: 8, leads: 1, QA: 2 },
+    { name: 'Omega', devs: 15, leads: 3, QA: 5 },
+    { name: 'Delta', devs: 6, leads: 1, QA: 2 },
+    { name: 'Gamma', devs: 20, leads: 4, QA: 8 },
+];
+
+const mockDeveloperTasks = [
+    { name: 'Alex H.', assigned: 4, inProgress: 3, completed: 45 },
+    { name: 'Sarah J.', assigned: 2, inProgress: 5, completed: 38 },
+    { name: 'Mike T.', assigned: 8, inProgress: 2, completed: 29 },
+    { name: 'Emma W.', assigned: 1, inProgress: 6, completed: 52 },
+    { name: 'John D.', assigned: 5, inProgress: 4, completed: 31 },
+];
+
+const mockTeamLeadData = [
+    { name: 'David R.', projects: 4, progress: 85, manpower: 24 },
+    { name: 'Lisa M.', projects: 2, progress: 60, manpower: 12 },
+    { name: 'James K.', projects: 5, progress: 92, manpower: 35 },
+    { name: 'Nina S.', projects: 3, progress: 45, manpower: 18 },
+];
+
+const mockDeadlineCrossed = [
+    { name: 'Legacy Auth', daysCrossed: 14, progress: 85 },
+    { name: 'DB Migration', daysCrossed: 5, progress: 92 },
+    { name: 'UI Overhaul', daysCrossed: 22, progress: 60 },
+    { name: 'Payment Gateway', daysCrossed: 2, progress: 98 },
+];
+
+const mockProjectDays = [
+    { name: 'Alpha', days: 120 },
+    { name: 'Beta', days: 85 },
+    { name: 'Omega', days: 210 },
+    { name: 'Delta', days: 45 },
+    { name: 'Gamma', days: 160 },
+];
+
+// --- Custom Tooltip ---
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-slate-900/95 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
+                <p className="text-white font-black uppercase text-xs mb-2 tracking-widest">{label}</p>
+                {payload.map((entry: any, index: number) => (
+                    <div key={index} className="flex items-center gap-3 mb-1 text-sm">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                        <span className="text-slate-300 font-medium capitalize">{entry.name}:</span>
+                        <span className="text-white font-bold ml-auto">{entry.value}</span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
 
 export default function AdminDashboard() {
     const { currentUser: storeUser } = useStore();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
-    const [projects, setProjects] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -73,8 +157,8 @@ export default function AdminDashboard() {
                 setLoading(true);
                 const user = getCookie("user");
                 setProfile(user);
-                const projectsRes = await callGetAPIWithToken('projects/projects-by-user-id');
-                if (projectsRes.success) setProjects(projectsRes.data);
+                // Simulate API Call delay for demo purposes
+                await new Promise(resolve => setTimeout(resolve, 800));
             } catch (error) {
                 console.error("Admin Dashboard Sync Failed:", error);
             } finally {
@@ -86,22 +170,10 @@ export default function AdminDashboard() {
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
-        if (hour < 5) return "Surviving the Night";
         if (hour < 12) return "Good Morning";
         if (hour < 18) return "Good Afternoon";
         return "Good Evening";
     }, []);
-
-    const portfolioGrowth = useMemo(() => [
-        { month: 'Jan', value: 450000, projects: 12 },
-        { month: 'Feb', value: 520000, projects: 15 },
-        { month: 'Mar', value: 480000, projects: 14 },
-        { month: 'Apr', value: 610000, projects: 22 },
-        { month: 'May', value: 590000, projects: 20 },
-        { month: 'Jun', value: 750000, projects: 28 },
-    ], []);
-
-    const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
     if (loading) {
         return (
@@ -110,7 +182,7 @@ export default function AdminDashboard() {
                     <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
                     <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse text-indigo-400" />
                 </div>
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Loading Dashboard...</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Loading Intelligence...</p>
             </div>
         );
     }
@@ -120,191 +192,204 @@ export default function AdminDashboard() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            className="max-w-[1600px] mx-auto space-y-12 p-4 md:p-10"
+            className="max-w-[1600px] mx-auto space-y-10 p-4 md:p-8"
         >
             {/* Header Section */}
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-3">
                         <span className="h-px w-8 bg-indigo-600/30" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Admin Overview</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Management Dashboard</span>
                     </div>
-                    <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">{profile?.fullName?.split(' ')[0] || "Administrator"}</span>
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
+                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-500">{profile?.fullName?.split(' ')[0] || "Admin"}</span>
                     </h1>
-                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-indigo-500" />
-                        System Status: <span className="font-bold text-indigo-500 uppercase tracking-widest text-xs">Good</span> — Overseeing {projects.length} active projects.
-                    </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
-                    <Button variant="ghost" className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all">
-                        <ShieldCheck className="mr-3 h-4 w-4 text-indigo-500" />
-                        System Logs
-                    </Button>
-                    <Button className="h-14 rounded-3xl bg-indigo-600 px-8 font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                        <DollarSign className="mr-3 h-4 w-4 fill-white" />
-                        Budget Overview
+                <div className="flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 p-2 rounded-full border border-slate-200 dark:border-slate-800 backdrop-blur-md">
+                    <Button variant="ghost" className="h-10 rounded-full px-6 font-black uppercase tracking-widest text-[10px]">
+                        <Activity className="mr-2 h-4 w-4 text-emerald-500" /> Live Sync
                     </Button>
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                    title="Total Value"
-                    value="$12.4M"
-                    icon={DollarSign}
-                    trend="up"
-                    trendValue={18}
-                    color="bg-indigo-600 text-white shadow-xl shadow-indigo-600/20"
-                    description="Aggregate asset worth"
+            {/* ACTION CARDS (8 Cards) */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <ActionCard
+                    title="Total Projects" subtitle="All time tracked" value="142" icon={Briefcase}
+                    gradient="bg-gradient-to-br from-blue-600 to-indigo-800" pattern={diamonUpholstery}
                 />
-                <StatCard
-                    title="System Efficiency"
-                    value="94.2%"
-                    icon={Activity}
-                    trend="up"
-                    trendValue={2}
-                    color="bg-emerald-500 text-white shadow-xl shadow-emerald-500/20"
-                    description="System-wide throughput"
+                <ActionCard
+                    title="Active Projects" subtitle="Currently working" value="48" icon={Activity}
+                    gradient="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-900" pattern={diamonUpholstery}
                 />
-                <StatCard
-                    title="Active Projects"
-                    value={projects.length}
-                    icon={Briefcase}
-                    trend="up"
-                    trendValue={5}
-                    color="bg-slate-900 text-white shadow-xl shadow-slate-900/20"
-                    description="Active high-level workstreams"
+                <ActionCard
+                    title="Completed Projects" subtitle="Successfully delivered" value="81" icon={CheckCircle2}
+                    gradient="bg-gradient-to-tl from-blue-700 via-purple-600 to-purple-800" pattern={diamonUpholstery}
                 />
-                <StatCard
-                    title="Risk Level"
-                    value="Low"
-                    icon={ShieldCheck}
-                    color="bg-white text-emerald-500 border border-slate-200"
-                    description="Security check passed"
+                <ActionCard
+                    title="On-Hold Projects" subtitle="Awaiting resources/client" value="13" icon={PauseCircle}
+                    gradient="bg-gradient-to-br from-amber-600 via-yellow-600 to-orange-700" pattern={diamonUpholstery}
+                />
+                <ActionCard
+                    title="Total Manpower" subtitle="Devs, QA & Leads" value="264" icon={Users}
+                    gradient="bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700" pattern={diamonUpholstery}
+                />
+                <ActionCard
+                    title="Deadline Crossed" subtitle="Needs immediate attention" value="4" icon={ShieldAlert}
+                    gradient="bg-gradient-to-br from-red-500 via-rose-600 to-orange-700" pattern={diamonUpholstery}
+                />
+                <ActionCard
+                    title="Total Jr. Developers" subtitle="Across NexIntel & SVU" value="27" icon={Target}
+                    gradient="bg-gradient-to-bl from-purple-500 via-rose-400 to-rose-600" pattern={diamonUpholstery}
+                />
+                <ActionCard
+                    title="Total Sr. Developers" subtitle="Across NexIntel & SVU" value="9" icon={TrendingUp}
+                    gradient="bg-gradient-to-br from-teal-400 to-slate-800" pattern={diamonUpholstery}
                 />
             </div>
 
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* Portfolio Growth */}
-                <motion.div  className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-8">
-                        <TrendingUp className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
-                    </div>
-                    <div className="mb-10 relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Project Growth</h3>
-                        <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Aggregate growth and project expansion metrics</p>
-                    </div>
-                    <div className="h-[450px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={portfolioGrowth}>
-                                <defs>
-                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
-                                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '900' }} />
-                                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: '#0f172a', color: '#fff' }} />
-                                <Area type="monotone" dataKey="value" stroke="#6366f1" fill="url(#colorValue)" strokeWidth={4} />
-                                <Area type="step" dataKey="projects" stroke="#10b981" fill="transparent" strokeWidth={2} strokeDasharray="10 5" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </motion.div>
+            {/* CHARTS SECTION - ROW 1 */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {/* 1. Project-wise Tasks (Assigned, In-Progress, Completed) */}
+                <ChartWrapper title="Project Lifecycle Status" subtitle="Task distribution per active project">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={mockProjectTaskData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                            <Bar dataKey="completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 4, 4]} />
+                            <Bar dataKey="inProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
+                            <Bar dataKey="assigned" name="Assigned" stackId="a" fill={COLORS.assigned} radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
 
-                {/* Composition */}
-                <motion.div  className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Department Overview</h3>
-                    <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Team distribution by department</p>
-                    <div className="h-[300px] w-full relative">
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <p className="text-4xl font-black text-slate-900 dark:text-white leading-none">100%</p>
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aggregated</p>
-                        </div>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={[
-                                        { name: 'R&D', value: 40 },
-                                        { name: 'Core Ops', value: 25 },
-                                        { name: 'Security', value: 20 },
-                                        { name: 'Expansion', value: 15 }
-                                    ]}
-                                    innerRadius={85}
-                                    outerRadius={115}
-                                    paddingAngle={10}
-                                    dataKey="value"
-                                >
-                                    {[0, 1, 2, 3].map((entry, index) => (
-                                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="mt-12 space-y-4">
-                        {['R&D', 'Core Ops', 'Security', 'Expansion'].map((item, i) => (
-                            <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 transition-hover hover:scale-[1.02] cursor-default border border-transparent hover:border-indigo-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">{item}</span>
-                                </div>
-                                <span className="text-sm font-black text-slate-900 dark:text-white">{[40, 25, 20, 15][i]}%</span>
-                            </div>
-                        ))}
-                    </div>
-                </motion.div>
+                {/* 2. Project-wise Manpower */}
+                <ChartWrapper title="Resource Allocation" subtitle="Manpower distribution across projects">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={mockProjectManpower} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                            <Bar dataKey="devs" name="Developers" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="QA" name="QA Engineers" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="leads" name="Team Leads" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                {/* Strategic Initiatives */}
-                <motion.div  className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
-                    <div className="mb-10 flex items-center justify-between">
+            {/* CHARTS SECTION - ROW 2 */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {/* 3. Developer-wise Task Status */}
+                <ChartWrapper title="Developer Output Analytics" subtitle="Individual task pipeline status">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart layout="vertical" data={mockDeveloperTasks} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                            <XAxis type="number" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} width={80} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                            <Bar dataKey="completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 0, 4]} />
+                            <Bar dataKey="inProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
+                            <Bar dataKey="assigned" name="Assigned" stackId="a" fill={COLORS.assigned} radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
+
+                {/* 4. Team Lead Wise Projects Count & Progress (%) */}
+                <ChartWrapper title="Leadership Performance" subtitle="Projects handled vs overall completion %">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={mockTeamLeadData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="left" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                            <Bar yAxisId="left" dataKey="projects" name="Active Projects" barSize={40} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            <Line yAxisId="right" type="monotone" dataKey="progress" name="Progress (%)" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
+            </div>
+
+            {/* CHARTS SECTION - ROW 3 */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                {/* 5. Deadline Crossed with Progress */}
+                <ChartWrapper title="Risk Radar: Overdue Projects" subtitle="Days crossed vs Current Progress">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={mockDeadlineCrossed} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="left" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                            <Bar yAxisId="left" dataKey="daysCrossed" name="Days Overdue" fill={COLORS.danger} barSize={30} radius={[4, 4, 0, 0]} />
+                            <Line yAxisId="right" type="step" dataKey="progress" name="Completion (%)" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
+
+                {/* 6. Projects Total Working Days */}
+                <ChartWrapper title="Project Tenure" subtitle="Total working days invested per active project">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={mockProjectDays} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorDays" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area type="monotone" dataKey="days" name="Working Days" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorDays)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </ChartWrapper>
+            </div>
+
+            {/* TABLES SECTION */}
+            <div className="space-y-6">
+
+                {/* Team Lead Table */}
+                <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm overflow-hidden">
+                    <div className="mb-6 flex items-center justify-between">
                         <div>
-                            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Key Projects</h3>
-                            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Important projects currently in progress</p>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                                <UserCheck className="h-5 w-5 text-indigo-500" /> Team Leads Directory
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Aggregate leadership metrics</p>
                         </div>
-                        <Button variant="ghost" className="rounded-2xl h-12 px-6 font-black uppercase tracking-widest text-[10px] text-indigo-600 hover:bg-indigo-50">
-                            View All <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Project</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Progress</th>
-                                    <th className="pb-6 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Status</th>
+                                <tr className="border-b-2 border-slate-100 dark:border-slate-800">
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Lead Name</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Total Manpower</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Total Working Projects</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-blue-600">Active</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-emerald-600">Completed</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-amber-500">On-Hold</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {projects.slice(0, 4).map((project, i) => (
-                                    <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
-                                        <td className="py-8">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-                                                    <Briefcase size={18} className="text-indigo-600" />
-                                                </div>
-                                                <span className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white">{project.ProjectName}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-8 text-sm font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">High Velocity</td>
-                                        <td className="py-8">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex justify-between items-center text-[10px] font-black uppercase text-emerald-500">
-                                                    <span>On Track</span>
-                                                    <span>{project.ProgressPercentage || 0}%</span>
-                                                </div>
-                                                <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-emerald-500" style={{ width: `${project.ProgressPercentage || 0}%` }} />
-                                                </div>
-                                            </div>
-                                        </td>
+                                {mockTeamLeadData.map((lead, i) => (
+                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{lead.name}</td>
+                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.manpower} Resources</td>
+                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.projects + 2} Projects</td>
+                                        <td className="py-4 text-sm font-black text-blue-600">{lead.projects}</td>
+                                        <td className="py-4 text-sm font-black text-emerald-600">{Math.floor(lead.projects * 1.5)}</td>
+                                        <td className="py-4 text-sm font-black text-amber-500">{i % 2 === 0 ? 1 : 0}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -312,43 +397,42 @@ export default function AdminDashboard() {
                     </div>
                 </motion.div>
 
-                {/* Executive Action Feed */}
-                <motion.div  className="rounded-[3.5rem] bg-indigo-950 p-10 text-white shadow-2xl relative overflow-hidden group">
-                    <div className="relative z-10">
-                        <div className="mb-10 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">Recent Activity</h3>
-                            <Award className="h-6 w-6 text-indigo-400 animate-pulse" />
-                        </div>
-
-                        <div className="space-y-10">
-                            {[
-                                { action: 'Updated project roadmap', time: '2h ago', icon: Target },
-                                { action: 'Updated project budget', time: '5h ago', icon: DollarSign },
-                                { action: 'Approved security update', time: '1d ago', icon: ShieldCheck },
-                            ].map((log, i) => (
-                                <div key={i} className="relative flex gap-6">
-                                    <div className="z-10 h-10 w-10 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center border border-white/5">
-                                        <log.icon size={18} className="text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-black uppercase tracking-tight text-white mb-1">{log.action}</p>
-                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{log.time}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="mt-12 p-8 rounded-[2rem] bg-indigo-600/20 border border-indigo-500/30 backdrop-blur-md">
-                            <div className="flex items-center justify-between mb-4">
-                                <p className="text-[10px] font-black uppercase text-indigo-300">Strategy Unit</p>
-                                <Zap className="h-4 w-4 text-amber-400" />
-                            </div>
-                            <p className="text-sm font-medium text-slate-300 leading-relaxed uppercase tracking-wider">System is running smoothly. No issues detected.</p>
+                {/* Developer Table */}
+                <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm overflow-hidden">
+                    <div className="mb-6 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                                <HardHat className="h-5 w-5 text-indigo-500" /> Developers Force
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Individual operational output</p>
                         </div>
                     </div>
-                    {/* Visual bg decoration */}
-                    <div className="absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-indigo-500/10 blur-[100px] group-hover:bg-indigo-500/20 transition-all duration-1000" />
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b-2 border-slate-100 dark:border-slate-800">
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Developer Name</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Active Projects</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-emerald-600">Total Completed Tasks</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-slate-400">Pending Tasks (Assigned)</th>
+                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-blue-600">In-Progress Tasks</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                {mockDeveloperTasks.map((dev, i) => (
+                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{dev.name}</td>
+                                        <td className="py-4 text-sm font-bold text-slate-600">{Math.ceil(dev.inProgress / 2)}</td>
+                                        <td className="py-4 text-sm font-black text-emerald-600">{dev.completed}</td>
+                                        <td className="py-4 text-sm font-black text-slate-500">{dev.assigned}</td>
+                                        <td className="py-4 text-sm font-black text-blue-600">{dev.inProgress}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </motion.div>
+
             </div>
         </motion.div>
     );

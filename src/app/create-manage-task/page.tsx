@@ -21,7 +21,8 @@ import {
     Tag,
     Flag,
     BookA,
-    Eye
+    Eye,
+    CheckCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -818,7 +819,7 @@ export default function TaskManagementPage() {
                             const isActive = activeStatusId === status.TaskStatusID;
                             return (
                                 <button
-                                    key={status.TaskStatusID}
+                                    key={status?.TaskStatusID}
                                     onClick={() => setActiveStatusId(status.TaskStatusID)}
                                     className={cn(
                                         "relative flex items-center gap-3 px-6 py-4 text-xs font-black uppercase tracking-widest transition-all",
@@ -902,7 +903,7 @@ export default function TaskManagementPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                                     {paginatedTasks.map((task) => {
                                         const isCompleted = task.StatusID > 2;
-                                        const isRejected = task?.IsRejected;
+                                        const isRejected = task?.IsRejected && task?.StatusID == 2;
                                         const assignerName = task.AssignedByUserFullName || 'Unassigned';
                                         const initials = getInitials(assignerName);
 
@@ -912,123 +913,124 @@ export default function TaskManagementPage() {
                                         const strokeDashoffset = isCompleted ? 0 : circumference - ((task.ProgressPercentage || 0) / 100) * circumference;
 
                                         return (
-                                            <div
-                                                key={task.TaskID}
-                                                className={cn(
-                                                    "group relative flex flex-col bg-white dark:bg-[#292929] border rounded-md shadow-sm p-4 min-h-[140px] transition-all",
-                                                    isRejected
-                                                        ? "border-rose-300 dark:border-rose-900/50 bg-rose-50/30 dark:bg-[#3f2a2e]/40 hover:border-rose-400 dark:hover:border-rose-700/80"
-                                                        : "border-slate-200 dark:border-[#3b3b3b] hover:border-indigo-500/50"
-                                                )}
-                                            >
-                                                {/* Actions overlay (appears on hover) */}
-                                                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 dark:bg-[#292929]/90 backdrop-blur-sm px-1 py-0.5 rounded-md shadow-sm z-10 border border-slate-100 dark:border-slate-700">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingTask(task);
-                                                            setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
-                                                            setIsModalOpen(true);
-                                                        }}
-                                                        className="p-1.5 text-indigo-500 cursor-pointer rounded flex items-center gap-1.5"
-                                                        title="View Task"
-                                                    >
-                                                        <Eye size={14} />
-                                                    </button>
-                                                </div>
-
-                                                {/* Header: Project Name & More Icon */}
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-[11px] font-semibold text-indigo-600 dark:text-[#8378f4] uppercase tracking-wide truncate pr-4">
-                                                        {task.ProjectName}
-                                                    </span>
-                                                    <MoreHorizontal size={16} className="text-slate-400 dark:text-[#a19f9d] opacity-100 group-hover:opacity-0 transition-opacity shrink-0" />
-                                                </div>
-
-                                                {/* Main Body: Checkbox & Title */}
-                                                <div className="flex items-start gap-3 mb-2 flex-grow">
-                                                    <div className="mt-0.5 shrink-0">
-                                                        {isCompleted ? (
-                                                            <div className="bg-indigo-600 dark:bg-[#7b83eb] rounded-full w-[22px] h-[22px] flex items-center justify-center">
-                                                                <Check size={14} className="text-white dark:text-[#292929] stroke-[3]" />
-                                                            </div>
-                                                        ) : (
-                                                            <button className="m-0 p-0 bg-transparent" onClick={() => handleCompleteTask(task)}>{isCompletingTask == task?.TaskID ? <Loader2 className="text-slate-400 w-6 h-6 animate-spin cursor-progress" /> : task?.StatusID == 3 ? <CheckCircle2 className='h-6 w-6 text-emerald-500 m-0' /> : <Circle className='h-6 w-6 text-slate-500 m-0 cursor-pointer' />}</button>
-                                                        )}
+                                            <div className="bg-white" key={task?.TaskID}>
+                                                <div
+                                                    className={cn(
+                                                        "group relative flex flex-col bg-white dark:bg-[#292929] border rounded-md shadow-sm p-4 min-h-[140px] transition-all",
+                                                        isRejected
+                                                            ? "border-rose-300 dark:border-rose-900/50 bg-rose-50/30 dark:bg-[#3f2a2e]/40 hover:border-rose-400 dark:hover:border-rose-700/80"
+                                                            : "border-slate-200 dark:border-[#3b3b3b] hover:border-indigo-500/50"
+                                                    )}
+                                                >
+                                                    {/* Actions overlay (appears on hover) */}
+                                                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 dark:bg-[#292929]/90 backdrop-blur-sm px-1 py-0.5 rounded-md shadow-sm z-10 border border-slate-100 dark:border-slate-700">
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingTask(task);
+                                                                setFormData(prev => ({ ...prev, progressPercentage: task.ProgressPercentage ?? 0 }));
+                                                                setIsModalOpen(true);
+                                                            }}
+                                                            className="p-1.5 text-indigo-500 cursor-pointer rounded flex items-center gap-1.5"
+                                                            title="View Task"
+                                                        >
+                                                            <Eye size={14} />
+                                                        </button>
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span title="Task Title" className={cn(
-                                                            "text-[15px] leading-snug break-words font-medium",
-                                                            isCompleted
-                                                                ? "line-through text-slate-500 dark:text-[#a19f9d]"
-                                                                : "text-slate-900 dark:text-[#f5f5f5]"
-                                                        )}>
-                                                            {task.Title}
+
+                                                    {/* Header: Project Name & More Icon */}
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <span className="text-[11px] font-semibold text-indigo-600 dark:text-[#8378f4] uppercase tracking-wide truncate pr-4">
+                                                            {task.ProjectName}
                                                         </span>
-                                                        {task.SubTitle && (
-                                                            <span title="Task Module" className="text-[10px] text-slate-400 dark:text-[#a19f9d] font-medium mt-1 uppercase tracking-wider">
-                                                                {task.SubTitle}
-                                                            </span>
-                                                        )}
+                                                        <MoreHorizontal size={16} className="text-slate-400 dark:text-[#a19f9d] opacity-100 group-hover:opacity-0 transition-opacity shrink-0" />
                                                     </div>
-                                                </div>
 
-                                                {/* Tags: Priority & Status */}
-                                                <div className="flex flex-wrap gap-2 ml-8 mb-4">
-                                                    <span title="Current Stage of Task" className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>
-                                                        {task.StatusName}
-                                                    </span>
-                                                    <span title="Task Urgency" className={cn(
-                                                        "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border",
-                                                        task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30 dark:text-rose-400' :
-                                                            task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400' :
-                                                                'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-                                                    )}>
-                                                        {task.PriorityName}
-                                                    </span>
-                                                </div>
-
-                                                {/* Rejection Remarks Box */}
-                                                {(isRejected && task?.Remarks) ? (
-                                                    <div className="ml-8 mb-4 bg-rose-50/80 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-lg p-2.5 flex items-start gap-2">
-                                                        <AlertCircle size={14} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                                                        <div className="max-h-16 overflow-y-auto text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-rose-200 dark:[&::-webkit-scrollbar-thumb]:bg-rose-800 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
-                                                            {task.Remarks}
+                                                    {/* Main Body: Checkbox & Title */}
+                                                    <div className="flex items-start gap-3 mb-2 flex-grow">
+                                                        <div className="mt-0.5 shrink-0">
+                                                            {isCompleted ? (
+                                                                <div className="bg-emerald-600 dark:bg-[#7b83eb] rounded-full w-[22px] h-[22px] flex items-center justify-center">
+                                                                    <CheckCheck size={14} className="text-white dark:text-[#292929] stroke-[3]" />
+                                                                </div>
+                                                            ) : (
+                                                                <button className="m-0 p-0 bg-transparent" onClick={() => handleCompleteTask(task)}>{isCompletingTask == task?.TaskID ? <Loader2 className="text-slate-400 w-6 h-6 animate-spin cursor-progress" /> : task?.StatusID == 3 ? <CheckCircle2 className='h-6 w-6 text-emerald-500 m-0' /> : <Circle className='h-6 w-6 text-slate-500 m-0 cursor-pointer' />}</button>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span title="Task Title" className={cn(
+                                                                "text-[15px] leading-snug break-words font-medium",
+                                                                isCompleted
+                                                                    ? "line-through text-slate-500 dark:text-[#a19f9d]"
+                                                                    : "text-slate-900 dark:text-[#f5f5f5]"
+                                                            )}>
+                                                                {task.Title}
+                                                            </span>
+                                                            {task.SubTitle && (
+                                                                <span title="Task Module" className="text-[10px] text-slate-400 dark:text-[#a19f9d] font-medium mt-1 uppercase tracking-wider">
+                                                                    {task.SubTitle}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                ) : <div title="Task Description" className="ml-8 mb-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-lg p-2.5 flex items-start gap-2">
-                                                    <BookA size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                                                    <div className="max-h-16 overflow-y-auto text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-indigo-200 dark:[&::-webkit-scrollbar-thumb]:bg-indigo-800 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
-                                                        {task?.Description || "Not Given!"}
-                                                    </div>
-                                                </div>}
 
-                                                {/* Progress Icon */}
-                                                {!isCompleted && task.ProgressPercentage > 0 && (
-                                                    <div className="ml-8 mb-3 flex items-center gap-2">
-                                                        <svg width="16" height="16" viewBox="0 0 16 16" className="transform -rotate-90">
-                                                            <circle cx="8" cy="8" r="6" fill="transparent" stroke="currentColor" strokeWidth="2" className="text-slate-200 dark:text-[#424242]" />
-                                                            <circle cx="8" cy="8" r="6" fill="transparent" stroke="#3b82f6" strokeWidth="2" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-500" />
-                                                        </svg>
-                                                        <span className="text-[10px] font-bold text-blue-500 dark:text-[#7b83eb]">{task.ProgressPercentage}%</span>
-                                                    </div>
-                                                )}
-
-                                                {/* Footer: Date & Assigner */}
-                                                <div className="flex justify-between items-end mt-auto pt-2 ml-8 border-t border-slate-100 dark:border-[#3b3b3b] min-h-[32px]">
-                                                    {/* Date Badge */}
-                                                    <div className={cn(
-                                                        "text-[11px] px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm",
-                                                        isCompleted ? "bg-slate-100 text-slate-500 dark:bg-[#3b3b3b] dark:text-[#a19f9d]" : "bg-rose-600 dark:bg-[#c93b51] text-white"
-                                                    )}>
-                                                        <CalendarDays size={13} strokeWidth={2.5} />
-                                                        <span className="font-medium pt-px">{formatDate(task.Deadline)}</span>
+                                                    {/* Tags: Priority & Status */}
+                                                    <div className="flex flex-wrap gap-2 ml-8 mb-4">
+                                                        <span title="Current Stage of Task" className={cn("px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest", getStatusColor(task.StatusName as any))}>
+                                                            {task?.StatusID == 1 ? "New Task" : task?.StatusID == 2 ? "In Progress" : task?.StatusID == 3 ? "Review Pending" : task?.StatusID == 4 ? "Approved by Lead" : task?.StatusName}
+                                                        </span>
+                                                        <span title="Task Urgency" className={cn(
+                                                            "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border",
+                                                            task.PriorityName === 'Critical' ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:border-rose-900/30 dark:text-rose-400' :
+                                                                task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400' :
+                                                                    'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
+                                                        )}>
+                                                            {task.PriorityName}
+                                                        </span>
                                                     </div>
 
-                                                    {/* Assigner */}
-                                                    <div className="flex items-center gap-1.5" title={`Assigned by: ${assignerName}`}>
-                                                        <span className="text-[9px] font-bold text-slate-400 dark:text-[#a19f9d] uppercase tracking-widest">By</span>
-                                                        <div className="w-[24px] h-[24px] rounded-full bg-indigo-600 dark:bg-[#5850c4] flex items-center justify-center shadow-sm">
-                                                            <span className="text-[10px] font-bold text-white">{initials}</span>
+                                                    {/* Rejection Remarks Box */}
+                                                    {(isRejected && task?.Remarks) ? (
+                                                        <div className="ml-8 mb-4 bg-rose-50/80 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 rounded-lg p-2.5 flex items-start gap-2">
+                                                            <AlertCircle size={14} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                                            <div className="max-h-16 overflow-y-auto text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-rose-200 dark:[&::-webkit-scrollbar-thumb]:bg-rose-800 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
+                                                                {task.Remarks}
+                                                            </div>
+                                                        </div>
+                                                    ) : <div title="Task Description" className="ml-8 mb-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-lg p-2.5 flex items-start gap-2">
+                                                        <BookA size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                                                        <div className="max-h-16 overflow-y-auto text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest leading-relaxed [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-indigo-200 dark:[&::-webkit-scrollbar-thumb]:bg-indigo-800 [&::-webkit-scrollbar-thumb]:rounded-full pr-1">
+                                                            {task?.Description || "Not Given!"}
+                                                        </div>
+                                                    </div>}
+
+                                                    {/* Progress Icon */}
+                                                    {!isCompleted && task.ProgressPercentage > 0 && (
+                                                        <div className="ml-8 mb-3 flex items-center gap-2">
+                                                            <svg width="16" height="16" viewBox="0 0 16 16" className="transform -rotate-90">
+                                                                <circle cx="8" cy="8" r="6" fill="transparent" stroke="currentColor" strokeWidth="2" className="text-slate-200 dark:text-[#424242]" />
+                                                                <circle cx="8" cy="8" r="6" fill="transparent" stroke="#3b82f6" strokeWidth="2" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className="transition-all duration-500" />
+                                                            </svg>
+                                                            <span className="text-[10px] font-bold text-blue-500 dark:text-[#7b83eb]">{task.ProgressPercentage}%</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Footer: Date & Assigner */}
+                                                    <div className="flex justify-between items-end mt-auto pt-2 ml-8 border-t border-slate-100 dark:border-[#3b3b3b] min-h-[32px]">
+                                                        {/* Date Badge */}
+                                                        <div className={cn(
+                                                            "text-[11px] px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm",
+                                                            isCompleted ? "bg-slate-100 text-slate-500 dark:bg-[#3b3b3b] dark:text-[#a19f9d]" : "bg-rose-600 dark:bg-[#c93b51] text-white"
+                                                        )}>
+                                                            <CalendarDays size={13} strokeWidth={2.5} />
+                                                            <span className="font-medium pt-px">{formatDate(task.Deadline)}</span>
+                                                        </div>
+
+                                                        {/* Assigner */}
+                                                        <div className="flex items-center gap-1.5" title={`Assigned by: ${assignerName}`}>
+                                                            <span className="text-[9px] font-bold text-slate-400 dark:text-[#a19f9d] uppercase tracking-widest">By</span>
+                                                            <div className="w-[24px] h-[24px] rounded-full bg-indigo-600 dark:bg-[#5850c4] flex items-center justify-center shadow-sm">
+                                                                <span className="text-[10px] font-bold text-white">{initials}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
