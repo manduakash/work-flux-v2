@@ -50,7 +50,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         { icon: PieChart, label: 'Analytics', href: '/analytics' },
         { icon: Globe, label: 'Reports', href: '/reports' },
         // { icon: Landmark, label: 'Finance', href: '/financials' },
-        { icon: ShieldAlert, label: 'Settings', href: '/governance' },
+        // { icon: ShieldAlert, label: 'Settings', href: '/governance' },
         { icon: Users2, label: 'User Management', href: '/team' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
@@ -82,13 +82,13 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     return (
         <aside className={cn(
-            "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-indigo-400/50 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-[#060913] lg:static lg:translate-x-0 relative overflow-show",
+            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-[#060913] lg:static lg:translate-x-0 relative overflow-show",
             isCollapsed ? "w-20" : "w-64",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}>
             {/* Background Pattern Layer */}
             <div
-                className="absolute inset-0 pointer-events-none opacity-30"
+                className="absolute inset-0 pointer-events-none opacity-50"
                 style={{ backgroundImage: patternDots }}
             />
 
