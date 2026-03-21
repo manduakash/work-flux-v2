@@ -15,7 +15,10 @@ import {
     ShieldAlert,
     UserCircleIcon,
     Plus,
-    Users2
+    Users2,
+    ClipboardCheck,
+    FileBarChart,
+    CalendarCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
@@ -40,28 +43,28 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     ];
 
     const devNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/developer-dashboard' },
-        { icon: ListChecks, label: 'My Tasks', href: '/create-manage-task' },
-        { icon: ListChecks, label: 'My Projects', href: '/assigned-projects' },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
+        { icon: ListChecks, label: 'Tasks', href: '/create-manage-task' },
+        { icon: FolderKanban, label: 'Projects', href: '/assigned-projects' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
     const adminNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/admin-dashboard' },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
         { icon: PieChart, label: 'Analytics', href: '/analytics' },
-        { icon: Globe, label: 'Reports', href: '/reports' },
-        { icon: Users2, label: 'Today\'s Attendance', href: '/attendance-entry' },
-        { icon: Globe, label: 'Attendance Reports', href: '/attendance-report' },
-        { icon: Users2, label: 'Leave Reports', href: '/leave-report' },
-        { icon: Users2, label: 'User Management', href: '/team' },
+        { icon: BarChart3, label: 'Reports', href: '/reports' },
+        { icon: ClipboardCheck, label: 'Today\'s Attendance', href: '/attendance-entry' },
+        { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+        { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
+        { icon: Users, label: 'User Management', href: '/team' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
     const attendanceExeNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/attendance-executive-dashboard' },
-        { icon: Users2, label: 'Attendance Entry', href: '/attendance-entry' },
-        { icon: Globe, label: 'Attendance Reports', href: '/attendance-report' },
-        { icon: Users2, label: 'Leave Reports', href: '/leave-report' },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/attendance-executive-dashboard' },
+        { icon: ClipboardCheck, label: 'Attendance Entry', href: '/attendance-entry' },
+        { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+        { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
@@ -114,7 +117,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                         <Rocket size={20} />
                     </div>
                     {!isCollapsed && (
-                        <span className="text-lg font-black tracking-tighter text-white uppercase">Project Management</span>
+                        <span className="text-lg font-black tracking-tighter text-white uppercase">Office Management</span>
                     )}
                     <Button size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className={cn("cursor-pointer mt-auto duration-75 hidden lg:flex text-indigo-300 bg-gradient-tr", isCollapsed ? "hover:bg-slate-50 hover:text-indigo-800 hover:border hover:border-indigo-950/10" : "bg-indigo-900 hover:bg-indigo-900 hover:text-white")}>
                         <ChevronLeft className={cn("transition-transform", isCollapsed && "rotate-180")} />
