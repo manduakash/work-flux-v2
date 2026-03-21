@@ -78,7 +78,11 @@ export default function LoginPage() {
                 } else if (user.role_id == 3) {
                     sessionRole = "DEVELOPER";
                     targetPath = "/developer-dashboard";
-                } else {
+                } else if (user.role_id == 5) {
+                    sessionRole = "ATTENDANCE_EXECUTIVE";
+                    targetPath = "/attendance-executive-dashboard";
+                }
+                else {
                     // Fallback using role string if role_id is missing or unrecognized
                     const roleLabel = user.role?.toUpperCase() || "";
                     if (roleLabel.includes("ADMIN") || roleLabel.includes("MANAGEMENT")) {

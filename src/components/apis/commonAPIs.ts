@@ -81,7 +81,7 @@ export const callAPI = async (url: string, body: any) => {
 }
 
 export const callAPIWithToken = async (url: string, body: any) => {
-  showLoader(); // Trigger loader start
+  // showLoader(); // Trigger loader start
 
   try {
     const fullUrl = `${BASE_URL}${url}`;
@@ -120,7 +120,7 @@ export const callAPIWithToken = async (url: string, body: any) => {
 
   } finally {
     // This will ALWAYS run, whether the API succeeds or throws an error
-    hideLoader();
+    // hideLoader();
   }
 };
 

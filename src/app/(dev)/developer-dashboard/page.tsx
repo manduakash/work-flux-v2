@@ -263,7 +263,7 @@ export default function DeveloperDashboard() {
                     trendValue={12}
                     color="bg-indigo-600 text-white shadow-lg shadow-indigo-900/50 border border-indigo-500"
                     description="Tasks recently assigned to you by your team lead"
-                    bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700"
+                    bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-700 dark:from-purple-700 dark:via-purple-600 dark:to-purple-950"
                     iconColor="text-purple-500"
                     borderColor="border-2 border-purple-500"
                     link={`/create-manage-task?__st=${btoa("1")}`}
@@ -277,7 +277,7 @@ export default function DeveloperDashboard() {
                     trendValue={4}
                     color="bg-rose-500 text-white shadow-lg shadow-rose-900/50 border border-rose-400"
                     description="Tasks actively being worked on by you"
-                    bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700"
+                    bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 dark:from-indigo-700 dark:via-indigo-600 dark:to-indigo-950"
                     iconColor="text-indigo-500"
                     borderColor="border-2 border-indigo-400"
                     link={`/create-manage-task?__st=${btoa("2")}`}
@@ -290,7 +290,7 @@ export default function DeveloperDashboard() {
                     trend="up"
                     trendValue={22}
                     color="bg-emerald-500 text-white shadow-lg shadow-emerald-900/50 border border-emerald-400"
-                    bgColor="bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600"
+                    bgColor="bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600 dark:from-amber-700 dark:via-orange-600 dark:to-orange-950"
                     description="Tasks submitted and awaiting review & approval of your team lead"
                     iconColor="text-amber-500"
                     borderColor="border-2 border-amber-400"
@@ -305,7 +305,7 @@ export default function DeveloperDashboard() {
                     trendValue={8}
                     color="bg-white/20 text-white border border-white/30 shadow-lg"
                     description="Tasks completed and approved by your team lead"
-                    bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700"
+                    bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-950"
                     iconColor="text-emerald-500"
                     borderColor="border-2 border-emerald-400"
                     link={`/create-manage-task?__st=${btoa("4")}`}
@@ -317,7 +317,7 @@ export default function DeveloperDashboard() {
                     icon={X}
                     color="bg-white/20 text-white border border-white/30 shadow-lg"
                     description="Tasks rejected by team lead"
-                    bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700"
+                    bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-700 dark:from-rose-700 dark:via-rose-600 dark:to-red-950"
                     iconColor="text-rose-500"
                     borderColor="border-2 border-rose-400"
                     link={`/create-manage-task?__x=${btoa("1")}&__st=${btoa("2")}`}
@@ -329,7 +329,7 @@ export default function DeveloperDashboard() {
                     icon={Rocket}
                     color="bg-white/20 text-white border border-white/30 shadow-lg"
                     description="Projects currently in progress"
-                    bgColor="bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-700"
+                    bgColor="bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-700 dark:from-cyan-700 dark:via-cyan-600 dark:to-cyan-950"
                     iconColor="text-cyan-500"
                     borderColor="border-2 border-cyan-400"
                     link="/create-manage-task?__st="
@@ -338,7 +338,7 @@ export default function DeveloperDashboard() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* 2. Technical Quality (Radar) */}
-                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm relative overflow-hidden group">
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8">
                         <ClipboardList className="text-slate-100 dark:text-slate-800 h-32 w-32 group-hover:text-indigo-500/10 transition-colors duration-700" />
                     </div>
@@ -369,7 +369,7 @@ export default function DeveloperDashboard() {
                 </motion.div>
 
                 {/* Status Health (Pie) */}
-                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                     <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Projects Status</h3>
                     <p className="mb-12 text-sm font-bold text-slate-400 uppercase tracking-widest">Global workstream distribution</p>
                     <div className="h-[300px] w-full relative">
@@ -412,7 +412,7 @@ export default function DeveloperDashboard() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Urgent Task Tracker */}
-                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-900/50 shadow-sm">
+                <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                     <div className="mb-10 p-10 flex items-center justify-between">
                         <div>
                             <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">

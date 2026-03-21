@@ -9,7 +9,8 @@ import {
     Folder,
     Calendar,
     XCircle,
-    User
+    User,
+    Loader2
 } from "lucide-react";
 
 import {
@@ -25,7 +26,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 // Assuming you have this implemented locally
-import { callGetAPIWithToken } from "./apis/commonAPIs";
+import { callAPIWithToken, callGetAPIWithToken } from "./apis/commonAPIs";
+import { useRouter } from "next/navigation";
 
 // --- DATE UTILITY FUNCTIONS ---
 
@@ -134,6 +136,9 @@ const getNotificationTitle = (type: string) => {
 const Notifications = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [open, setOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState("0");
+    const navigate = useRouter();
 
     const fetchNotifications = async () => {
         try {
@@ -150,11 +155,23 @@ const Notifications = () => {
         fetchNotifications();
     }, []);
 
-    const markAllAsRead = () => {
-        // Optimistic UI Update
-        setNotifications(notifications?.map(n => ({ ...n, IsRead: 1 })));
-        setUnreadCount(0);
-        // TODO: Call your backend API here to update the DB status
+    const openNotification = async (taskId: any, notificationId: any) => {
+        try {
+            await callAPIWithToken(`update-seen-status`, { NotificationID: notificationId });
+            await fetchNotifications();
+            navigate.push(`/create-manage-task?__task=${btoa(taskId)}`);
+        } finally {
+            setIsLoading("0");
+            setOpen(false);
+        }
+    }
+
+    const markAllAsRead = async () => {
+        const unreadNotifications = notifications?.filter((n: Notification) => !n?.IsRead);
+
+        for await (const notification of unreadNotifications) {
+            await callAPIWithToken(`update-seen-status`, { NotificationID: notification?.NotificationID })
+        }
     };
 
     return (
@@ -163,21 +180,21 @@ const Notifications = () => {
                 {`
                     @keyframes bell-ring {
                         0%, 100% { transform: rotate(0deg); }
-                        10% { transform: rotate(8deg); }
-                        20% { transform: rotate(-8deg); }
-                        30% { transform: rotate(8deg); }
-                        40% { transform: rotate(-8deg); }
+                        10% { transform: rotate(2deg); }
+                        20% { transform: rotate(-5deg); }
+                        30% { transform: rotate(2deg); }
+                        40% { transform: rotate(-5deg); }
                         50% { transform: rotate(0deg); }
                     }
                     .animate-bell-ring {
-                        animation: bell-ring 1s infinite ease-in-out;
+                        animation: bell-ring 0.7s infinite ease-in-out;
                         animation-delay: 2s;
                         transform-origin: top center;
                     }
                 `}
             </style>
 
-            <Drawer direction="right">
+            <Drawer open={open} onOpenChange={setOpen} direction="right">
                 <DrawerTrigger asChild>
                     <Button variant="ghost" size="icon" className={`relative ${unreadCount > 0 ? "animate-bell-ring" : ""}`}>
                         <Bell size={20} className={unreadCount > 0 ? "z-10" : ""} />
@@ -196,67 +213,73 @@ const Notifications = () => {
                     </DrawerHeader>
 
                     <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
-                        {notifications.length === 0 ? (
+                        {notifications?.length === 0 ? (
                             <div className="text-center text-slate-500 mt-10 text-sm">No notifications available.</div>
                         ) : (
-                            notifications.map((notification) => (
-                                <button
-                                    key={notification?.NotificationID}
-                                    className={`relative text-left p-4 rounded-xl border transition-colors w-full ${notification?.IsRead !== 0
-                                        ? "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
-                                        : "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/50"
-                                        }`}
-                                >
-                                    {/* Unread Indicator */}
-                                    {notification?.IsRead === 0 && (
-                                        <span className="absolute top-4 right-4 h-2 w-2 rounded-full bg-blue-500" />
-                                    )}
+                            notifications.map((notification) =>
+                                isLoading == notification?.NotificationID ?
+                                    (<div
+                                        key={notification?.NotificationID}
+                                        className={`relative min-h-[200px] flex justify-center items-center cursor-progress text-left p-4 rounded-xl border transition-colors w-full bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800`}
+                                    ><Loader2 size={26} className="text-indigo-600 animate-spin" /></div>) :
+                                    (<button
+                                        onClick={() => openNotification(notification?.EntityID, notification?.NotificationID)}
+                                        key={notification?.NotificationID}
+                                        className={`relative cursor-pointer text-left p-4 rounded-xl border transition-colors w-full ${notification?.IsRead !== 0
+                                            ? "bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+                                            : "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/50"
+                                            }`}
+                                    >
+                                        {/* Unread Indicator */}
+                                        {notification?.IsRead === 0 && (
+                                            <span className="absolute top-4 right-4 h-2 w-2 rounded-full bg-blue-500" />
+                                        )}
 
-                                    {/* Header: Title & Time */}
-                                    <div className="flex items-start gap-3 mb-2 pr-4">
-                                        <div className="mt-0.5 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
-                                            {getIcon(notification?.ActionTypeName?.toLocaleLowerCase())}
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                                {getNotificationTitle(notification?.ActionTypeName?.toLocaleLowerCase())}
-                                            </h4>
-                                            {/* UTILITY APPLIED HERE */}
-                                            <p className="text-xs text-slate-500 mt-0.5">
-                                                {formatTimeAgo(notification?.NotificationCreatedOn)}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Description */}
-                                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 ml-10 leading-relaxed">
-                                        {notification?.EntityDesc}
-                                    </p>
-
-                                    {/* Meta Info */}
-                                    <div className="ml-10 flex flex-col gap-2">
-                                        <div className="flex flex-wrap gap-2 items-center">
-                                            <Badge variant="secondary" className={`border-transparent ${getPriorityColor(notification?.Priority)}`}>
-                                                {notification?.Priority || "Normal"} Priority
-                                            </Badge>
-                                            <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                                                <Folder className="h-3 w-3" />
-                                                <span className="truncate max-w-[120px]">{notification?.ProjectName || "Not Mentioned"}</span>
+                                        {/* Header: Title & Time */}
+                                        <div className="flex items-start gap-3 mb-2 pr-4">
+                                            <div className="mt-0.5 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
+                                                {getIcon(notification?.ActionTypeName?.toLocaleLowerCase())}
                                             </div>
-                                            <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                                                <Calendar className="h-3 w-3" />
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                                    {getNotificationTitle(notification?.ActionTypeName?.toLocaleLowerCase())}
+                                                </h4>
                                                 {/* UTILITY APPLIED HERE */}
-                                                <span>{formatDeadline(notification?.EntityDeadline)}</span>
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    {formatTimeAgo(notification?.NotificationCreatedOn)}
+                                                </p>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
-                                            <User className="h-3.5 w-3.5" />
-                                            <span>By: <span className="font-medium text-slate-700 dark:text-slate-300">{notification?.InitiatedBy}</span></span>
+                                        {/* Description */}
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 ml-10 leading-relaxed">
+                                            {notification?.EntityDesc}
+                                        </p>
+
+                                        {/* Meta Info */}
+                                        <div className="ml-10 flex flex-col gap-2">
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                                <Badge variant="secondary" className={`border-transparent ${getPriorityColor(notification?.Priority)}`}>
+                                                    {notification?.Priority || "Normal"} Priority
+                                                </Badge>
+                                                <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                                                    <Folder className="h-3 w-3" />
+                                                    <span className="truncate max-w-[120px]">{notification?.ProjectName || "Not Mentioned"}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {/* UTILITY APPLIED HERE */}
+                                                    <span>{formatDeadline(notification?.EntityDeadline)}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                                                <User className="h-3.5 w-3.5" />
+                                                <span>By: <span className="font-medium text-slate-700 dark:text-slate-300">{notification?.InitiatedBy}</span></span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                            ))
+                                    </button>)
+                            )
                         )}
                     </div>
 

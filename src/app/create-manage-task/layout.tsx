@@ -58,7 +58,7 @@ export default function LeadDashboardLayout({ children }: { children: React.Reac
 
                 <main className="flex-1 overflow-y-auto p-8 custom-scrollbar z-0 relative h-full">
                     <div
-                        className="absolute inset-0 opacity-[0.6] pointer-events-none bg-fixed"
+                        className="absolute inset-0 opacity-[0.6] dark:opacity-30 pointer-events-none bg-fixed"
                         style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dimension.png")' }}
                     />
 

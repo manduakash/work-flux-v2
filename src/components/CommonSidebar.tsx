@@ -42,6 +42,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     const devNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/developer-dashboard' },
         { icon: ListChecks, label: 'My Tasks', href: '/create-manage-task' },
+        { icon: ListChecks, label: 'My Projects', href: '/assigned-projects' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
@@ -49,9 +50,18 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         { icon: LayoutDashboard, label: 'Overview', href: '/admin-dashboard' },
         { icon: PieChart, label: 'Analytics', href: '/analytics' },
         { icon: Globe, label: 'Reports', href: '/reports' },
-        // { icon: Landmark, label: 'Finance', href: '/financials' },
-        // { icon: ShieldAlert, label: 'Settings', href: '/governance' },
+        { icon: Users2, label: 'Today\'s Attendance', href: '/attendance-entry' },
+        { icon: Globe, label: 'Attendance Reports', href: '/attendance-report' },
+        { icon: Users2, label: 'Leave Reports', href: '/leave-report' },
         { icon: Users2, label: 'User Management', href: '/team' },
+        { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
+    ];
+
+    const attendanceExeNavItems = [
+        { icon: LayoutDashboard, label: 'Overview', href: '/attendance-executive-dashboard' },
+        { icon: Users2, label: 'Attendance Entry', href: '/attendance-entry' },
+        { icon: Globe, label: 'Attendance Reports', href: '/attendance-report' },
+        { icon: Users2, label: 'Leave Reports', href: '/leave-report' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
@@ -65,7 +75,10 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
             setNavItems(devNavItems);
         } else if (roleId === 1) {
             setNavItems(adminNavItems);
-        } else {
+        } else if (roleId === 5) {
+            setNavItems(attendanceExeNavItems);
+        }
+        else {
             // Robust fallback if role_id is not yet set or unavailable
             const role = currentUser?.role || getCookie("role");
             if (role === 'TEAM_LEAD') {
@@ -74,6 +87,8 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                 setNavItems(devNavItems);
             } else if (role === 'MANAGEMENT') {
                 setNavItems(adminNavItems);
+            } else if (role === 'ATTENDANCE_EXECUTIVE') {
+                setNavItems(attendanceExeNavItems);
             } else {
                 setNavItems([]);
             }
@@ -82,13 +97,13 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     return (
         <aside className={cn(
-            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-[#060913] lg:static lg:translate-x-0 relative overflow-show",
+            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-indigo-950 lg:static lg:translate-x-0 relative overflow-show",
             isCollapsed ? "w-20" : "w-64",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}>
             {/* Background Pattern Layer */}
             <div
-                className="absolute inset-0 pointer-events-none opacity-40"
+                className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-30"
                 style={{ backgroundImage: patternDots }}
             />
 
