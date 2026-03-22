@@ -157,7 +157,7 @@ const Notifications = () => {
 
     const openNotification = async (taskId: any, notificationId: any) => {
         try {
-            await callAPIWithToken(`update-seen-status`, { NotificationID: notificationId });
+            await callAPIWithToken(`notifications/update-seen-status`, { NotificationID: notificationId });
             await fetchNotifications();
             navigate.push(`/create-manage-task?__task=${btoa(taskId)}`);
         } finally {
