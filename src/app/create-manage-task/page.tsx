@@ -215,19 +215,19 @@ export default function TaskManagementPage() {
             console.log("viewMode", viewMode);
             fetchTasks(user);
         }
-    }, [viewMode]);
+    }, [viewMode, searchParams]);
 
     const fetchTasks = async (userOverride?: any) => {
         const user = userOverride || currentUser;
         if (!user) return;
         try {
             setIsLoading((prev: any) => ({ ...prev, TASKS: true }));
-            console.log("user", user);
+            const taskId = atob(searchParams.get("__task") || "");
             const userId = user?.id?.toString().replace(/\D/g, '') || user?.UserID?.toString().replace(/\D/g, '') || '0';
             const isDeveloper = user?.role_id == 3;
             const endpoint = isDeveloper
-                ? `tasks?taskId=0&projectId=0&taskStatus=${filter?.status || 0}&taskTypeId=${filter?.type || 0}&taskPriority=${filter?.priority || 0}`
-                : `tasks?taskId=0&projectId=0&taskStatus=${filter?.status || 0}&taskTypeId=${filter?.type || 0}&taskPriority=${filter?.priority || 0}`;
+                ? `tasks?taskId=${taskId || 0}&projectId=0&taskStatus=${filter?.status || 0}&taskTypeId=${filter?.type || 0}&taskPriority=${filter?.priority || 0}`
+                : `tasks?taskId=${taskId || 0}&projectId=0&taskStatus=${filter?.status || 0}&taskTypeId=${filter?.type || 0}&taskPriority=${filter?.priority || 0}`;
             const res = await callGetAPIWithToken(endpoint);
             if (res.success) {
                 if (isDeveloper) {
@@ -709,7 +709,7 @@ export default function TaskManagementPage() {
                 {currentUser?.role_id == 3 &&
                     <div className='flex justify-between items-center gap-4'>
                         <div className="relative group flex-1">
-                            <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-slate-900 shadow-sm border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
+                            <Input placeholder="Search tasks..." className="pl-12 h-12 bg-white dark:bg-indigo-950 shadow-sm border-slate-200 dark:border-slate-200/20 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
                             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                         </div>
 
@@ -720,7 +720,7 @@ export default function TaskManagementPage() {
                                     setFilter((prev: any) => ({ ...prev, status: value.toString() }))
                                 }
                             >
-                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                <SelectTrigger className="dark:bg-indigo-950/80 dark:hover:bg-indigo-950/80 w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
                                     <SelectValue placeholder="Select Task Status" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -745,7 +745,7 @@ export default function TaskManagementPage() {
                                         priority: value?.toString()
                                     }))
                                 }>
-                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                <SelectTrigger className="dark:bg-indigo-950/80 dark:hover:bg-indigo-950/80 w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
                                     <SelectValue placeholder="Select Task Priority" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -770,7 +770,7 @@ export default function TaskManagementPage() {
                                         type: value?.toString()
                                     }))
                                 }>
-                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                <SelectTrigger className="dark:bg-indigo-950/80 dark:hover:bg-indigo-950/80 w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
                                     <SelectValue placeholder="Select Task Type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -796,7 +796,7 @@ export default function TaskManagementPage() {
                                         status: value == "1" ? "2" : value == "0" ? "4" : "",
                                     }))
                                 }>
-                                <SelectTrigger className="w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
+                                <SelectTrigger className="dark:bg-indigo-950/80 dark:hover:bg-indigo-950/80 w-full min-w-44 max-w-44 py-6 px-4 rounded-2xl shadow bg-white">
                                     <SelectValue placeholder="Select Review Status" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -913,13 +913,13 @@ export default function TaskManagementPage() {
                                         const strokeDashoffset = isCompleted ? 0 : circumference - ((task.ProgressPercentage || 0) / 100) * circumference;
 
                                         return (
-                                            <div className="bg-white" key={task?.TaskID}>
+                                            <div className="bg-white h-fit dark:bg-slate-800 border rounded-md shadow-sm" key={task?.TaskID}>
                                                 <div
                                                     className={cn(
-                                                        "group relative flex flex-col bg-white dark:bg-[#292929] border rounded-md shadow-sm p-4 min-h-[140px] transition-all",
+                                                        "group relative flex flex-col bg-white dark:bg-slate-950/50 border rounded-md shadow-sm px-4 py-8 min-h-[140px] transition-all",
                                                         isRejected
                                                             ? "border-rose-300 dark:border-rose-900/50 bg-rose-50/30 dark:bg-[#3f2a2e]/40 hover:border-rose-400 dark:hover:border-rose-700/80"
-                                                            : "border-slate-200 dark:border-[#3b3b3b] hover:border-indigo-500/50"
+                                                            : "border-slate-200 dark:border-indigo-800/10 hover:border-indigo-500/50"
                                                     )}
                                                 >
                                                     {/* Actions overlay (appears on hover) */}
@@ -984,7 +984,7 @@ export default function TaskManagementPage() {
                                                                 task.PriorityName === 'High' ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400' :
                                                                     'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
                                                         )}>
-                                                            {task.PriorityName}
+                                                            {task.PriorityName} Priority
                                                         </span>
                                                     </div>
 
@@ -1052,10 +1052,10 @@ export default function TaskManagementPage() {
                                 Showing {paginatedTasks?.length || 0} of {filteredTasks?.length || 0} tasks
                             </p>
                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-slate-200 dark:border-[#3b3b3b] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="rounded-xl border-slate-200 dark:border-[#3b3b3b] cursor-pointer dark:bg-indigo-800 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                                     <ChevronLeft size={16} />
                                 </Button>
-                                <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-slate-200 dark:border-[#3b3b3b] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <Button variant="outline" size="sm" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="rounded-xl border-slate-200 dark:bg-indigo-800 cursor-pointer dark:border-[#3b3b3b] dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                                     <ChevronRight size={16} />
                                 </Button>
                             </div>

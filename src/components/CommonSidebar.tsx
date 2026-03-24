@@ -15,7 +15,10 @@ import {
     ShieldAlert,
     UserCircleIcon,
     Plus,
-    Users2
+    Users2,
+    ClipboardCheck,
+    FileBarChart,
+    CalendarCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
@@ -40,18 +43,28 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     ];
 
     const devNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/developer-dashboard' },
-        { icon: ListChecks, label: 'My Tasks', href: '/create-manage-task' },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
+        { icon: ListChecks, label: 'Tasks', href: '/create-manage-task' },
+        { icon: FolderKanban, label: 'Projects', href: '/assigned-projects' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
     const adminNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/admin-dashboard' },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
         { icon: PieChart, label: 'Analytics', href: '/analytics' },
-        { icon: Globe, label: 'Reports', href: '/reports' },
-        // { icon: Landmark, label: 'Finance', href: '/financials' },
-        // { icon: ShieldAlert, label: 'Settings', href: '/governance' },
-        { icon: Users2, label: 'User Management', href: '/team' },
+        { icon: BarChart3, label: 'Reports', href: '/reports' },
+        { icon: ClipboardCheck, label: 'Today\'s Attendance', href: '/attendance-entry' },
+        { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+        { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
+        { icon: Users, label: 'User Management', href: '/team' },
+        { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
+    ];
+
+    const attendanceExeNavItems = [
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/attendance-executive-dashboard' },
+        { icon: ClipboardCheck, label: 'Attendance Entry', href: '/attendance-entry' },
+        { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+        { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
         { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
     ];
 
@@ -65,7 +78,10 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
             setNavItems(devNavItems);
         } else if (roleId === 1) {
             setNavItems(adminNavItems);
-        } else {
+        } else if (roleId === 5) {
+            setNavItems(attendanceExeNavItems);
+        }
+        else {
             // Robust fallback if role_id is not yet set or unavailable
             const role = currentUser?.role || getCookie("role");
             if (role === 'TEAM_LEAD') {
@@ -74,6 +90,8 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                 setNavItems(devNavItems);
             } else if (role === 'MANAGEMENT') {
                 setNavItems(adminNavItems);
+            } else if (role === 'ATTENDANCE_EXECUTIVE') {
+                setNavItems(attendanceExeNavItems);
             } else {
                 setNavItems([]);
             }
@@ -82,13 +100,13 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     return (
         <aside className={cn(
-            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-[#060913] lg:static lg:translate-x-0 relative overflow-show",
+            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-indigo-950 lg:static lg:translate-x-0 relative overflow-show",
             isCollapsed ? "w-20" : "w-64",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}>
             {/* Background Pattern Layer */}
             <div
-                className="absolute inset-0 pointer-events-none opacity-40"
+                className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-30"
                 style={{ backgroundImage: patternDots }}
             />
 
@@ -99,7 +117,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                         <Rocket size={20} />
                     </div>
                     {!isCollapsed && (
-                        <span className="text-lg font-black tracking-tighter text-white uppercase">Project Management</span>
+                        <span className="text-lg font-black tracking-tighter text-white uppercase">Office Management</span>
                     )}
                     <Button size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className={cn("cursor-pointer mt-auto duration-75 hidden lg:flex text-indigo-300 bg-gradient-tr", isCollapsed ? "hover:bg-slate-50 hover:text-indigo-800 hover:border hover:border-indigo-950/10" : "bg-indigo-900 hover:bg-indigo-900 hover:text-white")}>
                         <ChevronLeft className={cn("transition-transform", isCollapsed && "rotate-180")} />

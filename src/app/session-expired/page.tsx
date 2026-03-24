@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import { LogIn, Clock, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { LogIn, Clock, ArrowLeft, ShieldAlert, Hourglass } from 'lucide-react';
 
 const SessionExpired = () => {
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
             <div className="max-w-md w-full">
                 {/* Card Container */}
                 <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-200/60 border border-slate-100 text-center relative overflow-hidden">
@@ -17,7 +17,7 @@ const SessionExpired = () => {
                     <div className="relative mb-8 flex justify-center">
                         <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center rotate-3">
                             <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center -rotate-3 transition-transform hover:rotate-0 duration-300">
-                                <Clock className="text-orange-600" size={32} strokeWidth={2.5} />
+                                <Hourglass className="text-orange-600 animate-caret-blink" size={32} strokeWidth={2.5} />
                             </div>
                         </div>
                         {/* Small floating alert badge */}

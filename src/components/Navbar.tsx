@@ -9,13 +9,18 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Notifications from './Notifications';
+import { getCookie } from '@/utils/cookies';
 
 
 const Navbar = ({ setIsMobileOpen }: { setIsMobileOpen: (value: boolean) => void }) => {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [user, setUser] = useState<any>(null);
 
-    useEffect(() => setMounted(true), []);
+    useEffect(() => {
+        setUser(getCookie("user"));
+        setMounted(true);
+    }, []);
 
     return (
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-transparent px-4 backdrop-blur-3xl dark:border-slate-800 dark:bg-slate-950/80 md:px-8">
@@ -40,7 +45,9 @@ const Navbar = ({ setIsMobileOpen }: { setIsMobileOpen: (value: boolean) => void
                 )}
 
                 {/* Notification Drawer */}
-                <Notifications />
+                {
+                    (user?.role_id == 2 || user?.role_id == 3) && <Notifications />
+                }
 
                 <div className="ml-2 flex items-center gap-3 rounded-xl border border-slate-200 p-1 pl-3 dark:border-slate-800">
                     <span className="hidden text-xs font-black uppercase text-slate-500 lg:block">Dev_Team</span>

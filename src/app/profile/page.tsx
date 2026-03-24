@@ -165,7 +165,7 @@ export default function ProfileSettings() {
         <div className="max-w-5xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
 
             {/* 1. Profile Header / Hero */}
-            <div className="relative h-64 rounded-[3rem] bg-indigo-600 overflow-hidden shadow-2xl shadow-indigo-500/20">
+            <div className="relative h-64 rounded-[3rem] bg-indigo-600 dark:bg-indigo-900 overflow-hidden shadow-2xl shadow-indigo-500/20">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-violet-700 opacity-50" />
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
 
@@ -182,7 +182,7 @@ export default function ProfileSettings() {
                             ) :
                                 (
                                     <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
-                                        {currentUser?.name?.charAt(0) || currentUser?.username?.charAt(0) || "U"}
+                                        {currentUser?.name?.charAt(0)}{currentUser?.name?.split(" ")[1].charAt(0)}
                                     </div>
                                 )}
 

@@ -19,6 +19,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { form } from 'framer-motion/client';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 const getRoleStyle = (role: string) => {
     const r = role?.toLowerCase() || '';
@@ -42,8 +51,8 @@ export default function TeamPage() {
 
     const [formData, setFormData] = useState({
         username: '',
-        password: '',
-        roleId: 3,
+        password: 'admin@123',
+        roleId: '',
         contactNumber: '',
         email: '',
         fullName: '',
@@ -105,7 +114,7 @@ export default function TeamPage() {
                 toast.success('Member registered successfully', { id: toastId });
                 setIsModalOpen(false);
                 setFormData({
-                    username: '', password: '', roleId: 3, contactNumber: '',
+                    username: '', password: '', roleId: 5, contactNumber: '',
                     email: '', fullName: '', profileImage: '', gitUsername: '', gitPublicKey: ''
                 });
                 fetchTeamProfiles();
@@ -309,20 +318,45 @@ export default function TeamPage() {
                                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Username (Login ID) *</Label>
                                             <Input required value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} className="h-14 rounded-2xl bg-slate-50/50 border-slate-200 px-5 font-bold focus:bg-white" placeholder="john_arch" />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Password *</Label>
+                                        {/* <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Default Password *</Label>
                                             <div className="relative">
                                                 <Input type={showPassword ? 'text' : 'password'} required value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="h-14 rounded-2xl bg-slate-50/50 border-slate-200 px-5 font-bold pr-12" placeholder="••••••••" />
                                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors">
                                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                                 </button>
                                             </div>
+                                        </div> */}
+                                        <div className='space-y-2'>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">User Role *</Label>
+                                            <Select
+                                                value={formData?.roleId?.toString()}
+                                                onValueChange={(value) =>
+                                                    setFormData((prev: any) => ({
+                                                        ...prev,
+                                                        roleId: value.toString()
+                                                    }))
+                                                }>
+                                                <SelectTrigger className="dark:bg-indigo-950/80 dark:hover:bg-indigo-950/80 font-bold w-full py-7 px-4 rounded-2xl shadow bg-white">
+                                                    <SelectValue className="font-bold text-slate-400" placeholder="Select User Role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        <SelectLabel>User Roles</SelectLabel>
+                                                        <SelectItem value="1">Management (Admin)</SelectItem>
+                                                        <SelectItem value="2">Team Lead</SelectItem>
+                                                        <SelectItem value="3">Developer</SelectItem>
+                                                        <SelectItem value="4">QA Engineer</SelectItem>
+                                                        <SelectItem value="5">Attendance Executive</SelectItem>
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
 
                                     <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Legal Full Name *</Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full Name *</Label>
                                             <Input required value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })} className="h-14 rounded-2xl bg-slate-50/50 border-slate-200 px-5 font-bold" placeholder="Johnathan Doe" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-6">
