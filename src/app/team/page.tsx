@@ -740,7 +740,7 @@ export default function TeamPage() {
                                         onClick={() => setIsEditing(true)}
                                         className="w-full rounded-[1.5rem] h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
                                     >
-                                        Edit Profile Intelligence
+                                        Edit Profile
                                     </Button>
                                 )}
                             </div>
