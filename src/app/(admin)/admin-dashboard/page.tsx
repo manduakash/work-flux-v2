@@ -12,7 +12,7 @@ import {
     Target, Loader2, Sparkles, ChevronRight,
     DollarSign, Briefcase, Users, ShieldAlert,
     CheckCircle2, AlertCircle, Clock, PauseCircle,
-    UserCheck, HardHat, CalendarDays
+    UserCheck, HardHat, CalendarDays, Search
 } from 'lucide-react';
 
 import { useStore } from '@/store/useStore';
@@ -98,6 +98,136 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         );
     }
     return null;
+};
+
+// --- Paginated Data Table Component ---
+const SmartDataTable = ({ title, subtitle, icon: Icon, data, columns, searchPlaceholder }: any) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+
+    const filteredData = useMemo(() => {
+        if (!searchTerm) return data;
+        const lowerSearch = searchTerm.toLowerCase();
+        return data.filter((item: any) => 
+            Object.values(item).some(val => 
+                String(val).toLowerCase().includes(lowerSearch)
+            )
+        );
+    }, [data, searchTerm]);
+
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredData.slice(start, start + itemsPerPage);
+    }, [filteredData, currentPage]);
+
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+    // Reset pagination on search
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    return (
+        <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm overflow-hidden flex flex-col">
+            <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <Icon className="h-5 w-5 text-indigo-500" /> {title}
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{subtitle}</p>
+                </div>
+                
+                <div className="relative w-full lg:w-72">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder={searchPlaceholder || "Search assets..."}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 pl-11 pr-4 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all shadow-inner"
+                    />
+                </div>
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr className="border-b-2 border-slate-50 dark:border-slate-800/50">
+                            {columns.map((col: any, idx: number) => (
+                                <th key={idx} className={cn("pb-5 pt-2 font-black text-[10px] uppercase tracking-[0.2em]", col.className || "text-slate-500")}>
+                                    {col.header}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50/50 dark:divide-slate-800/30">
+                        {paginatedData.length > 0 ? (
+                            paginatedData.map((row: any, i: number) => (
+                                <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors group">
+                                    {columns.map((col: any, cIdx: number) => (
+                                        <td key={cIdx} className={cn("py-5 text-sm", col.cellClassName)}>
+                                            {col.cell ? col.cell(row) : row[col.accessorKey]}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={columns.length} className="py-20 text-center">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">No Intelligence Found For Match</p>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 pt-6">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        Node {currentPage} of {totalPages} — Total {filteredData.length} records
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(p => p - 1)}
+                            className="h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[9px] border-slate-100"
+                        >
+                            Previous
+                        </Button>
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <button 
+                                    key={i}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={cn(
+                                        "h-8 w-8 rounded-lg text-[10px] font-black transition-all",
+                                        currentPage === i + 1 
+                                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" 
+                                            : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                                    )}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage(p => p + 1)}
+                            className="h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[9px] border-slate-100"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </motion.div>
+    );
 };
 
 
@@ -458,78 +588,76 @@ export default function AdminDashboard() {
             <div className="space-y-6">
 
                 {/* Team Lead Table */}
-                <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm overflow-hidden">
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                                <UserCheck className="h-5 w-5 text-indigo-500" /> Team Leads Directory
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Aggregate leadership metrics</p>
-                        </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b-2 border-slate-100 dark:border-slate-800">
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Lead Name</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Total Manpower</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Total Working Projects</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-blue-600">Active</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-emerald-600">Completed</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-amber-500">On-Hold</th>
-                                </tr>
-                            </thead>
-                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {teamLeadStats.map((lead, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{lead.LeadFullName}</td>
-                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.TotalManpower || 0} Members</td>
-                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.TotalWorkingProject || 0} Projects</td>
-                                        <td className="py-4 text-sm font-black text-blue-600">{lead.ActiveProjects || 0}</td>
-                                        <td className="py-4 text-sm font-black text-emerald-600">{lead.CompletedProjects || 0}</td>
-                                        <td className="py-4 text-sm font-black text-amber-500">{lead.OnHoldProjects || 0}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </motion.div>
+                <SmartDataTable 
+                    title="Team Leads Directory"
+                    subtitle="Aggregate leadership metrics"
+                    icon={UserCheck}
+                    data={teamLeadStats}
+                    searchPlaceholder="Filter Leads..."
+                    columns={[
+                        { 
+                            header: "Lead Name", 
+                            cell: (row: any) => <span className="font-black text-slate-900 dark:text-white uppercase">{row.LeadFullName}</span> 
+                        },
+                        { 
+                            header: "Total Manpower", 
+                            cell: (row: any) => <span className="font-bold text-slate-600">{row.TotalManpower || 0} Members</span> 
+                        },
+                        { 
+                            header: "Total Working Projects", 
+                            cell: (row: any) => <span className="font-bold text-slate-600">{row.TotalWorkingProject || 0} Projects</span> 
+                        },
+                        { 
+                            header: "Active", 
+                            className: "text-blue-600",
+                            cell: (row: any) => <span className="font-black text-blue-600">{row.ActiveProjects || 0}</span> 
+                        },
+                        { 
+                            header: "Completed", 
+                            className: "text-emerald-600",
+                            cell: (row: any) => <span className="font-black text-emerald-600">{row.CompletedProjects || 0}</span> 
+                        },
+                        { 
+                            header: "On-Hold", 
+                            className: "text-amber-500",
+                            cell: (row: any) => <span className="font-black text-amber-500">{row.OnHoldProjects || 0}</span> 
+                        }
+                    ]}
+                />
 
                 {/* Developer Table */}
-                <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm overflow-hidden">
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                                <HardHat className="h-5 w-5 text-indigo-500" /> Developers Force
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Individual operational output</p>
-                        </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b-2 border-slate-100 dark:border-slate-800">
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Developer Name</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Active Projects</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-emerald-600">Total Completed Tasks</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-slate-400">Pending Tasks (Assigned)</th>
-                                    <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-blue-600">In-Progress Tasks</th>
-                                </tr>
-                            </thead>
-                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {developerOutput.map((dev, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{dev.DeveloperFullName}</td>
-                                        <td className="py-4 text-sm font-bold text-slate-600">{dev.Assigned} Projects</td>
-                                        <td className="py-4 text-sm font-black text-emerald-600">{dev.Completed}</td>
-                                        <td className="py-4 text-sm font-black text-slate-500">{dev.Pending}</td>
-                                        <td className="py-4 text-sm font-black text-blue-600">{dev.InProgress}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </motion.div>
+                <SmartDataTable 
+                    title="Developers Force"
+                    subtitle="Individual operational output"
+                    icon={HardHat}
+                    data={developerOutput}
+                    searchPlaceholder="Find Developers..."
+                    columns={[
+                        { 
+                            header: "Developer Name", 
+                            cell: (row: any) => <span className="font-black text-slate-900 dark:text-white uppercase">{row.DeveloperFullName}</span> 
+                        },
+                        { 
+                            header: "Active Projects", 
+                            cell: (row: any) => <span className="font-bold text-slate-600">{row.Assigned} Projects</span> 
+                        },
+                        { 
+                            header: "Total Completed Tasks", 
+                            className: "text-emerald-600",
+                            cell: (row: any) => <span className="font-black text-emerald-600">{row.Completed}</span> 
+                        },
+                        { 
+                            header: "Pending Tasks (Assigned)", 
+                            className: "text-slate-400",
+                            cell: (row: any) => <span className="font-black text-slate-500">{row.Pending}</span> 
+                        },
+                        { 
+                            header: "In-Progress Tasks", 
+                            className: "text-blue-600",
+                            cell: (row: any) => <span className="font-black text-blue-600">{row.InProgress}</span> 
+                        }
+                    ]}
+                />
 
             </div>
         </motion.div>

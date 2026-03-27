@@ -31,6 +31,11 @@ const patternDots = `url("https://www.transparenttextures.com/patterns/padded-li
 const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentUser, handleLogout }: { isMobileOpen: boolean; isCollapsed: boolean; setIsCollapsed: (value: boolean) => void; pathname: string; currentUser: any; handleLogout: () => void }) => {
 
     const [navItems, setNavItems] = useState<any[]>([]);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const leadNavItems = [
         { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
@@ -52,9 +57,9 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
     const adminNavItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
         { icon: ShieldCheck, label: 'Assign Project Lead', href: '/assign-project-lead' },
-        { icon: PieChart, label: 'Analytics', href: '/analytics' },
-        { icon: BarChart3, label: 'Reports', href: '/reports' },
-        { icon: ClipboardCheck, label: 'Today\'s Attendance', href: '/attendance-entry' },
+        // { icon: PieChart, label: 'Analytics', href: '/analytics' },
+        // { icon: BarChart3, label: 'Reports', href: '/reports' },
+        { icon: ClipboardCheck, label: 'Daily Attendance Logs', href: '/attendance-logs' },
         { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
         { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
         { icon: Users, label: 'User Management', href: '/team' },
@@ -146,7 +151,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                 {!isCollapsed && <div className="rounded-2xl mt-2 border border-indigo-800/50 bg-indigo-900/20 p-3 backdrop-blur-md">
                     <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-950 text-[13px] font-bold text-indigo-300 shadow-sm border border-indigo-700/50">
-                            {(() => {
+                            {mounted && (() => {
                                 const localImg = typeof window !== 'undefined' ? localStorage.getItem('profile_image') : null;
                                 const avatarUrl = currentUser?.avatar || currentUser?.profile_image || (localImg !== "null" && localImg !== "undefined" ? localImg : null);
 
@@ -165,6 +170,9 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                                     </div>
                                 );
                             })()}
+                            {!mounted && (
+                                <div className="h-full w-full flex items-center justify-center bg-indigo-800 text-indigo-100 font-black text-xs rounded-full uppercase tracking-tighter animate-pulse" />
+                            )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-white">

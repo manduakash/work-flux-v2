@@ -24,15 +24,15 @@ const itemVariants = {
 
 // --- Interfaces ---
 interface EmployeeReport {
-    ID: string;
-    Name: string;
-    Dept: string;
-    Present: number;
-    Absent: number;
-    Late: number;
-    Leave: number;
-    Total: number;
-    Punctuality: number;
+    UserID: number;
+    UserFullName: string;
+    Present: string | number;
+    Absent: string | number;
+    OnTime: string | number;
+    Late: string | number;
+    OnLeave: string | number;
+    TotalWorkingDaysUntilToday: number;
+    Punctuality: string | number;
 }
 
 export default function UserwiseAttendanceExport() {
@@ -42,20 +42,20 @@ export default function UserwiseAttendanceExport() {
     const [page, setPage] = useState(1);
 
     // Initialize with current YYYY-MM
-    const currentYear = new Date().getFullYear();
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-    const [monthYear, setMonthYear] = useState(`${currentYear}-${currentMonth}`);
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-    // --- API Integration ---
-    const getMonthAttendanceReport = async (selectedMonthYear: string) => {
+    const [fromDate, setFromDate] = useState(formatDate(firstDay));
+    const [toDate, setToDate] = useState(formatDate(today));
+
+    const getAttendanceReport = async () => {
         setLoading(true);
         try {
-            const [year, month] = selectedMonthYear.split('-');
+            const response = await callGetAPIWithToken(`attendance/employee-report?fromDate=${fromDate}&toDate=${toDate}`);
 
-            // Note: Ensure the API route matches your setup exactly
-            const response = await callGetAPIWithToken(`attendance/get-monthly-report?month=${parseInt(month)}&year=${year}`);
-
-            if (response?.status === 'success' && response?.data) {
+            if (response?.success && response?.data) {
                 setReports(response.data);
             } else {
                 setReports([]);
@@ -68,19 +68,15 @@ export default function UserwiseAttendanceExport() {
         }
     };
 
-    // Trigger fetch when Month/Year changes
     useEffect(() => {
-        if (monthYear) {
-            getMonthAttendanceReport(monthYear);
-            setPage(1); // Reset to first page on new data
-        }
-    }, [monthYear]);
+        getAttendanceReport();
+        setPage(1);
+    }, [fromDate, toDate]); // Restored for stability and HMR consistency
 
     // --- Filtering Logic ---
     const filteredData = reports.filter(emp =>
-        emp.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.Dept.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.ID.toLowerCase().includes(searchTerm.toLowerCase())
+        emp.UserFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.UserID.toString().includes(searchTerm)
     );
 
     // --- Pagination Logic ---
@@ -97,11 +93,10 @@ export default function UserwiseAttendanceExport() {
 
     // --- Export Handlers ---
     const handleExport = (type: 'csv' | 'pdf', empName: string = 'All_Users') => {
-        const [year, month] = monthYear.split('-');
-        // In reality, this triggers a file download via API utilizing the month and year
-        alert(`Exporting ${type.toUpperCase()} report for ${empName} (Period: ${month}/${year})...`);
+        // In reality, this triggers a file download via API utilizing the date range
+        alert(`Exporting ${type.toUpperCase()} report for ${empName} (Period: ${fromDate} to ${toDate})...`);
 
-        // TODO: window.open(`/api/export?type=${type}&user=${empName}&month=${month}&year=${year}`)
+        // TODO: window.open(`/api/export?type=${type}&user=${empName}&fromDate=${fromDate}&toDate=${toDate}`)
     };
 
     return (
@@ -169,17 +164,46 @@ export default function UserwiseAttendanceExport() {
 
                 <div className="w-px h-10 bg-slate-200 dark:bg-slate-800 hidden md:block mx-2" />
 
-                {/* Month/Year Picker & Filter */}
-                <div className="flex gap-2 w-full md:w-auto">
+                {/* Date Range Picker */}
+                <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:flex-none">
                         <CalendarDays className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500 pointer-events-none" />
                         <input
-                            type="month"
-                            value={monthYear}
-                            onChange={(e) => setMonthYear(e.target.value)}
-                            className="h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 cursor-pointer w-full md:w-auto outline-none transition-all"
+                            type="date"
+                            value={fromDate}
+                            onChange={(e) => setFromDate(e.target.value)}
+                            className="h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                         />
                     </div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">TO</span>
+                    <div className="relative flex-1 md:flex-none flex items-center gap-2">
+                        <div className="relative">
+                            <CalendarDays className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500 pointer-events-none" />
+                            <input
+                                type="date"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                className="h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setToDate(formatDate(today))}
+                            className="h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[9px] border-slate-100 dark:border-slate-800 hover:bg-slate-50 transition-all shrink-0"
+                        >
+                            Today
+                        </Button>
+                    </div>
+                    <Button
+                        onClick={() => {
+                            getAttendanceReport();
+                            setPage(1);
+                        }}
+                        className="h-14 rounded-3xl bg-indigo-600 px-10 font-black uppercase tracking-widest text-[11px] hover:bg-indigo-700 transition-all text-white ml-2 shadow-lg shadow-indigo-600/20"
+                    >
+                        Generate Report
+                    </Button>
                 </div>
 
             </motion.div>
@@ -194,7 +218,7 @@ export default function UserwiseAttendanceExport() {
                                 Employee Attendance Database
                             </h3>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">
-                                Displaying {filteredData.length} records for {monthYear}
+                                Displaying {filteredData.length} records from {fromDate} to {toDate}
                             </p>
                         </div>
                     </div>
@@ -228,18 +252,18 @@ export default function UserwiseAttendanceExport() {
                                         </tr>
                                     ) : (
                                         paginatedData.map((emp) => (
-                                            <tr key={emp.ID} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                            <tr key={emp.UserID} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                                                 <td className="py-5 px-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm uppercase">
-                                                            {emp.Name.split(' ').map(n => n[0]).join('')}
+                                                            {emp.UserFullName.split(' ').map(n => n[0]).join('')}
                                                         </div>
                                                         <div className="flex flex-col">
                                                             <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">
-                                                                {emp.Name}
+                                                                {emp.UserFullName}
                                                             </span>
                                                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                                                                {emp.ID} • {emp.Dept}
+                                                                UID: {emp.UserID} • Total Working Days: {emp.TotalWorkingDaysUntilToday}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -249,19 +273,19 @@ export default function UserwiseAttendanceExport() {
                                                     <span className="text-sm font-black text-slate-900 dark:text-white">{emp.Present}</span>
                                                 </td>
                                                 <td className="py-5 text-center">
-                                                    <span className={`text-sm font-black ${emp.Absent > 0 ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>{emp.Absent}</span>
+                                                    <span className={`text-sm font-black ${Number(emp.Absent) > 0 ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>{emp.Absent}</span>
                                                 </td>
                                                 <td className="py-5 text-center">
-                                                    <span className={`text-sm font-black ${emp.Late > 0 ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>{emp.Late}</span>
+                                                    <span className={`text-sm font-black ${Number(emp.Late) > 0 ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>{emp.Late}</span>
                                                 </td>
                                                 <td className="py-5 text-center">
-                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{emp.Leave}</span>
+                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{emp.OnLeave}</span>
                                                 </td>
 
                                                 <td className="py-5 text-center">
                                                     <span className={cn(
                                                         "inline-flex items-center rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-widest",
-                                                        getHealthColor(emp.Punctuality)
+                                                        getHealthColor(Number(emp.Punctuality) || 0)
                                                     )}>
                                                         {emp.Punctuality}%
                                                     </span>

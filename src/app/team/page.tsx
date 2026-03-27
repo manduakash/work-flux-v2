@@ -732,7 +732,7 @@ export default function TeamPage() {
                                             className="flex-[2] rounded-[1.5rem] h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
                                         >
                                             {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-3" size={18} />}
-                                            Commit Changes
+                                            Save Changes
                                         </Button>
                                     </>
                                 ) : (

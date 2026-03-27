@@ -182,7 +182,8 @@ export default function ProfileSettings() {
                             ) :
                                 (
                                     <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600 font-black text-4xl">
-                                        {currentUser?.name?.charAt(0)}{currentUser?.name?.split(" ")[1].charAt(0)}
+                                        {currentUser?.name?.charAt(0)}
+                                        {currentUser?.name?.split(" ")[1] ? currentUser.name.split(" ")[1].charAt(0) : ""}
                                     </div>
                                 )}
 
