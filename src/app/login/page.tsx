@@ -33,7 +33,7 @@ export default function LoginPage() {
 
         try {
             const response = await callAPI("auth/login", {
-                username: formData?.username,
+                username: formData?.username?.trim(),
                 password: formData?.password,
             });
 

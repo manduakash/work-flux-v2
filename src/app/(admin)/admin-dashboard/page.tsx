@@ -45,7 +45,7 @@ const containerVariants = {
 
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+    visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
 };
 
 // --- Custom Components ---
@@ -79,52 +79,7 @@ const ChartWrapper = ({ title, subtitle, children }: any) => (
     </motion.div>
 );
 
-// --- Mock Data Generators (Replace with real API data) ---
-const mockProjectTaskData = [
-    { name: 'Alpha Redesign', assigned: 15, inProgress: 45, completed: 120 },
-    { name: 'Beta API', assigned: 30, inProgress: 20, completed: 80 },
-    { name: 'Omega Security', assigned: 5, inProgress: 60, completed: 40 },
-    { name: 'Delta Mobile', assigned: 25, inProgress: 35, completed: 90 },
-    { name: 'Gamma Cloud', assigned: 10, inProgress: 15, completed: 150 },
-];
 
-const mockProjectManpower = [
-    { name: 'Alpha', devs: 12, leads: 2, QA: 4 },
-    { name: 'Beta', devs: 8, leads: 1, QA: 2 },
-    { name: 'Omega', devs: 15, leads: 3, QA: 5 },
-    { name: 'Delta', devs: 6, leads: 1, QA: 2 },
-    { name: 'Gamma', devs: 20, leads: 4, QA: 8 },
-];
-
-const mockDeveloperTasks = [
-    { name: 'Alex H.', assigned: 4, inProgress: 3, completed: 45 },
-    { name: 'Sarah J.', assigned: 2, inProgress: 5, completed: 38 },
-    { name: 'Mike T.', assigned: 8, inProgress: 2, completed: 29 },
-    { name: 'Emma W.', assigned: 1, inProgress: 6, completed: 52 },
-    { name: 'John D.', assigned: 5, inProgress: 4, completed: 31 },
-];
-
-const mockTeamLeadData = [
-    { name: 'David R.', projects: 4, progress: 85, manpower: 24 },
-    { name: 'Lisa M.', projects: 2, progress: 60, manpower: 12 },
-    { name: 'James K.', projects: 5, progress: 92, manpower: 35 },
-    { name: 'Nina S.', projects: 3, progress: 45, manpower: 18 },
-];
-
-const mockDeadlineCrossed = [
-    { name: 'Legacy Auth', daysCrossed: 14, progress: 85 },
-    { name: 'DB Migration', daysCrossed: 5, progress: 92 },
-    { name: 'UI Overhaul', daysCrossed: 22, progress: 60 },
-    { name: 'Payment Gateway', daysCrossed: 2, progress: 98 },
-];
-
-const mockProjectDays = [
-    { name: 'Alpha', days: 120 },
-    { name: 'Beta', days: 85 },
-    { name: 'Omega', days: 210 },
-    { name: 'Delta', days: 45 },
-    { name: 'Gamma', days: 160 },
-];
 
 // --- Custom Tooltip ---
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -151,14 +106,172 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
 
+    // Dashboard Data State
+    const [counts, setCounts] = useState<any>(null);
+    const [projectProgress, setProjectProgress] = useState<any[]>([]);
+    const [resourceAllocation, setResourceAllocation] = useState<any[]>([]);
+    const [developerOutput, setDeveloperOutput] = useState<any[]>([]);
+    const [leadershipPerformance, setLeadershipPerformance] = useState<any[]>([]);
+    const [teamLeadStats, setTeamLeadStats] = useState<any[]>([]);
+    const [projectTenure, setProjectTenure] = useState<any[]>([]);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
                 const user = getCookie("user");
                 setProfile(user);
-                // Simulate API Call delay for demo purposes
-                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // We fetch everything separately to avoid one failure blocking everything
+                const fetchCount = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/count');
+                        const rawData = res.success ? res.data : res;
+                        const data = Array.isArray(rawData) ? rawData[0] : rawData;
+                        // Normalize keys to PascalCase for the UI if needed
+                        const normalized: any = {};
+                        if (data) {
+                            Object.entries(data).forEach(([key, value]) => {
+                                const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                normalized[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value))) ? Number(value) : value;
+                            });
+                        }
+                        setCounts(normalized);
+                    } catch (e) {
+                        console.error("Count Fetch Error:", e);
+                    }
+                };
+
+                const fetchProgress = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/project-wise-progress-graph');
+                        const data = res.success ? res.data : res;
+                        if (Array.isArray(data)) {
+                            const normalized = data.map((item: any) => {
+                                const norm: any = {};
+                                Object.entries(item).forEach(([key, value]) => {
+                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'ProjectName') ? Number(value) : value;
+                                });
+                                return norm;
+                            });
+                            setProjectProgress(normalized);
+                        }
+                    } catch (e) {
+                        console.error("Progress Fetch Error:", e);
+                    }
+                };
+
+                const fetchResource = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/resource-allocation-chart');
+                        const data = res.success ? res.data : res;
+                        if (Array.isArray(data)) {
+                            const normalized = data.map((item: any) => {
+                                const norm: any = {};
+                                Object.entries(item).forEach(([key, value]) => {
+                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'ProjectName') ? Number(value) : value;
+                                });
+                                return norm;
+                            });
+                            setResourceAllocation(normalized);
+                        }
+                    } catch (e) {
+                        console.error("Resource Fetch Error:", e);
+                    }
+                };
+
+                const fetchOutput = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/developer-output-chart');
+                        const data = res.success ? res.data : res;
+                        if (Array.isArray(data)) {
+                            const normalized = data.map((item: any) => {
+                                const norm: any = {};
+                                Object.entries(item).forEach(([key, value]) => {
+                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'DeveloperFullName') ? Number(value) : value;
+                                });
+                                return norm;
+                            });
+                            setDeveloperOutput(normalized);
+                        }
+                    } catch (e) {
+                        console.error("Output Fetch Error:", e);
+                    }
+                };
+
+                const fetchLeadership = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/leadership-performance-chart');
+                        const data = res.success ? res.data : res;
+                        if (Array.isArray(data)) {
+                            const normalized = data.map((item: any) => {
+                                const norm: any = {};
+                                Object.entries(item).forEach(([key, value]) => {
+                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'LeadFullName') ? Number(value) : value;
+                                });
+                                return norm;
+                            });
+                            setLeadershipPerformance(normalized);
+                        }
+                    } catch (e) {
+                        console.error("Leadership Fetch Error:", e);
+                    }
+                };
+
+                const fetchTeamLeadStats = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/team-lead-stats');
+                        const data = res.success ? res.data : res;
+                        if (Array.isArray(data)) {
+                            const normalized = data.map((item: any) => {
+                                const norm: any = {};
+                                Object.entries(item).forEach(([key, value]) => {
+                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'LeadFullName') ? Number(value) : value;
+                                });
+                                return norm;
+                            });
+                            setTeamLeadStats(normalized);
+                        }
+                    } catch (e) {
+                        console.error("Team Lead Stats Fetch Error:", e);
+                    }
+                };
+
+                const fetchTenure = async () => {
+                    try {
+                        const res = await callGetAPIWithToken('admin/dashboard/project-tenure-graph');
+                        const data = res.success ? res.data : res;
+                        if (Array.isArray(data)) {
+                            const normalized = data.map((item: any) => {
+                                const norm: any = {};
+                                Object.entries(item).forEach(([key, value]) => {
+                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
+                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'ProjectName') ? Number(value) : value;
+                                });
+                                return norm;
+                            });
+                            setProjectTenure(normalized);
+                        }
+                    } catch (e) {
+                        console.error("Tenure Fetch Error:", e);
+                    }
+                };
+
+                await Promise.allSettled([
+                    fetchCount(),
+                    fetchProgress(),
+                    fetchResource(),
+                    fetchOutput(),
+                    fetchLeadership(),
+                    fetchTeamLeadStats(),
+                    fetchTenure()
+                ]);
+
             } catch (error) {
                 console.error("Admin Dashboard Sync Failed:", error);
             } finally {
@@ -215,35 +328,35 @@ export default function AdminDashboard() {
             {/* ACTION CARDS (8 Cards) */}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <ActionCard
-                    title="Total Projects" subtitle="All time tracked" value="142" icon={Briefcase}
+                    title="Total Projects" subtitle="All time tracked" value={counts?.TotalProjects || 0} icon={Briefcase}
                     gradient="bg-gradient-to-br from-blue-600 to-indigo-800" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="Active Projects" subtitle="Currently working" value="48" icon={Activity}
+                    title="Active Projects" subtitle="Currently working" value={counts?.ActiveProjects || 0} icon={Activity}
                     gradient="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-900" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="Completed Projects" subtitle="Successfully delivered" value="81" icon={CheckCircle2}
+                    title="Deployed Projects" subtitle="Successfully delivered" value={counts?.DeployedProjects || 0} icon={CheckCircle2}
                     gradient="bg-gradient-to-tl from-blue-700 via-purple-600 to-purple-800" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="On-Hold Projects" subtitle="Awaiting resources/client" value="13" icon={PauseCircle}
+                    title="On-Hold Projects" subtitle="Awaiting resources/client" value={counts?.OnHoldProjects || 0} icon={PauseCircle}
                     gradient="bg-gradient-to-br from-amber-600 via-yellow-600 to-orange-700" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="Total Manpower" subtitle="Devs, QA & Leads" value="264" icon={Users}
+                    title="Total Manpower" subtitle="Devs, QA & Leads" value={counts?.TotalManpower || 0} icon={Users}
                     gradient="bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="Deadline Crossed" subtitle="Needs immediate attention" value="4" icon={ShieldAlert}
+                    title="Deadline Crossed" subtitle="Needs immediate attention" value={counts?.DeadlineCrossedTask || 0} icon={ShieldAlert}
                     gradient="bg-gradient-to-br from-red-500 via-rose-600 to-orange-700" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="Total Jr. Developers" subtitle="Across NexIntel & SVU" value="27" icon={Target}
+                    title="Total Jr. Developers" subtitle="Across NexIntel & SVU" value={counts?.TotalJrDevelopers || 0} icon={Target}
                     gradient="bg-gradient-to-bl from-purple-500 via-rose-400 to-rose-600" pattern={diamonUpholstery}
                 />
                 <ActionCard
-                    title="Total Sr. Developers" subtitle="Across NexIntel & SVU" value="9" icon={TrendingUp}
+                    title="Total Sr. Developers" subtitle="Across NexIntel & SVU" value={counts?.TotalSrDeveloper || 0} icon={TrendingUp}
                     gradient="bg-gradient-to-br from-teal-400 to-slate-800" pattern={diamonUpholstery}
                 />
             </div>
@@ -253,15 +366,16 @@ export default function AdminDashboard() {
                 {/* 1. Project-wise Tasks (Assigned, In-Progress, Completed) */}
                 <ChartWrapper title="Project Lifecycle Status" subtitle="Task distribution per active project">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={mockProjectTaskData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                        <BarChart data={projectProgress} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <XAxis dataKey="ProjectName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <Tooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar dataKey="completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 4, 4]} />
-                            <Bar dataKey="inProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
-                            <Bar dataKey="assigned" name="Assigned" stackId="a" fill={COLORS.assigned} radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 4, 4]} />
+                            <Bar dataKey="Review" name="Review" stackId="a" fill="#8b5cf6" />
+                            <Bar dataKey="InProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
+                            <Bar dataKey="Pending" name="Pending" stackId="a" fill={COLORS.assigned} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartWrapper>
@@ -269,15 +383,14 @@ export default function AdminDashboard() {
                 {/* 2. Project-wise Manpower */}
                 <ChartWrapper title="Resource Allocation" subtitle="Manpower distribution across projects">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={mockProjectManpower} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                        <BarChart data={resourceAllocation} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <XAxis dataKey="ProjectName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <Tooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar dataKey="devs" name="Developers" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="QA" name="QA Engineers" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="leads" name="Team Leads" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="NoOfDevs" name="Developers" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="NoOfLeads" name="Team Leads" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartWrapper>
@@ -288,15 +401,16 @@ export default function AdminDashboard() {
                 {/* 3. Developer-wise Task Status */}
                 <ChartWrapper title="Developer Output Analytics" subtitle="Individual task pipeline status">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart layout="vertical" data={mockDeveloperTasks} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                        <BarChart layout="vertical" data={developerOutput} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                             <XAxis type="number" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} width={80} />
+                            <YAxis dataKey="DeveloperFullName" type="category" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} width={100} />
                             <Tooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar dataKey="completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 0, 4]} />
-                            <Bar dataKey="inProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
-                            <Bar dataKey="assigned" name="Assigned" stackId="a" fill={COLORS.assigned} radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="Completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 0, 4]} />
+                            <Bar dataKey="InProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
+                            <Bar dataKey="Pending" name="Pending" stackId="a" fill={COLORS.assigned} />
+                            <Bar dataKey="Assigned" name="Assigned" stackId="a" fill="#cbd5e1" radius={[0, 4, 4, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </ChartWrapper>
@@ -304,42 +418,26 @@ export default function AdminDashboard() {
                 {/* 4. Team Lead Wise Projects Count & Progress (%) */}
                 <ChartWrapper title="Leadership Performance" subtitle="Projects handled vs overall completion %">
                     <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={mockTeamLeadData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                        <ComposedChart data={leadershipPerformance} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <XAxis dataKey="LeadFullName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <YAxis yAxisId="left" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <Tooltip content={<CustomTooltip />} />
                             <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar yAxisId="left" dataKey="projects" name="Active Projects" barSize={40} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                            <Line yAxisId="right" type="monotone" dataKey="progress" name="Progress (%)" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} />
+                            <Bar yAxisId="left" dataKey="NoOfProjects" name="Active Projects" barSize={40} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            <Line yAxisId="right" type="monotone" dataKey="Progress" name="Progress (%)" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} />
                         </ComposedChart>
                     </ResponsiveContainer>
                 </ChartWrapper>
             </div>
 
             {/* CHARTS SECTION - ROW 3 */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* 5. Deadline Crossed with Progress */}
-                <ChartWrapper title="Risk Radar: Overdue Projects" subtitle="Days crossed vs Current Progress">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={mockDeadlineCrossed} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="left" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar yAxisId="left" dataKey="daysCrossed" name="Days Overdue" fill={COLORS.danger} barSize={30} radius={[4, 4, 0, 0]} />
-                            <Line yAxisId="right" type="step" dataKey="progress" name="Completion (%)" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} />
-                        </ComposedChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
-
+            <div className="grid grid-cols-1 gap-6">
                 {/* 6. Projects Total Working Days */}
                 <ChartWrapper title="Project Tenure" subtitle="Total working days invested per active project">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={mockProjectDays} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                        <AreaChart data={projectTenure} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorDays" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
@@ -347,10 +445,10 @@ export default function AdminDashboard() {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <XAxis dataKey="ProjectName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
                             <Tooltip content={<CustomTooltip />} />
-                            <Area type="monotone" dataKey="days" name="Working Days" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorDays)" />
+                            <Area type="monotone" dataKey="ProjectTenure" name="Working Days" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorDays)" />
                         </AreaChart>
                     </ResponsiveContainer>
                 </ChartWrapper>
@@ -381,15 +479,15 @@ export default function AdminDashboard() {
                                     <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-amber-500">On-Hold</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {mockTeamLeadData.map((lead, i) => (
+                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                {teamLeadStats.map((lead, i) => (
                                     <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{lead.name}</td>
-                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.manpower} Resources</td>
-                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.projects + 2} Projects</td>
-                                        <td className="py-4 text-sm font-black text-blue-600">{lead.projects}</td>
-                                        <td className="py-4 text-sm font-black text-emerald-600">{Math.floor(lead.projects * 1.5)}</td>
-                                        <td className="py-4 text-sm font-black text-amber-500">{i % 2 === 0 ? 1 : 0}</td>
+                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{lead.LeadFullName}</td>
+                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.TotalManpower || 0} Members</td>
+                                        <td className="py-4 text-sm font-bold text-slate-600">{lead.TotalWorkingProject || 0} Projects</td>
+                                        <td className="py-4 text-sm font-black text-blue-600">{lead.ActiveProjects || 0}</td>
+                                        <td className="py-4 text-sm font-black text-emerald-600">{lead.CompletedProjects || 0}</td>
+                                        <td className="py-4 text-sm font-black text-amber-500">{lead.OnHoldProjects || 0}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -418,14 +516,14 @@ export default function AdminDashboard() {
                                     <th className="pb-4 pt-2 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-blue-600">In-Progress Tasks</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                {mockDeveloperTasks.map((dev, i) => (
+                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                {developerOutput.map((dev, i) => (
                                     <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
-                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{dev.name}</td>
-                                        <td className="py-4 text-sm font-bold text-slate-600">{Math.ceil(dev.inProgress / 2)}</td>
-                                        <td className="py-4 text-sm font-black text-emerald-600">{dev.completed}</td>
-                                        <td className="py-4 text-sm font-black text-slate-500">{dev.assigned}</td>
-                                        <td className="py-4 text-sm font-black text-blue-600">{dev.inProgress}</td>
+                                        <td className="py-4 text-sm font-black text-slate-900 dark:text-white uppercase">{dev.DeveloperFullName}</td>
+                                        <td className="py-4 text-sm font-bold text-slate-600">{dev.Assigned} Projects</td>
+                                        <td className="py-4 text-sm font-black text-emerald-600">{dev.Completed}</td>
+                                        <td className="py-4 text-sm font-black text-slate-500">{dev.Pending}</td>
+                                        <td className="py-4 text-sm font-black text-blue-600">{dev.InProgress}</td>
                                     </tr>
                                 ))}
                             </tbody>

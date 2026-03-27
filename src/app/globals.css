@@ -123,4 +123,28 @@
   body {
     @apply bg-background text-foreground;
   }
-}@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } } .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
+}@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .slick-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .slick-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .slick-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 20px;
+  }
+  .slick-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+  }
+}
+
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } } .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }

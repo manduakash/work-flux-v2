@@ -51,6 +51,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     const adminNavItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
+        { icon: ShieldCheck, label: 'Assign Project Lead', href: '/assign-project-lead' },
         { icon: PieChart, label: 'Analytics', href: '/analytics' },
         { icon: BarChart3, label: 'Reports', href: '/reports' },
         { icon: ClipboardCheck, label: 'Today\'s Attendance', href: '/attendance-entry' },
@@ -100,7 +101,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
 
     return (
         <aside className={cn(
-            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-indigo-950 lg:static lg:translate-x-0 relative overflow-show",
+            "fixed inset-y-0 left-0 z-50 flex flex-col border-indigo-500/80 border-r-4 bg-indigo-950 transition-all duration-75 dark:border-[#0a0f24] dark:bg-indigo-950 lg:static lg:translate-x-0 relative overflow-hidden",
             isCollapsed ? "w-20" : "w-64",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}>

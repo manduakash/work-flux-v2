@@ -53,8 +53,8 @@ export default function RapidDataEntry() {
         try {
             // Note: Update the endpoint path string to exactly match your actual GET route
             const response = await callGetAPIWithToken(`attendance?date=${dateStr}`);
-
-            if (response?.status == 'success') {
+            console.log(response);
+            if (response?.success) {
                 const mappedData: EmployeeEntry[] = response.data.map((item: any) => ({
                     id: item?.ID,
                     name: item?.EmpName,
@@ -146,7 +146,7 @@ export default function RapidDataEntry() {
 
             // Wait for all updates to finish processing
             const result = await Promise.all(promises);
-            const res = result?.every((res) => res?.status == 'success');
+            const res = result?.every((res) => res?.success);
 
             res ? toast.success("Attendance updated successfully!") : toast.error("Failed to update attendance")
             // Re-fetch the table to ensure the UI is fully synced with the database

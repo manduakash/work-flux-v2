@@ -44,6 +44,8 @@ export interface User {
   git_username?: string;
   git_public_key?: string;
   profile_image?: string;
+  designations?: string[];
+  organization_name?: string;
   FullName?: string; // For legacy/API consistency
 }
 
