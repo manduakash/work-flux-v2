@@ -11,6 +11,7 @@ import {
     Moon,
     Sun,
     Bell,
+    CalendarDays,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -46,6 +47,10 @@ export const Sidebar = () => {
 
     if (currentUser?.role === UserRole.MANAGEMENT || currentUser?.role === UserRole.TEAM_LEAD) {
         menuItems.push({ icon: Users, label: 'Team', path: '/team' });
+    }
+
+    if (currentUser?.role === UserRole.TEAM_LEAD || currentUser?.role === UserRole.DEVELOPER) {
+        menuItems.push({ icon: CalendarDays, label: 'Leave Application', path: '/leave-application' });
     }
 
     const handleLogout = () => {

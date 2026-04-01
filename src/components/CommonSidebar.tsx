@@ -18,7 +18,9 @@ import {
     Users2,
     ClipboardCheck,
     FileBarChart,
-    CalendarCheck
+    CalendarCheck,
+    CalendarDays,
+    Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
@@ -27,6 +29,46 @@ import { getCookie } from '@/utils/cookies';
 
 // SVG Dot Pattern
 const patternDots = `url("https://www.transparenttextures.com/patterns/padded-light.png")`;
+
+// Define Static Nav Items Outside Component to ensure stability
+const LEAD_NAV_ITEMS = [
+    { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
+    { icon: Plus, label: 'Add Project', href: '/project-create' },
+    { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
+    { icon: Users, label: 'User Management', href: '/team' },
+    { icon: ShieldCheck, label: 'Project Assignments', href: '/team-management' },
+    { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
+    { icon: Calendar, label: 'Leave Application', href: '/leave-application' },
+    { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
+];
+
+const DEV_NAV_ITEMS = [
+    { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
+    { icon: ListChecks, label: 'Tasks', href: '/create-manage-task' },
+    { icon: FolderKanban, label: 'Projects', href: '/assigned-projects' },
+    { icon: Calendar, label: 'Leave Application', href: '/leave-application' },
+    { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
+];
+
+const ADMIN_NAV_ITEMS = [
+    { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
+    { icon: ShieldCheck, label: 'Assign Project Lead', href: '/assign-project-lead' },
+    { icon: ClipboardCheck, label: 'Daily Attendance Logs', href: '/attendance-logs' },
+    { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+    { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
+    { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Admin also gets it
+    { icon: Users, label: 'User Management', href: '/team' },
+    { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
+];
+
+const ATTENDANCE_EXE_NAV_ITEMS = [
+    { icon: LayoutDashboard, label: 'Dashboard', href: '/attendance-executive-dashboard' },
+    { icon: ClipboardCheck, label: 'Attendance Entry', href: '/attendance-entry' },
+    { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+    { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
+    { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Everyone gets it
+    { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
+];
 
 const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentUser, handleLogout }: { isMobileOpen: boolean; isCollapsed: boolean; setIsCollapsed: (value: boolean) => void; pathname: string; currentUser: any; handleLogout: () => void }) => {
 
@@ -37,67 +79,31 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         setMounted(true);
     }, []);
 
-    const leadNavItems = [
-        { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
-        { icon: Plus, label: 'Add Project', href: '/project-create' },
-        { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
-        { icon: Users, label: 'User Management', href: '/team' },
-        { icon: ShieldCheck, label: 'Project Assignments', href: '/team-management' },
-        { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
-        { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
-    ];
-
-    const devNavItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/developer-dashboard' },
-        { icon: ListChecks, label: 'Tasks', href: '/create-manage-task' },
-        { icon: FolderKanban, label: 'Projects', href: '/assigned-projects' },
-        { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
-    ];
-
-    const adminNavItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
-        { icon: ShieldCheck, label: 'Assign Project Lead', href: '/assign-project-lead' },
-        // { icon: PieChart, label: 'Analytics', href: '/analytics' },
-        // { icon: BarChart3, label: 'Reports', href: '/reports' },
-        { icon: ClipboardCheck, label: 'Daily Attendance Logs', href: '/attendance-logs' },
-        { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
-        { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
-        { icon: Users, label: 'User Management', href: '/team' },
-        { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
-    ];
-
-    const attendanceExeNavItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/attendance-executive-dashboard' },
-        { icon: ClipboardCheck, label: 'Attendance Entry', href: '/attendance-entry' },
-        { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
-        { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
-        { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
-    ];
-
     useEffect(() => {
         const roleIdRaw = getCookie("role_id");
-        const roleId = currentUser?.role_id || (roleIdRaw ? parseInt(roleIdRaw) : null);
+        // Convert to Number as cookies are stored as JSON-stringified values
+        const cookieRole = roleIdRaw != null ? Number(roleIdRaw) : null;
+        const roleId = currentUser?.role_id || cookieRole;
 
         if (roleId === 2) {
-            setNavItems(leadNavItems);
+            setNavItems(LEAD_NAV_ITEMS);
         } else if (roleId === 3) {
-            setNavItems(devNavItems);
+            setNavItems(DEV_NAV_ITEMS);
         } else if (roleId === 1) {
-            setNavItems(adminNavItems);
+            setNavItems(ADMIN_NAV_ITEMS);
         } else if (roleId === 5) {
-            setNavItems(attendanceExeNavItems);
+            setNavItems(ATTENDANCE_EXE_NAV_ITEMS);
         }
         else {
-            // Robust fallback if role_id is not yet set or unavailable
             const role = currentUser?.role || getCookie("role");
             if (role === 'TEAM_LEAD') {
-                setNavItems(leadNavItems);
+                setNavItems(LEAD_NAV_ITEMS);
             } else if (role === 'DEVELOPER') {
-                setNavItems(devNavItems);
+                setNavItems(DEV_NAV_ITEMS);
             } else if (role === 'MANAGEMENT') {
-                setNavItems(adminNavItems);
+                setNavItems(ADMIN_NAV_ITEMS);
             } else if (role === 'ATTENDANCE_EXECUTIVE') {
-                setNavItems(attendanceExeNavItems);
+                setNavItems(ATTENDANCE_EXE_NAV_ITEMS);
             } else {
                 setNavItems([]);
             }
@@ -131,21 +137,31 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
                 </div>
 
                 <nav className="flex-1 space-y-2 overflow-y-auto scrollbar-hide">
-                    {navItems?.map((item: any) => (
-                        <Link
-                            href={item.href}
-                            key={item.label}
-                            className={cn(
-                                "group flex w-full items-center rounded-xl px-3 py-2.5 transition-all duration-200",
-                                pathname === item.href
-                                    ? "bg-indigo-600 shadow-md shadow-indigo-900/20 text-white"
-                                    : "text-indigo-200/70 hover:bg-indigo-900/50 hover:text-white"
-                            )}
-                        >
-                            <item.icon size={20} className={cn("shrink-0 transition-colors", pathname === item.href ? "text-white" : "text-indigo-400/70 group-hover:text-white")} />
-                            {!isCollapsed && <span className="ml-3 text-sm font-bold uppercase tracking-widest">{item.label}</span>}
-                        </Link>
-                    ))}
+                    {navItems?.map((item: any) => {
+                        const isActive = pathname === item.href;
+                        return (
+                            <Link
+                                href={item.href}
+                                key={item.label}
+                                className={cn(
+                                    "group flex w-full items-center rounded-xl px-3 py-2.5 transition-all duration-200",
+                                    isActive
+                                        ? "bg-indigo-600 shadow-md shadow-indigo-900/20 text-white"
+                                        : "text-indigo-200/70 hover:bg-indigo-900/50 hover:text-white"
+                                )}
+                            >
+                                <item.icon size={20} className={cn("shrink-0 transition-colors", isActive ? "text-white" : "text-indigo-400/70 group-hover:text-white")} />
+                                {!isCollapsed && (
+                                    <div className="flex items-center justify-between flex-1 ml-3">
+                                        <span className="text-sm font-bold uppercase tracking-widest">{item.label}</span>
+                                        {item.href === '/leave-application' && (
+                                            <span className="ml-2 px-1.5 py-0.5 rounded-md bg-indigo-500/50 text-[8px] font-black animate-pulse">NEW</span>
+                                        )}
+                                    </div>
+                                )}
+                            </Link>
+                        )
+                    })}
                 </nav>
 
                 {!isCollapsed && <div className="rounded-2xl mt-2 border border-indigo-800/50 bg-indigo-900/20 p-3 backdrop-blur-md">

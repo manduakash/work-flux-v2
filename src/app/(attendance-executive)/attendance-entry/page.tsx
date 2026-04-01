@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, CalendarDays, CheckCircle2, UserX, MapPin,
@@ -46,6 +46,16 @@ export default function RapidDataEntry() {
     const [isLoading, setIsLoading] = useState(true);
 
     const hasUnsavedChanges = employees.some(emp => emp.isDirty);
+
+    const isDataValid = useMemo(() => {
+        // Find every "dirty" row. If status is Present (1) or OOO (3), they MUST have a check-in time.
+        return employees.filter(emp => emp.isDirty).every(emp => {
+            if (emp.statusId === 1 || emp.statusId === 3) {
+                return (emp.checkIn && emp.checkIn.trim() !== "");
+            }
+            return true;
+        });
+    }, [employees]);
 
     // --- API Integration: Fetch Data ---
     const getDailyAttendanceLog = async (dateStr: string) => {
@@ -93,8 +103,8 @@ export default function RapidDataEntry() {
                 return {
                     ...emp,
                     statusId: newStatusId,
-                    // Auto-clear times if absent/leave. Auto-fill 11:00 if marked present (1) from absent.
-                    checkIn: isDisabling ? "" : (emp.checkIn || "11:00"),
+                    // No more default 11:00. Clear times if absent/leave.
+                    checkIn: isDisabling ? "" : emp.checkIn,
                     checkOut: isDisabling ? "" : emp.checkOut,
                     isDirty: true
                 };
@@ -230,6 +240,7 @@ export default function RapidDataEntry() {
                                     <th className="pb-4 px-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[20%]">Personnel</th>
                                     <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[40%] text-center">1-Click Status</th>
                                     <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[15%] text-center">Check-In</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[15%] text-center">Check-Out</th>
                                     <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[10%] text-right pr-4">Reset</th>
                                 </tr>
                             </thead>
@@ -321,6 +332,20 @@ export default function RapidDataEntry() {
                                                 />
                                             </td>
 
+                                            {/* 4. Check-Out Time Input */}
+                                            <td className="py-4 text-center">
+                                                <input
+                                                    type="time"
+                                                    disabled={isDisabling}
+                                                    value={emp.checkOut}
+                                                    onChange={(e) => handleTimeChange(emp.id, 'checkOut', e.target.value)}
+                                                    className={cn(
+                                                        "w-[110px] h-10 px-3 mx-auto bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all disabled:opacity-40 disabled:cursor-not-allowed",
+                                                        emp.isDirty && "border-indigo-300 bg-indigo-50/30 dark:border-indigo-500/30"
+                                                    )}
+                                                />
+                                            </td>
+
                                             {/* 5. Undo Action */}
                                             <td className="py-4 text-right pr-4">
                                                 <Button
@@ -356,13 +381,23 @@ export default function RapidDataEntry() {
                         className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-4 rounded-[2rem] shadow-2xl border border-slate-800 dark:border-slate-200"
                     >
                         <div className="flex flex-col">
-                            <span className="text-sm font-black uppercase tracking-widest">Unsaved Changes Detected</span>
-                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Click save to update the master database</span>
+                            <span className={cn(
+                                "text-sm font-black uppercase tracking-widest",
+                                !isDataValid ? "text-rose-500" : "text-white dark:text-slate-900"
+                            )}>
+                                {isDataValid ? "Unsaved Changes Detected" : "Warning: Incomplete Records"}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                {isDataValid ? "Click save to update the master database" : "PLEASE PROVIDE CHECK-IN TIMES FOR ALL PRESENT EMPLOYEES"}
+                            </span>
                         </div>
                         <Button
                             onClick={handleSaveAll}
-                            disabled={isSaving}
-                            className="bg-indigo-600 text-white hover:bg-indigo-700 h-12 px-8 rounded-3xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-indigo-600/20 transition-all"
+                            disabled={isSaving || !isDataValid}
+                            className={cn(
+                                "h-12 px-8 rounded-3xl font-black uppercase tracking-widest text-[11px] shadow-lg transition-all",
+                                !isDataValid ? "bg-slate-700 cursor-not-allowed opacity-50" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-600/20"
+                            )}
                         >
                             {isSaving ? (
                                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>

@@ -220,6 +220,12 @@ export default function UserwiseAttendanceExport() {
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">
                                 Displaying {filteredData.length} records from {fromDate} to {toDate}
                             </p>
+                            <div className="mt-3 flex items-center gap-2">
+                                <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                    Note: Out of office days check-in times are not considered as late
+                                </p>
+                            </div>
                         </div>
                     </div>
 

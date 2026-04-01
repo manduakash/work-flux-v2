@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
 
 // --- Animations ---
 const containerVariants = {
@@ -82,56 +83,82 @@ const StatCard = ({
 export default function AttendanceExecutiveDashboard() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<any>({ name: "Admin" });
+    const [currentUser, setCurrentUser] = useState<any>({ name: "Attendance Exec" });
     const [page, setPage] = useState(1);
 
     // MOCK DATA: Stats
-    const totalStaff = 245;
     const [stats, setStats] = useState({
-        TotalCheckIns: 205,
-        OnTime: 160,
-        Late: 25,
-        OutOfOffice: 20,
-        Absent: 15,
-        OnLeave: 25,
+        TotalCheckIn: 0,
+        OnTimeCheckIn: 0,
+        LateCheckIn: 0,
+        OutOfOffice: 0,
+        AbsentToday: 0,
+        OnLeave: 0,
     });
 
-    // MOCK DATA: Last 7 Days (Day-wise Trend)
-    const dayWiseTrendData = [
-        { date: 'Mon', OnTime: 170, Late: 15, OOO: 18, Absent: 12, Leave: 30 },
-        { date: 'Tue', OnTime: 165, Late: 20, OOO: 20, Absent: 10, Leave: 30 },
-        { date: 'Wed', OnTime: 180, Late: 10, OOO: 15, Absent: 5, Leave: 35 },
-        { date: 'Thu', OnTime: 175, Late: 12, OOO: 22, Absent: 8, Leave: 28 },
-        { date: 'Fri', OnTime: 150, Late: 30, OOO: 25, Absent: 15, Leave: 25 },
-        { date: 'Sat', OnTime: 40, Late: 5, OOO: 10, Absent: 180, Leave: 10 },
-        { date: 'Sun', OnTime: 160, Late: 25, OOO: 20, Absent: 15, Leave: 25 }, // "Today"
-    ];
+    const totalStaff = useMemo(() => {
+        return Number(stats.OnTimeCheckIn) + Number(stats.LateCheckIn) + Number(stats.OutOfOffice) + Number(stats.AbsentToday) + Number(stats.OnLeave);
+    }, [stats]);
 
-    // MOCK DATA: All Employees Attendance List
+
+    const [dayWiseTrendData, setDayWiseTrendData] = useState<any[]>([
+        { DayValue: 'Mon', OnTime: 0, Late: 0, OutOfOffice: 0, Absent: 0, OnLeave: 0 },
+        { DayValue: 'Tue', OnTime: 0, Late: 0, OutOfOffice: 0, Absent: 0, OnLeave: 0 },
+        { DayValue: 'Wed', OnTime: 0, Late: 0, OutOfOffice: 0, Absent: 0, OnLeave: 0 },
+        { DayValue: 'Thu', OnTime: 0, Late: 0, OutOfOffice: 0, Absent: 0, OnLeave: 0 },
+        { DayValue: 'Fri', OnTime: 0, Late: 0, OutOfOffice: 0, Absent: 0, OnLeave: 0 },
+    ]);
+
     const [attendanceList, setAttendanceList] = useState<any[]>([]);
 
-    const fetchDashboardData = async () => {
+    const fetchTodayAttendanceList = async () => {
         try {
             setLoading(true);
-            setTimeout(() => {
-                setAttendanceList([
-                    { ID: 1, EmpName: "Sarah Jenkins", Dept: "Engineering", Status: "On Time", CheckIn: "08:50 AM", CheckOut: "--:--", Type: "Office" },
-                    { ID: 2, EmpName: "Michael Chang", Dept: "Design", Status: "Late", CheckIn: "09:45 AM", CheckOut: "--:--", Type: "Office" },
-                    { ID: 3, EmpName: "David Kumar", Dept: "Sales", Status: "Out of Office", CheckIn: "09:00 AM", CheckOut: "--:--", Type: "Field" },
-                    { ID: 4, EmpName: "Emily Ross", Dept: "HR", Status: "On Leave", CheckIn: "--:--", CheckOut: "--:--", Type: "N/A" },
-                    { ID: 5, EmpName: "James Wilson", Dept: "Engineering", Status: "Absent", CheckIn: "--:--", CheckOut: "--:--", Type: "N/A" },
-                    { ID: 6, EmpName: "Anita Desai", Dept: "Marketing", Status: "On Time", CheckIn: "08:55 AM", CheckOut: "--:--", Type: "Remote" },
-                ]);
-                setLoading(false);
-            }, 800);
+            const response = await callGetAPIWithToken(`attendance/today-attendance-employee-list`);
+            if (response?.success) {
+                setAttendanceList(response.data || []);
+            }
         } catch (error) {
             console.error("Dashboard error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchDayWiseTrendData = async () => {
+        try {
+            setLoading(true);
+            const response = await callGetAPIWithToken(`executive/dashboard/weekly-attendance-trend`);
+            if (response?.success) {
+                console.log("OLAAAAA", response.data);
+                setDayWiseTrendData(response?.data || []);
+            }
+        } catch (error) {
+            console.error("Dashboard error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchDashboardCount = async () => {
+        try {
+            setLoading(true);
+            const today = new Date().toISOString().split('T')[0];
+            const response = await callGetAPIWithToken(`executive/dashboard?FromDate=${today}&ToDate=${today}`);
+            if (response?.success) {
+                setStats(response.data);
+            }
+        } catch (error) {
+            console.error("Dashboard error:", error);
+        } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchDashboardData();
+        fetchTodayAttendanceList();
+        fetchDashboardCount();
+        fetchDayWiseTrendData();
     }, []);
 
     const greeting = useMemo(() => {
@@ -177,7 +204,7 @@ export default function AttendanceExecutiveDashboard() {
             </div>
         );
     }
-
+    console.log(currentUser);
     return (
         <motion.div
             initial="hidden"
@@ -206,7 +233,7 @@ export default function AttendanceExecutiveDashboard() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <StatCard
                     title="Total Check-ins"
-                    value={stats.TotalCheckIns}
+                    value={stats.TotalCheckIn}
                     icon={Users}
                     color="bg-indigo-600"
                     description={`Out of ${totalStaff} total employees`}
@@ -217,7 +244,7 @@ export default function AttendanceExecutiveDashboard() {
 
                 <StatCard
                     title="On-Time Check-in"
-                    value={stats.OnTime}
+                    value={stats.OnTimeCheckIn}
                     icon={CheckCircle2}
                     description="Employees who arrived before grace period"
                     bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700 dark:from-emerald-700 dark:via-emerald-600 dark:to-emerald-950"
@@ -227,7 +254,7 @@ export default function AttendanceExecutiveDashboard() {
 
                 <StatCard
                     title="Late Check-ins"
-                    value={stats.Late}
+                    value={stats.LateCheckIn}
                     icon={AlertCircle}
                     description="Employees who missed the cut-off time"
                     bgColor="bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600 dark:from-amber-700 dark:via-orange-600 dark:to-orange-950"
@@ -247,7 +274,7 @@ export default function AttendanceExecutiveDashboard() {
 
                 <StatCard
                     title="Absent Today"
-                    value={stats.Absent}
+                    value={stats.AbsentToday}
                     icon={UserX}
                     description="No-shows without prior approval"
                     bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-800 dark:from-rose-700 dark:via-rose-600 dark:to-red-950"
@@ -281,7 +308,7 @@ export default function AttendanceExecutiveDashboard() {
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={dayWiseTrendData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
-                                <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                <XAxis dataKey="DayValue" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                                 <Tooltip
                                     cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
@@ -291,8 +318,8 @@ export default function AttendanceExecutiveDashboard() {
                                 {/* Stacked bars to show total headcount per day */}
                                 <Bar dataKey="OnTime" name="On Time" stackId="a" fill={CHART_COLORS.OnTime} radius={[0, 0, 4, 4]} />
                                 <Bar dataKey="Late" name="Late" stackId="a" fill={CHART_COLORS.Late} />
-                                <Bar dataKey="OOO" name="Out of Office" stackId="a" fill={CHART_COLORS.OOO} />
-                                <Bar dataKey="Leave" name="Leave" stackId="a" fill={CHART_COLORS.Leave} />
+                                <Bar dataKey="OutOfOffice" name="Out of Office" stackId="a" fill={CHART_COLORS.OOO} />
+                                <Bar dataKey="OnLeave" name="Leave" stackId="a" fill={CHART_COLORS.Leave} />
                                 <Bar dataKey="Absent" name="Absent" stackId="a" fill={CHART_COLORS.Absent} radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -300,10 +327,9 @@ export default function AttendanceExecutiveDashboard() {
                 </motion.div>
 
                 {/* Today's Pie Chart */}
-                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Today's Ratio</h3>
-                    <p className="mb-6 text-sm font-bold text-slate-400 uppercase tracking-widest">Current availability</p>
-                    <div className="h-[250px] w-full relative">
+                <motion.div variants={itemVariants} className="rounded-[3.5rem] border border-slate-200 bg-white p-10 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overlow-hidden">
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Today's Attendance</h3>
+                    <div className="h-[280px] w-full relative mt-4">
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <p className="text-4xl font-black text-slate-900 dark:text-white leading-none">{totalStaff}</p>
                             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Total</p>
@@ -312,23 +338,23 @@ export default function AttendanceExecutiveDashboard() {
                             <PieChart>
                                 <Pie
                                     data={[
-                                        { name: 'On Time', value: stats.OnTime, color: CHART_COLORS.OnTime },
-                                        { name: 'Late', value: stats.Late, color: CHART_COLORS.Late },
-                                        { name: 'Out of Office', value: stats.OutOfOffice, color: CHART_COLORS.OOO },
-                                        { name: 'Absent', value: stats.Absent, color: CHART_COLORS.Absent },
-                                        { name: 'Leave', value: stats.OnLeave, color: CHART_COLORS.Leave },
-                                    ]}
+                                        { name: 'On Time', value: Number(stats.OnTimeCheckIn), color: CHART_COLORS.OnTime },
+                                        { name: 'Late', value: Number(stats.LateCheckIn), color: CHART_COLORS.Late },
+                                        { name: 'OOO', value: Number(stats.OutOfOffice), color: CHART_COLORS.OOO },
+                                        { name: 'Absent', value: Number(stats.AbsentToday), color: CHART_COLORS.Absent },
+                                        { name: 'Leave', value: Number(stats.OnLeave), color: CHART_COLORS.Leave },
+                                    ].filter(item => item.value > 0)}
                                     cx="50%" cy="50%"
-                                    innerRadius={75}
-                                    outerRadius={100}
+                                    innerRadius={65}
+                                    outerRadius={85}
                                     paddingAngle={3}
                                     dataKey="value"
                                     stroke="transparent"
                                 >
-                                    {([
+                                    {[
                                         { color: CHART_COLORS.OnTime }, { color: CHART_COLORS.Late },
                                         { color: CHART_COLORS.OOO }, { color: CHART_COLORS.Absent }, { color: CHART_COLORS.Leave }
-                                    ]).map((entry, index) => (
+                                    ].map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
@@ -336,18 +362,33 @@ export default function AttendanceExecutiveDashboard() {
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                        {/* Custom compact legend */}
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> <span className="text-[10px] font-black uppercase text-slate-500">On Time</span></div>
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> <span className="text-[10px] font-black uppercase text-slate-500">Late</span></div>
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-purple-500" /> <span className="text-[10px] font-black uppercase text-slate-500">OOO</span></div>
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-rose-500" /> <span className="text-[10px] font-black uppercase text-slate-500">Absent</span></div>
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.OnTime }} />
+                            <span className="text-[10px] font-black uppercase text-slate-500">On Time: {stats.OnTimeCheckIn}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.Late }} />
+                            <span className="text-[10px] font-black uppercase text-slate-500">Late: {stats.LateCheckIn}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.OOO }} />
+                            <span className="text-[10px] font-black uppercase text-slate-500">OOO: {stats.OutOfOffice}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.Absent }} />
+                            <span className="text-[10px] font-black uppercase text-slate-500">Absent: {stats.AbsentToday}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.Leave }} />
+                            <span className="text-[10px] font-black uppercase text-slate-500">Leave: {stats.OnLeave}</span>
+                        </div>
                     </div>
                 </motion.div>
             </div>
 
             {/* Bottom Section: All Employees Table & Analytics Panel */}
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-1">
 
                 {/* All Employees Attendance Table */}
                 <motion.div variants={itemVariants} className="lg:col-span-2 rounded-[3.5rem] border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col justify-between">
@@ -355,7 +396,7 @@ export default function AttendanceExecutiveDashboard() {
                         <div className="mb-6 p-10 pb-0 flex items-center justify-between">
                             <div>
                                 <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                                    Live Employee Log
+                                    Today's Employee Attendance
                                 </h3>
                                 <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">
                                     Real-time tracking for all personnel
@@ -371,43 +412,34 @@ export default function AttendanceExecutiveDashboard() {
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Status</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Check-In</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Check-Out</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-right pr-4">Work Type</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {paginatedAttendance.map((emp: any) => (
-                                        <tr key={emp.ID} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                    {paginatedAttendance.map((emp: any, index: number) => (
+                                        <tr key={index} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                                             <td className="py-4 px-4">
                                                 <div className="flex flex-col">
                                                     <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">
-                                                        {emp.EmpName}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                                                        {emp.Dept}
+                                                        {emp.EmployeeFullName}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="py-4">
                                                 <span className={cn(
                                                     "inline-flex items-center rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest",
-                                                    getStatusStyles(emp.Status)
+                                                    getStatusStyles(emp.AttendanceStatus)
                                                 )}>
-                                                    {emp.Status}
+                                                    {emp.AttendanceStatus}
                                                 </span>
                                             </td>
                                             <td className="py-4">
                                                 <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">
-                                                    {emp.CheckIn}
+                                                    {emp.CheckIn || "--:--"}
                                                 </span>
                                             </td>
                                             <td className="py-4">
                                                 <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                                                    {emp.CheckOut}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 text-right pr-4">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                                                    {emp.Type}
+                                                    {emp.CheckOut || "--:--"}
                                                 </span>
                                             </td>
                                         </tr>
@@ -443,73 +475,6 @@ export default function AttendanceExecutiveDashboard() {
                             </div>
                         </div>
                     )}
-                </motion.div>
-
-                {/* Performance Analytics Panel */}
-                <motion.div variants={itemVariants} className="rounded-[3.5rem] bg-indigo-900 p-10 text-white shadow-2xl relative overflow-hidden group">
-                    <div className="relative z-10">
-                        <div className="mb-10 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-tight">
-                                Today's Pulse
-                            </h3>
-                            <Activity className="h-6 w-6 text-emerald-400 animate-pulse" />
-                        </div>
-
-                        <p className="text-5xl font-black tracking-tighter mb-2">
-                            83.6%
-                        </p>
-
-                        <p className="text-sm font-bold text-indigo-300/60 uppercase tracking-widest mb-10">
-                            Punctuality Rate
-                        </p>
-
-                        <div className="space-y-8">
-                            {/* Target Progress */}
-                            <div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Company Target: 90%</span>
-                                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Slightly Below</span>
-                                </div>
-                                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.4)]"
-                                        style={{ width: `83.6%` }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Quick Stats Grid */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
-                                    <p className="text-[10px] font-black uppercase opacity-40">Total Exceptions</p>
-                                    <p className="text-2xl font-black mt-1 text-rose-400">40</p>
-                                </div>
-
-                                <div className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md">
-                                    <p className="text-[10px] font-black uppercase opacity-40">Avg Check-in</p>
-                                    <p className="text-2xl font-black mt-1">09:12</p>
-                                </div>
-                            </div>
-
-                            {/* Data Entry Action CTA */}
-                            <div className="mt-8 p-6 rounded-[2rem] bg-gradient-to-r from-indigo-500 to-purple-500 border border-white/20 shadow-lg cursor-pointer hover:scale-[1.02] transition-transform">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[11px] font-black uppercase tracking-widest text-white/80">
-                                            Quick Action
-                                        </p>
-                                        <p className="text-lg font-black mt-1">
-                                            Export Daily Log
-                                        </p>
-                                    </div>
-                                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
-                                        <ChevronRight className="h-5 w-5 text-white" />
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
                 </motion.div>
             </div>
         </motion.div>

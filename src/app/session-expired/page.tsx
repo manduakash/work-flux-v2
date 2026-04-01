@@ -31,7 +31,7 @@ const SessionExpired = () => {
                         Session Expired
                     </h1>
                     <p className="text-slate-500 text-sm leading-relaxed mb-10">
-                        For your security, you have been automatically logged out due to inactivity. Don't worry, your progress has been saved.
+                        For your security, you have been automatically logged out due to inactivity.
                     </p>
 
                     {/* Action Buttons */}
