@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
 import moment from 'moment';
 import { toast } from 'sonner';
+import { ExcelImportModal } from '@/components/ExcelImportModal';
 
 // --- Animations ---
 const containerVariants = {
@@ -217,6 +218,7 @@ export default function RapidDataEntry() {
                             className="w-full h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border-none rounded-3xl text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 transition-all"
                         />
                     </div>
+                    <ExcelImportModal employees={employees} setEmployees={setEmployees} />
                 </div>
             </div>
 
