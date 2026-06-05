@@ -3,413 +3,138 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    LineChart, Line, ComposedChart, Legend, Scatter
+    BarChart, Bar, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
-    Activity, Globe, ShieldCheck, TrendingUp,
-    Target, Loader2, Sparkles, ChevronRight,
-    DollarSign, Briefcase, Users, ShieldAlert,
-    CheckCircle2, AlertCircle, Clock, PauseCircle,
-    UserCheck, HardHat, CalendarDays, Search
+    Loader2, ChevronRight,
+    UserCheck, UserX, CalendarOff,
+    Clock, CalendarDays, Palmtree, HelpCircle, LayoutDashboard,
+    FileSpreadsheet, FileText, Settings, Award, ListFilter, MapPin, CheckCircle2
 } from 'lucide-react';
 
-import { useStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
-import { getCookie } from '@/utils/cookies';
-import { Button } from '@/components/ui/button';
 
-// --- Theme & Styles ---
-const COLORS = {
-    assigned: '#94a3b8',   // slate-400
-    inProgress: '#3b82f6', // blue-500
-    completed: '#10b981',  // emerald-500
-    onHold: '#f59e0b',     // amber-500
-    danger: '#ef4444',     // red-500
-    primary: '#6366f1',    // indigo-500
-};
-
-// SVG Patterns for Action Cards
-const patternDots = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.15' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='2'/%3E%3C/g%3E%3C/svg%3E")`;
-const patternLines = `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`;
-const patternGrid = `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0L0 20' stroke='%23ffffff' stroke-width='1' stroke-opacity='0.15' fill='none'/%3E%3C/svg%3E")`;
-const diamonUpholstery = `url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")`;
-
-// --- Variants ---
+// --- Animations ---
 const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
 };
 
 const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 15 },
     visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
 };
 
-// --- Custom Components ---
+// --- Custom Month Order from Reference Screen ---
+const MONTH_GRID_ORDER = [
+    { name: 'All', val: 0 },
+    { name: 'Jan', val: 1 },
+    { name: 'Feb', val: 2 },
+    { name: 'Mar', val: 3 },
+    { name: 'Apr', val: 4 },
+    { name: 'May', val: 5 },
+    { name: 'Jun', val: 6 },
+    { name: 'Jul', val: 7 },
+    { name: 'Aug', val: 8 },
+    { name: 'Sep', val: 9 },
+    { name: 'Oct', val: 10 },
+    { name: 'Nov', val: 11 },
+    { name: 'Dec', val: 12 },
+];
 
-const ActionCard = ({ title, subtitle, value, icon: Icon, gradient, pattern }: any) => (
-    <motion.div variants={itemVariants} className={cn("relative overflow-hidden rounded-[2rem] p-6 text-white shadow-xl transition-transform hover:scale-[1.02]", gradient)}>
-        <div className="absolute inset-0 opacity-80 mix-blend-hard-light " style={{ backgroundImage: pattern }} />
-        <div className="absolute -right-4 -top-4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative z-10 flex justify-between items-start">
-            <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{title}</p>
-                <h3 className="mt-2 text-4xl font-black tracking-tighter">{value}</h3>
-                <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-white/70">{subtitle}</p>
-            </div>
-            <div className="rounded-2xl bg-white/20 p-3 backdrop-blur-md shadow-inner border border-white/10">
-                <Icon className="h-6 w-6 text-white" />
-            </div>
-        </div>
-    </motion.div>
-);
-
-const ChartWrapper = ({ title, subtitle, children }: any) => (
-    <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm flex flex-col">
-        <div className="mb-6">
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">{title}</h3>
-            {subtitle && <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{subtitle}</p>}
-        </div>
-        <div className="flex-1 w-full min-h-[300px]">
-            {children}
-        </div>
-    </motion.div>
-);
-
-
-
-// --- Custom Tooltip ---
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-slate-900/95 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
-                <p className="text-white font-black uppercase text-xs mb-2 tracking-widest">{label}</p>
-                {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-3 mb-1 text-sm">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                        <span className="text-slate-300 font-medium capitalize">{entry.name}:</span>
-                        <span className="text-white font-bold ml-auto">{entry.value}</span>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
-
-// --- Paginated Data Table Component ---
-const SmartDataTable = ({ title, subtitle, icon: Icon, data, columns, searchPlaceholder }: any) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
-
-    const filteredData = useMemo(() => {
-        if (!searchTerm) return data;
-        const lowerSearch = searchTerm.toLowerCase();
-        return data.filter((item: any) => 
-            Object.values(item).some(val => 
-                String(val).toLowerCase().includes(lowerSearch)
-            )
-        );
-    }, [data, searchTerm]);
-
-    const paginatedData = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredData.slice(start, start + itemsPerPage);
-    }, [filteredData, currentPage]);
-
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-    // Reset pagination on search
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm]);
-
+// --- Classic StatCard ---
+const StatCard = ({
+    title, value, icon: Icon,
+    description, bgColor, iconColor, borderColor
+}: any) => {
     return (
-        <motion.div variants={itemVariants} className="rounded-[2.5rem] border border-slate-200 bg-white p-6 md:p-8 dark:border-slate-800 dark:bg-slate-950/50 shadow-sm overflow-hidden flex flex-col">
-            <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                        <Icon className="h-5 w-5 text-indigo-500" /> {title}
-                    </h3>
-                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{subtitle}</p>
-                </div>
-                
-                <div className="relative w-full lg:w-72">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input 
-                        type="text" 
-                        placeholder={searchPlaceholder || "Search assets..."}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 pl-11 pr-4 text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all shadow-inner"
-                    />
-                </div>
-            </div>
+        <motion.div
+            variants={itemVariants}
+            className={cn(
+                "group relative overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl border border-none flex-1",
+                bgColor
+            )}
+        >
+            <div
+                className="absolute inset-0 opacity-[0.8] pointer-events-none"
+                style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")' }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
+            <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/20 pointer-events-none" />
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                    <thead>
-                        <tr className="border-b-2 border-slate-50 dark:border-slate-800/50">
-                            {columns.map((col: any, idx: number) => (
-                                <th key={idx} className={cn("pb-5 pt-2 font-black text-[10px] uppercase tracking-[0.2em]", col.className || "text-slate-500")}>
-                                    {col.header}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50/50 dark:divide-slate-800/30">
-                        {paginatedData.length > 0 ? (
-                            paginatedData.map((row: any, i: number) => (
-                                <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors group">
-                                    {columns.map((col: any, cIdx: number) => (
-                                        <td key={cIdx} className={cn("py-5 text-sm", col.cellClassName)}>
-                                            {col.cell ? col.cell(row) : row[col.accessorKey]}
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={columns.length} className="py-20 text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">No Intelligence Found For Match</p>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-
-            {totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-between border-t border-slate-50 dark:border-slate-800 pt-6">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        Node {currentPage} of {totalPages} — Total {filteredData.length} records
-                    </p>
-                    <div className="flex items-center gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage(p => p - 1)}
-                            className="h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[9px] border-slate-100"
-                        >
-                            Previous
-                        </Button>
-                        <div className="flex items-center gap-1">
-                            {Array.from({ length: totalPages }).map((_, i) => (
-                                <button 
-                                    key={i}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                    className={cn(
-                                        "h-8 w-8 rounded-lg text-[10px] font-black transition-all",
-                                        currentPage === i + 1 
-                                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" 
-                                            : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
-                                    )}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
-                        </div>
-                        <Button 
-                            variant="outline" 
-                            size="sm"
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage(p => p + 1)}
-                            className="h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[9px] border-slate-100"
-                        >
-                            Next
-                        </Button>
+            <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex items-center justify-between gap-4">
+                    <div className={cn(
+                        `flex h-12 w-12 items-center justify-center rounded-full transition-transform duration-300 shadow-sm shadow-white/70 group-hover:scale-110 group-hover:-rotate-6 backdrop-blur-sm text-white bg-white/80 ${borderColor}`,
+                    )}>
+                        <Icon className={`h-6 w-6 ${iconColor}`} />
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-white/80 leading-tight text-right">
+                        {title}
                     </div>
                 </div>
-            )}
+
+                <div className="mt-6">
+                    <h3 className="text-3xl font-black tracking-tight text-white drop-shadow-md">
+                        {value}
+                    </h3>
+                    {description && (
+                        <p className="mt-1 text-xs tracking-tight font-medium text-white/65">
+                            {description}
+                        </p>
+                    )}
+                </div>
+            </div>
         </motion.div>
     );
 };
 
+// --- Smaller StatCard ---
+const SmallStatCard = ({
+    title, value, icon: Icon, bgColor, iconColor, borderColor
+}: any) => {
+    return (
+        <div
+            className={cn(
+                "group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 hover:shadow-lg border border-none flex items-center justify-between",
+                bgColor
+            )}
+        >
+            <div
+                className="absolute inset-0 opacity-[0.5] pointer-events-none"
+                style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")' }}
+            />
+            <div className="relative z-10">
+                <h5 className="text-[9px] font-black uppercase tracking-widest text-white/80">{title}</h5>
+                <p className="text-xl font-black text-white mt-0.5">{value}</p>
+            </div>
+            <div className={cn(
+                `relative z-10 flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 backdrop-blur-sm text-white bg-white/80 ${borderColor}`,
+            )}>
+                <Icon className={`h-4.5 w-4.5 ${iconColor}`} />
+            </div>
+        </div>
+    );
+};
 
-export default function AdminDashboard() {
-    const { currentUser: storeUser } = useStore();
+export default function AttendanceExecutiveDashboard() {
     const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState<any>(null);
 
-    // Dashboard Data State
-    const [counts, setCounts] = useState<any>(null);
-    const [projectProgress, setProjectProgress] = useState<any[]>([]);
-    const [resourceAllocation, setResourceAllocation] = useState<any[]>([]);
-    const [developerOutput, setDeveloperOutput] = useState<any[]>([]);
-    const [leadershipPerformance, setLeadershipPerformance] = useState<any[]>([]);
-    const [teamLeadStats, setTeamLeadStats] = useState<any[]>([]);
-    const [projectTenure, setProjectTenure] = useState<any[]>([]);
+    // Filters
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState<number | string>("0"); // Default '0' represents All Employees
+    const [selectedMonth, setSelectedMonth] = useState<number>(5);
+    const [selectedYear, setSelectedYear] = useState<number>(2026);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const user = getCookie("user");
-                setProfile(user);
-
-                // We fetch everything separately to avoid one failure blocking everything
-                const fetchCount = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/count');
-                        const rawData = res.success ? res.data : res;
-                        const data = Array.isArray(rawData) ? rawData[0] : rawData;
-                        // Normalize keys to PascalCase for the UI if needed
-                        const normalized: any = {};
-                        if (data) {
-                            Object.entries(data).forEach(([key, value]) => {
-                                const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                normalized[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value))) ? Number(value) : value;
-                            });
-                        }
-                        setCounts(normalized);
-                    } catch (e) {
-                        console.error("Count Fetch Error:", e);
-                    }
-                };
-
-                const fetchProgress = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/project-wise-progress-graph');
-                        const data = res.success ? res.data : res;
-                        if (Array.isArray(data)) {
-                            const normalized = data.map((item: any) => {
-                                const norm: any = {};
-                                Object.entries(item).forEach(([key, value]) => {
-                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'ProjectName') ? Number(value) : value;
-                                });
-                                return norm;
-                            });
-                            setProjectProgress(normalized);
-                        }
-                    } catch (e) {
-                        console.error("Progress Fetch Error:", e);
-                    }
-                };
-
-                const fetchResource = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/resource-allocation-chart');
-                        const data = res.success ? res.data : res;
-                        if (Array.isArray(data)) {
-                            const normalized = data.map((item: any) => {
-                                const norm: any = {};
-                                Object.entries(item).forEach(([key, value]) => {
-                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'ProjectName') ? Number(value) : value;
-                                });
-                                return norm;
-                            });
-                            setResourceAllocation(normalized);
-                        }
-                    } catch (e) {
-                        console.error("Resource Fetch Error:", e);
-                    }
-                };
-
-                const fetchOutput = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/developer-output-chart');
-                        const data = res.success ? res.data : res;
-                        if (Array.isArray(data)) {
-                            const normalized = data.map((item: any) => {
-                                const norm: any = {};
-                                Object.entries(item).forEach(([key, value]) => {
-                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'DeveloperFullName') ? Number(value) : value;
-                                });
-                                return norm;
-                            });
-                            setDeveloperOutput(normalized);
-                        }
-                    } catch (e) {
-                        console.error("Output Fetch Error:", e);
-                    }
-                };
-
-                const fetchLeadership = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/leadership-performance-chart');
-                        const data = res.success ? res.data : res;
-                        if (Array.isArray(data)) {
-                            const normalized = data.map((item: any) => {
-                                const norm: any = {};
-                                Object.entries(item).forEach(([key, value]) => {
-                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'LeadFullName') ? Number(value) : value;
-                                });
-                                return norm;
-                            });
-                            setLeadershipPerformance(normalized);
-                        }
-                    } catch (e) {
-                        console.error("Leadership Fetch Error:", e);
-                    }
-                };
-
-                const fetchTeamLeadStats = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/team-lead-stats');
-                        const data = res.success ? res.data : res;
-                        if (Array.isArray(data)) {
-                            const normalized = data.map((item: any) => {
-                                const norm: any = {};
-                                Object.entries(item).forEach(([key, value]) => {
-                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'LeadFullName') ? Number(value) : value;
-                                });
-                                return norm;
-                            });
-                            setTeamLeadStats(normalized);
-                        }
-                    } catch (e) {
-                        console.error("Team Lead Stats Fetch Error:", e);
-                    }
-                };
-
-                const fetchTenure = async () => {
-                    try {
-                        const res = await callGetAPIWithToken('admin/dashboard/project-tenure-graph');
-                        const data = res.success ? res.data : res;
-                        if (Array.isArray(data)) {
-                            const normalized = data.map((item: any) => {
-                                const norm: any = {};
-                                Object.entries(item).forEach(([key, value]) => {
-                                    const normalizedKey = key.charAt(0).toUpperCase() + key.slice(1);
-                                    norm[normalizedKey] = (typeof value === 'string' && !isNaN(Number(value)) && key !== 'ProjectName') ? Number(value) : value;
-                                });
-                                return norm;
-                            });
-                            setProjectTenure(normalized);
-                        }
-                    } catch (e) {
-                        console.error("Tenure Fetch Error:", e);
-                    }
-                };
-
-                await Promise.allSettled([
-                    fetchCount(),
-                    fetchProgress(),
-                    fetchResource(),
-                    fetchOutput(),
-                    fetchLeadership(),
-                    fetchTeamLeadStats(),
-                    fetchTenure()
-                ]);
-
-            } catch (error) {
-                console.error("Admin Dashboard Sync Failed:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
+    // Final Parsed States
+    const [summary, setSummary] = useState<any>(null);
+    const [attendanceReport, setAttendanceReport] = useState<any>(null);
+    const [discipline, setDiscipline] = useState<any>(null);
+    const [salary, setSalary] = useState<any>(null);
+    const [leaves, setLeaves] = useState<any>(null);
+    const [working, setWorking] = useState<any>(null);
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();
@@ -418,248 +143,669 @@ export default function AdminDashboard() {
         return "Good Evening";
     }, []);
 
-    if (loading) {
+    const THEME_COLORS = {
+        emerald: '#10b981',
+        rose: '#ef4444',
+        amber: '#f59e0b',
+        purple: '#8b5cf6',
+        slate: '#64748b'
+    };
+
+    // Helper: Safely isolate single employee data or combine target array values
+    const getTargetData = (rawArray: any, userId: string | number) => {
+        if (!Array.isArray(rawArray)) return [];
+        if (userId === "0" || userId === 0) {
+            return rawArray; // Aggregate all records if 0 is selected
+        }
+        return rawArray.filter((item: any) => Number(item.employee_id || item.user_id) === Number(userId));
+    };
+
+    // Parsing & Aggregating response data based on selectedUserId
+    const parseSummary = (rawArray: any, userId: string | number) => {
+        const targets = getTargetData(rawArray, userId);
+        if (targets.length === 0) return null;
+        return targets.reduce((acc: any, curr: any) => ({
+            total_present: (acc.total_present || 0) + (Number(curr.total_present) || 0),
+            total_leave: (acc.total_leave || 0) + (Number(curr.total_leave) || 0),
+            weeks_off: (acc.weeks_off || 0) + (Number(curr.weeks_off) || 0),
+            holidays: (acc.holidays || 0) + (Number(curr.holidays) || 0),
+            half_days: (acc.half_days || 0) + (Number(curr.half_days) || 0),
+            absent: (acc.absent || 0) + (Number(curr.absent) || 0),
+            out_of_office: (acc.out_of_office || 0) + (Number(curr.out_of_office) || 0),
+            late: (acc.late || 0) + (Number(curr.late) || 0),
+            late_checkins: (acc.late_checkins || 0) + (Number(curr.late_checkins) || 0),
+        }), {});
+    };
+
+    const parseAttendanceReport = (rawArray: any, userId: string | number) => {
+        const targets = getTargetData(rawArray, userId);
+        if (targets.length === 0) return null;
+        return targets.reduce((acc: any, curr: any) => ({
+            present: (acc.present || 0) + (Number(curr.present) || 0),
+            late: (acc.late || 0) + (Number(curr.late) || 0),
+            out_of_office: (acc.out_of_office || 0) + (Number(curr.out_of_office) || 0),
+            absent: (acc.absent || 0) + (Number(curr.absent) || 0),
+            on_leave: (acc.on_leave || 0) + (Number(curr.on_leave) || 0),
+            half_day: (acc.half_day || 0) + (Number(curr.half_day) || 0),
+            month_label: curr.month_label || acc.month_label || 'Selected'
+        }), {});
+    };
+
+    const parseDiscipline = (rawArray: any, userId: string | number) => {
+        const targets = getTargetData(rawArray, userId);
+        if (targets.length === 0) return null;
+
+        const totals = targets.reduce((acc: any, curr: any) => ({
+            discipline_permissible: (acc.discipline_permissible || 0) + (Number(curr.discipline_permissible) || 0),
+            discipline_breach: (acc.discipline_breach || 0) + (Number(curr.discipline_breach) || 0),
+            absent_count: (acc.absent_count || 0) + (Number(curr.absent_count) || 0),
+            on_leave: (acc.on_leave || 0) + (Number(curr.on_leave) || 0),
+        }), {});
+
+        const grandTotal = totals.discipline_permissible + totals.discipline_breach + totals.absent_count + totals.on_leave;
+        return {
+            ...totals,
+            permissible_pct: grandTotal > 0 ? ((totals.discipline_permissible / grandTotal) * 100).toFixed(2) : "0.00",
+            breach_pct: grandTotal > 0 ? ((totals.discipline_breach / grandTotal) * 100).toFixed(2) : "0.00",
+            absent_pct: grandTotal > 0 ? ((totals.absent_count / grandTotal) * 100).toFixed(2) : "0.00",
+            leave_pct: grandTotal > 0 ? ((totals.on_leave / grandTotal) * 100).toFixed(2) : "0.00",
+            period_label: targets[0]?.period_label || 'Selected'
+        };
+    };
+
+    const parseSalary = (rawArray: any, userId: string | number) => {
+        const targets = getTargetData(rawArray, userId);
+        if (targets.length === 0) return null;
+        return targets.reduce((acc: any, curr: any) => ({
+            gross_salary: (acc.gross_salary || 0) + (Number(curr.gross_salary) || 0),
+            total_deduction: (acc.total_deduction || 0) + (Number(curr.total_deduction) || 0),
+            net_salary: (acc.net_salary || 0) + (Number(curr.net_salary) || 0),
+            payment_status: targets.length > 1 ? 'Various' : (curr.payment_status || 'Unpaid'),
+            payment_date: targets.length > 1 ? 'Various' : (curr.payment_date || '--'),
+            salary_month: curr.salary_month || acc.salary_month || 'Selected'
+        }), {});
+    };
+
+    const parseLeaves = (rawArray: any, userId: string | number) => {
+        const targets = getTargetData(rawArray, userId);
+        if (targets.length === 0) return null;
+        return targets.reduce((acc: any, curr: any) => ({
+            elr_yearly_leave: (acc.elr_yearly_leave || 0) + (Number(curr.elr_yearly_leave) || 0),
+            elr_bf_leave: (acc.elr_bf_leave || 0) + (Number(curr.elr_bf_leave) || 0),
+            elr_cf_leave: (acc.elr_cf_leave || 0) + (Number(curr.elr_cf_leave) || 0),
+            elr_privileged_leave: (acc.elr_privileged_leave || 0) + (Number(curr.elr_privileged_leave) || 0),
+            elr_casual_leave: (acc.elr_casual_leave || 0) + (Number(curr.elr_casual_leave) || 0),
+            elr_sick_leave: (acc.elr_sick_leave || 0) + (Number(curr.elr_sick_leave) || 0),
+            elr_permissible_leave: (acc.elr_permissible_leave || 0) + (Number(curr.elr_permissible_leave) || 0),
+            elr_total_leave: (acc.elr_total_leave || 0) + (Number(curr.elr_total_leave) || 0),
+            elr_excess_leave: (acc.elr_excess_leave || 0) + (Number(curr.elr_excess_leave) || 0),
+        }), {});
+    };
+
+    const parseWorking = (rawArray: any, userId: string | number) => {
+        const targets = getTargetData(rawArray, userId);
+        if (targets.length === 0) return null;
+        return targets.reduce((acc: any, curr: any) => ({
+            total_days: (acc.total_days || 0) + (Number(curr.total_days) || 0),
+            holiday_count: (acc.holiday_count || 0) + (Number(curr.holiday_count) || 0),
+            week_off_count: (acc.week_off_count || 0) + (Number(curr.week_off_count) || 0),
+            working_days: (acc.working_days || 0) + (Number(curr.working_days) || 0),
+            present: (acc.present || 0) + (Number(curr.present) || 0),
+            late: (acc.late || 0) + (Number(curr.late) || 0),
+            out_of_office: (acc.out_of_office || 0) + (Number(curr.out_of_office) || 0),
+            absent: (acc.absent || 0) + (Number(curr.absent) || 0),
+            on_leave: (acc.on_leave || 0) + (Number(curr.on_leave) || 0),
+            half_day: (acc.half_day || 0) + (Number(curr.half_day) || 0),
+            month_label: curr.month_label || acc.month_label || 'Selected'
+        }), {});
+    };
+
+    // Load initial employee list
+    useEffect(() => {
+        const fetchEmployeesList = async () => {
+            try {
+                const response = await callGetAPIWithToken(`users/employees`);
+                if (response?.success && response?.data) {
+                    const dataList = Array.isArray(response.data) ? response.data : [response.data];
+                    setEmployees(dataList);
+                }
+            } catch (error) {
+                console.error("Error loading employees:", error);
+            }
+        };
+        fetchEmployeesList();
+    }, []);
+
+    // Sync Dashboard Modules
+    useEffect(() => {
+        const loadDashboardData = async () => {
+            try {
+                setLoading(true);
+                const query = `user_id=${selectedUserId}&month=${selectedMonth}&year=${selectedYear}`;
+
+                const [
+                    summaryRes,
+                    attendanceReportRes,
+                    disciplineRes,
+                    salaryRes,
+                    leavesRes,
+                    workingRes
+                ] = await Promise.all([
+                    callGetAPIWithToken(`accountant/dashboard/summary?${query}`),
+                    callGetAPIWithToken(`accountant/dashboard/attendance-report?${query}`),
+                    callGetAPIWithToken(`accountant/dashboard/discipline?${query}`),
+                    callGetAPIWithToken(`accountant/dashboard/salary?${query}`),
+                    callGetAPIWithToken(`accountant/dashboard/leaves?${query}`),
+                    callGetAPIWithToken(`accountant/dashboard/working?${query}`)
+                ]);
+
+                setSummary(parseSummary(summaryRes?.data, selectedUserId));
+                setAttendanceReport(parseAttendanceReport(attendanceReportRes?.data, selectedUserId));
+                setDiscipline(parseDiscipline(disciplineRes?.data, selectedUserId));
+                setSalary(parseSalary(salaryRes?.data, selectedUserId));
+                setLeaves(parseLeaves(leavesRes?.data, selectedUserId));
+                setWorking(parseWorking(workingRes?.data, selectedUserId));
+
+            } catch (error) {
+                console.error("Error loading dashboard metrics:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDashboardData();
+    }, [selectedUserId, selectedMonth, selectedYear]);
+
+    const activeEmployee = useMemo(() => {
+        if (selectedUserId === "0" || selectedUserId === 0) {
+            return {
+                employee_name: "All Employees",
+                designation: "Enterprise Consolidated Overview",
+                nspl_id: "ALL-ENT"
+            };
+        }
+        return employees.find(emp => Number(emp.user_id || emp.employee_id) === Number(selectedUserId));
+    }, [employees, selectedUserId]);
+
+    // Graph Data Parsers
+    const barChartData = useMemo(() => {
+        if (!attendanceReport) return [];
+        return [{
+            name: attendanceReport.month_label || 'Selected',
+            'Present': attendanceReport.present || 0,
+            'Late Checkins': attendanceReport.late || 0,
+            'Out of Office': attendanceReport.out_of_office || 0,
+            'Absent': attendanceReport.absent || 0,
+            'On Leave': attendanceReport.on_leave || 0,
+            'Half Day': attendanceReport.half_day || 0
+        }];
+    }, [attendanceReport]);
+
+    const disciplinePieData = useMemo(() => {
+        if (!discipline) return [];
+        return [
+            { name: 'Permissible', value: Number(discipline.permissible_pct) || 0, color: '#10b981' },
+            { name: 'Breach', value: Number(discipline.breach_pct) || 0, color: '#ef4444' },
+            { name: 'Absent', value: Number(discipline.absent_pct) || 0, color: '#f59e0b' },
+            { name: 'Leave', value: Number(discipline.leave_pct) || 0, color: '#8b5cf6' }
+        ].filter(item => item.value > 0);
+    }, [discipline]);
+
+    const leavesPieData = useMemo(() => {
+        if (!leaves) return [];
+        const data = [
+            { name: 'Privileged', value: leaves.elr_privileged_leave || 0, color: '#06b6d4' },
+            { name: 'Casual', value: leaves.elr_casual_leave || 0, color: '#f59e0b' },
+            { name: 'Sick', value: leaves.elr_sick_leave || 0, color: '#ef4444' }
+        ];
+        const validData = data.filter(item => item.value > 0);
+        if (validData.length === 0) {
+            return [{ name: 'No Leaves Taken', value: 1, color: '#64748b' }];
+        }
+        return validData;
+    }, [leaves]);
+
+    const workingStackedData = useMemo(() => {
+        if (!working) return [];
+        return [{
+            name: working.month_label || 'Selected',
+            'Present': working.present || 0,
+            'Late': working.late || 0,
+            'OOO': working.out_of_office || 0,
+            'Absent': working.absent || 0,
+            'On Leave': working.on_leave || 0,
+            'Half Day': working.half_day || 0,
+            'Week Off': working.week_off_count || 0,
+            'Holiday': working.holiday_count || 0
+        }];
+    }, [working]);
+
+    if (loading && !summary) {
         return (
-            <div className="flex h-[80vh] w-full flex-col items-center justify-center gap-4">
-                <div className="relative">
-                    <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
-                    <Sparkles className="absolute -right-2 -top-2 h-5 w-5 animate-pulse text-indigo-400" />
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Loading Intelligence...</p>
+            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-slate-950">
+                <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Loading Enterprise Metrics...</p>
             </div>
         );
     }
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-            className="max-w-[1600px] mx-auto space-y-10 p-4 md:p-8"
-        >
-            {/* Header Section */}
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <div className="flex items-center gap-3 mb-3">
-                        <span className="h-px w-8 bg-indigo-600/30" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Management Dashboard</span>
+        <div className="min-h-screen text-slate-900 dark:text-white p-4 md:p-10 space-y-8 max-w-[1600px] mx-auto font-sans">
+
+
+            {/* ==================== TOP FILTER & CONTROLS PANEL ==================== */}
+            <section className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+
+                {/* Employee Selector Dropdown (Including 'All Employees') */}
+                <div className="lg:col-span-4 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800 pb-6 lg:pb-0 lg:pr-8">
+                    <div className="flex items-center gap-2 mb-3">
+                        <ListFilter className="h-4 w-4 text-indigo-500" />
+                        <label className="text-xs font-black uppercase tracking-widest text-slate-400">
+                            Employee List
+                        </label>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
-                        {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-500">{profile?.fullName?.split(' ')[0] || "Admin"}</span>
-                    </h1>
+                    <div className="relative">
+                        <select
+                            value={selectedUserId}
+                            onChange={(e) => setSelectedUserId(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-black py-3.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none uppercase tracking-widest"
+                        >
+                            <option value="0">All Employees</option>
+                            {employees.map((emp) => (
+                                <option key={emp.user_id || emp.employee_id} value={emp.user_id || emp.employee_id}>
+                                    {emp.employee_name}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                            <ChevronRight className="h-4 w-4 rotate-90" />
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 p-2 rounded-full border border-slate-200 dark:border-slate-800 backdrop-blur-md">
-                    <Button variant="ghost" className="h-10 rounded-full px-6 font-black uppercase tracking-widest text-[10px]">
-                        <Activity className="mr-2 h-4 w-4 text-emerald-500" /> Live Sync
-                    </Button>
+
+                {/* 12-Month Selector Grid */}
+                <div className="lg:col-span-8">
+                    <span className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3.5">
+                        Month Selection
+                    </span>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-13 gap-2">
+                        {MONTH_GRID_ORDER.map((item) => {
+                            const isActive = selectedMonth === item.val;
+                            return (
+                                <button
+                                    key={item.name}
+                                    onClick={() => setSelectedMonth(item.val)}
+                                    className={cn(
+                                        "py-2.5 rounded-xl text-xs font-black tracking-widest transition-all duration-200 border uppercase text-center",
+                                        isActive
+                                            ? "bg-indigo-600 text-white border-transparent shadow-md shadow-indigo-600/20"
+                                            : "bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    )}
+                                >
+                                    {item.name}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
 
-            {/* ACTION CARDS (8 Cards) */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <ActionCard
-                    title="Total Projects" subtitle="All time tracked" value={counts?.TotalProjects || 0} icon={Briefcase}
-                    gradient="bg-gradient-to-br from-blue-600 to-indigo-800" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="Active Projects" subtitle="Currently working" value={counts?.ActiveProjects || 0} icon={Activity}
-                    gradient="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-900" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="Deployed Projects" subtitle="Successfully delivered" value={counts?.DeployedProjects || 0} icon={CheckCircle2}
-                    gradient="bg-gradient-to-tl from-blue-700 via-purple-600 to-purple-800" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="On-Hold Projects" subtitle="Awaiting resources/client" value={counts?.OnHoldProjects || 0} icon={PauseCircle}
-                    gradient="bg-gradient-to-br from-amber-600 via-yellow-600 to-orange-700" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="Total Manpower" subtitle="Devs, QA & Leads" value={counts?.TotalManpower || 0} icon={Users}
-                    gradient="bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-700" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="Deadline Crossed" subtitle="Needs immediate attention" value={counts?.DeadlineCrossedTask || 0} icon={ShieldAlert}
-                    gradient="bg-gradient-to-br from-red-500 via-rose-600 to-orange-700" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="Total Jr. Developers" subtitle="Across NexIntel & SVU" value={counts?.TotalJrDevelopers || 0} icon={Target}
-                    gradient="bg-gradient-to-bl from-purple-500 via-rose-400 to-rose-600" pattern={diamonUpholstery}
-                />
-                <ActionCard
-                    title="Total Sr. Developers" subtitle="Across NexIntel & SVU" value={counts?.TotalSrDeveloper || 0} icon={TrendingUp}
-                    gradient="bg-gradient-to-br from-teal-400 to-slate-800" pattern={diamonUpholstery}
-                />
-            </div>
+            </section>
 
-            {/* CHARTS SECTION - ROW 1 */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* 1. Project-wise Tasks (Assigned, In-Progress, Completed) */}
-                <ChartWrapper title="Project Lifecycle Status" subtitle="Task distribution per active project">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={projectProgress} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="ProjectName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar dataKey="Completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 4, 4]} />
-                            <Bar dataKey="Review" name="Review" stackId="a" fill="#8b5cf6" />
-                            <Bar dataKey="InProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
-                            <Bar dataKey="Pending" name="Pending" stackId="a" fill={COLORS.assigned} radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
+            {/* ==================== CONTENT BODY GRID ==================== */}
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={containerVariants}
+                className="space-y-10"
+            >
+                {/* --- HEADER PROFILE & SUMMARY STATS ROW --- */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-stretch">
 
-                {/* 2. Project-wise Manpower */}
-                <ChartWrapper title="Resource Allocation" subtitle="Manpower distribution across projects">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={resourceAllocation} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="ProjectName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar dataKey="NoOfDevs" name="Developers" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="NoOfLeads" name="Team Leads" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
-            </div>
+                    {/* Employee Profile Display Card */}
+                    <div className="lg:col-span-4 bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-800 rounded-3xl p-6 flex flex-col justify-between shadow-lg relative overflow-hidden">
+                        <div
+                            className="absolute inset-0 opacity-[0.4] pointer-events-none"
+                            style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/diamond-upholstery.png")' }}
+                        />
+                        <div className="relative z-10">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/75">Active Profile</span>
+                            <h2 className="text-3xl font-black tracking-tighter text-white uppercase leading-none mt-2">
+                                {activeEmployee?.employee_name || 'All Employees'}
+                            </h2>
+                            <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest mt-1">
+                                {activeEmployee?.designation || 'Enterprise Consolidated'}
+                            </p>
+                        </div>
+                        <div className="mt-8 flex items-center justify-between relative z-10">
+                            <span className="bg-white/20 text-white text-[10px] font-black px-3.5 py-2 rounded-xl uppercase tracking-widest backdrop-blur-sm">
+                                ID: {activeEmployee?.nspl_id || 'ALL-ENT'}
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">{greeting}</span>
+                        </div>
+                    </div>
 
-            {/* CHARTS SECTION - ROW 2 */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* 3. Developer-wise Task Status */}
-                <ChartWrapper title="Developer Output Analytics" subtitle="Individual task pipeline status">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart layout="vertical" data={developerOutput} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                            <XAxis type="number" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis dataKey="DeveloperFullName" type="category" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} width={100} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar dataKey="Completed" name="Completed" stackId="a" fill={COLORS.completed} radius={[0, 0, 0, 4]} />
-                            <Bar dataKey="InProgress" name="In Progress" stackId="a" fill={COLORS.inProgress} />
-                            <Bar dataKey="Pending" name="Pending" stackId="a" fill={COLORS.assigned} />
-                            <Bar dataKey="Assigned" name="Assigned" stackId="a" fill="#cbd5e1" radius={[0, 4, 4, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
+                    {/* Summary Stat: Present */}
+                    <div className="lg:col-span-2">
+                        <StatCard
+                            title="Total Present"
+                            value={summary?.total_present ?? 0}
+                            icon={UserCheck}
+                            bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700"
+                            iconColor="text-emerald-500"
+                            borderColor="border-2 border-emerald-400"
+                            description="Working days"
+                        />
+                    </div>
 
-                {/* 4. Team Lead Wise Projects Count & Progress (%) */}
-                <ChartWrapper title="Leadership Performance" subtitle="Projects handled vs overall completion %">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={leadershipPerformance} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="LeadFullName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="left" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                            <Bar yAxisId="left" dataKey="NoOfProjects" name="Active Projects" barSize={40} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                            <Line yAxisId="right" type="monotone" dataKey="Progress" name="Progress (%)" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} />
-                        </ComposedChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
-            </div>
+                    {/* Summary Stat: Leave */}
+                    <div className="lg:col-span-2">
+                        <StatCard
+                            title="Total Leave"
+                            value={summary?.total_leave ?? 0}
+                            icon={CalendarOff}
+                            bgColor="bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-800"
+                            iconColor="text-indigo-500"
+                            borderColor="border-2 border-indigo-400"
+                            description="Approved leaves"
+                        />
+                    </div>
 
-            {/* CHARTS SECTION - ROW 3 */}
-            <div className="grid grid-cols-1 gap-6">
-                {/* 6. Projects Total Working Days */}
-                <ChartWrapper title="Project Tenure" subtitle="Total working days invested per active project">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={projectTenure} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorDays" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="ProjectName" tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Area type="monotone" dataKey="ProjectTenure" name="Working Days" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorDays)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </ChartWrapper>
-            </div>
+                    {/* Summary Stat: Weeks Off */}
+                    <div className="lg:col-span-2">
+                        <StatCard
+                            title="Weeks Off"
+                            value={summary?.weeks_off ?? 0}
+                            icon={CalendarDays}
+                            bgColor="bg-gradient-to-br from-slate-600 via-slate-500 to-slate-700"
+                            iconColor="text-slate-500"
+                            borderColor="border-2 border-slate-400"
+                            description="Rest days"
+                        />
+                    </div>
 
-            {/* TABLES SECTION */}
-            <div className="space-y-6">
+                    {/* Summary Stat: Holidays */}
+                    <div className="lg:col-span-2">
+                        <StatCard
+                            title="Holidays"
+                            value={summary?.holidays ?? 0}
+                            icon={Palmtree}
+                            bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-800"
+                            iconColor="text-rose-500"
+                            borderColor="border-2 border-rose-400"
+                            description="Public holiday"
+                        />
+                    </div>
 
-                {/* Team Lead Table */}
-                <SmartDataTable 
-                    title="Team Leads Directory"
-                    subtitle="Aggregate leadership metrics"
-                    icon={UserCheck}
-                    data={teamLeadStats}
-                    searchPlaceholder="Filter Leads..."
-                    columns={[
-                        { 
-                            header: "Lead Name", 
-                            cell: (row: any) => <span className="font-black text-slate-900 dark:text-white uppercase">{row.LeadFullName}</span> 
-                        },
-                        { 
-                            header: "Total Manpower", 
-                            cell: (row: any) => <span className="font-bold text-slate-600">{row.TotalManpower || 0} Members</span> 
-                        },
-                        { 
-                            header: "Total Working Projects", 
-                            cell: (row: any) => <span className="font-bold text-slate-600">{row.TotalWorkingProject || 0} Projects</span> 
-                        },
-                        { 
-                            header: "Active", 
-                            className: "text-blue-600",
-                            cell: (row: any) => <span className="font-black text-blue-600">{row.ActiveProjects || 0}</span> 
-                        },
-                        { 
-                            header: "Completed", 
-                            className: "text-emerald-600",
-                            cell: (row: any) => <span className="font-black text-emerald-600">{row.CompletedProjects || 0}</span> 
-                        },
-                        { 
-                            header: "On-Hold", 
-                            className: "text-amber-500",
-                            cell: (row: any) => <span className="font-black text-amber-500">{row.OnHoldProjects || 0}</span> 
-                        }
-                    ]}
-                />
+                </div>
 
-                {/* Developer Table */}
-                <SmartDataTable 
-                    title="Developers Force"
-                    subtitle="Individual operational output"
-                    icon={HardHat}
-                    data={developerOutput}
-                    searchPlaceholder="Find Developers..."
-                    columns={[
-                        { 
-                            header: "Developer Name", 
-                            cell: (row: any) => <span className="font-black text-slate-900 dark:text-white uppercase">{row.DeveloperFullName}</span> 
-                        },
-                        { 
-                            header: "Active Projects", 
-                            cell: (row: any) => <span className="font-bold text-slate-600">{row.Assigned} Projects</span> 
-                        },
-                        { 
-                            header: "Total Completed Tasks", 
-                            className: "text-emerald-600",
-                            cell: (row: any) => <span className="font-black text-emerald-600">{row.Completed}</span> 
-                        },
-                        { 
-                            header: "Pending Tasks (Assigned)", 
-                            className: "text-slate-400",
-                            cell: (row: any) => <span className="font-black text-slate-500">{row.Pending}</span> 
-                        },
-                        { 
-                            header: "In-Progress Tasks", 
-                            className: "text-blue-600",
-                            cell: (row: any) => <span className="font-black text-blue-600">{row.InProgress}</span> 
-                        }
-                    ]}
-                />
+                {/* --- ROW 2 (CHARTS & SMALL GRADIENT STACK) --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
 
-            </div>
-        </motion.div>
+                    {/* Attendance Reports - Horizontal Bar Chart */}
+                    <motion.div variants={itemVariants} className="lg:col-span-5 rounded-[3.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[350px]">
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Attendance Reports</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Aggregate comparison metrics</p>
+                        </div>
+                        <div className="h-56 w-full mt-6">
+                            {barChartData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={barChartData} layout="vertical" margin={{ top: 20, right: 10, left: -25, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" strokeOpacity={0.6} />
+                                        <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} axisLine={false} />
+                                        <YAxis dataKey="name" type="category" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '16px', color: '#fff' }} />
+                                        <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', paddingTop: '10px' }} />
+
+                                        <Bar dataKey="Present" fill={THEME_COLORS.emerald} radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="Late Checkins" fill={THEME_COLORS.rose} radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="Out of Office" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="Absent" fill="#334155" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="On Leave" fill={THEME_COLORS.purple} radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="Half Day" fill={THEME_COLORS.amber} radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs font-bold text-slate-400 uppercase tracking-widest">No parameters loaded</div>
+                            )}
+                        </div>
+                    </motion.div>
+
+                    {/* Discipline Donut Chart */}
+                    <motion.div variants={itemVariants} className="lg:col-span-4 rounded-[3.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[350px]">
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Discipline</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Compliance indicator metrics</p>
+                        </div>
+
+                        <div className="h-48 w-full relative mt-4">
+                            {disciplinePieData.length > 0 ? (
+                                <>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={disciplinePieData}
+                                                cx="50%" cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={75}
+                                                paddingAngle={3}
+                                                dataKey="value"
+                                                stroke="transparent"
+                                            >
+                                                {disciplinePieData.map((entry: any, index: number) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                                            {discipline?.permissible_pct ?? 0}%
+                                        </span>
+                                        <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest mt-1">Permissible</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs font-bold text-slate-400 uppercase tracking-widest">No discipline records</div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-center gap-4 text-[9px] font-black uppercase tracking-widest mt-4">
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                <span className="text-slate-500">Permissible: {discipline?.discipline_permissible ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                                <span className="text-slate-500">Breach: {discipline?.discipline_breach ?? 0}</span>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Small Colored Stat Widgets Grid Column Stack */}
+                    <div className="lg:col-span-3 flex flex-col gap-3 justify-between">
+                        <SmallStatCard
+                            title="Half Days"
+                            value={summary?.half_days ?? 0}
+                            icon={Clock}
+                            bgColor="bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600"
+                            iconColor="text-orange-500"
+                            borderColor="border-2 border-orange-400"
+                        />
+                        <SmallStatCard
+                            title="Absent"
+                            value={summary?.absent ?? 0}
+                            icon={UserX}
+                            bgColor="bg-gradient-to-br from-rose-600 via-rose-500 to-red-800"
+                            iconColor="text-rose-500"
+                            borderColor="border-2 border-rose-400"
+                        />
+                        <SmallStatCard
+                            title="Out of Office"
+                            value={summary?.out_of_office ?? 0}
+                            icon={MapPin}
+                            bgColor="bg-gradient-to-br from-cyan-600 via-cyan-500 to-cyan-800"
+                            iconColor="text-cyan-500"
+                            borderColor="border-2 border-cyan-400"
+                        />
+                        <SmallStatCard
+                            title="Late Check-ins"
+                            value={summary?.late_checkins ?? 0}
+                            icon={Clock}
+                            bgColor="bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-700"
+                            iconColor="text-emerald-500"
+                            borderColor="border-2 border-emerald-400"
+                        />
+                        <SmallStatCard
+                            title="Permissible Leaves Balance"
+                            value={leaves?.elr_permissible_leave ?? 0}
+                            icon={HelpCircle}
+                            bgColor="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-800"
+                            iconColor="text-purple-500"
+                            borderColor="border-2 border-purple-400"
+                        />
+                    </div>
+
+                </div>
+
+                {/* --- ROW 3 (SALARY, LEAVES, WORKING STACKED) --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+
+                    {/* Salary Parameters Card */}
+                    <motion.div variants={itemVariants} className="lg:col-span-4 rounded-[3.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Salary</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Consolidated Payroll Metrics</p>
+                        </div>
+
+                        <div className="space-y-4 my-auto">
+                            {/* Gross Salary Block */}
+                            <div>
+                                <div className="flex justify-between text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5">
+                                    <span>Gross Salary</span>
+                                    <span className="text-slate-900 dark:text-white">
+                                        ₹ {salary?.gross_salary ? Number(salary.gross_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-lg overflow-hidden">
+                                    <div className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-full rounded-lg" style={{ width: salary?.gross_salary ? '80%' : '0%' }} />
+                                </div>
+                            </div>
+
+                            {/* Deductions Segment */}
+                            <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest border-y border-slate-100 dark:border-slate-800 py-3 text-slate-500">
+                                <span>Total Deductions</span>
+                                <span className="text-rose-500 font-black">
+                                    ₹ {salary?.total_deduction ? Number(salary.total_deduction).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                                </span>
+                            </div>
+
+                            {/* Net Salary Block */}
+                            <div>
+                                <div className="flex justify-between text-xs font-black uppercase tracking-widest text-slate-500 mb-1.5">
+                                    <span>Net Salary</span>
+                                    <span className="text-slate-900 dark:text-white">
+                                        ₹ {salary?.net_salary ? Number(salary.net_salary).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-lg overflow-hidden">
+                                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-lg" style={{ width: salary?.net_salary ? '88%' : '0%' }} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3">
+                            <span>Status: {salary?.payment_status || 'Various'}</span>
+                            <span>Date: {salary?.payment_date || '--:--'}</span>
+                        </div>
+                    </motion.div>
+
+                    {/* Leaves pie tracking metrics */}
+                    <motion.div variants={itemVariants} className="lg:col-span-4 rounded-[3.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Leaves Breakdown</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Categorized leave count usage</p>
+                        </div>
+
+                        <div className="h-40 w-full relative">
+                            {leavesPieData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={leavesPieData}
+                                            cx="50%" cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={65}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                            stroke="transparent"
+                                        >
+                                            {leavesPieData.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontWeight: 'bold' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs font-bold text-slate-400 uppercase tracking-widest">No parameters loaded</div>
+                            )}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-lg font-black text-slate-900 dark:text-white leading-none">
+                                    {leaves?.elr_total_leave ?? 0}
+                                </span>
+                                <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest mt-1">Total Leaves</span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3">
+                            <span>Permissible: {leaves?.elr_permissible_leave ?? 0}</span>
+                            <span>Excess: {leaves?.elr_excess_leave ?? 0}</span>
+                        </div>
+                    </motion.div>
+
+                    {/* Working Stacked parameters */}
+                    <motion.div variants={itemVariants} className="lg:col-span-4 rounded-[3.5rem] border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-slate-900 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+                        <div>
+                            <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">Working</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Consolidated metric parameters</p>
+                        </div>
+
+                        <div className="h-36 w-full mt-2">
+                            {workingStackedData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={workingStackedData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
+                                        <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px' }} />
+
+                                        <Bar dataKey="Present" stackId="working_stack" fill={THEME_COLORS.emerald} />
+                                        <Bar dataKey="Week Off" stackId="working_stack" fill={THEME_COLORS.slate} />
+                                        <Bar dataKey="On Leave" stackId="working_stack" fill={THEME_COLORS.purple} />
+                                        <Bar dataKey="Holiday" stackId="working_stack" fill={THEME_COLORS.rose} />
+                                        <Bar dataKey="Half Day" stackId="working_stack" fill={THEME_COLORS.amber} />
+                                        <Bar dataKey="Absent" stackId="working_stack" fill="#ef4444" />
+                                        <Bar dataKey="OOO" stackId="working_stack" fill="#06b6d4" />
+                                        <Bar dataKey="Late" stackId="working_stack" fill="#a855f7" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs font-bold text-slate-400 uppercase tracking-widest">No working parameters</div>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1 text-[8px] font-black uppercase tracking-widest text-center border-t border-slate-100 dark:border-slate-800 pt-3">
+                            <span className="text-emerald-500 truncate">Present: {working?.present ?? 0}</span>
+                            <span className="text-slate-400 truncate">Week-off: {working?.week_off_count ?? 0}</span>
+                            <span className="text-rose-500 truncate">Absent: {working?.absent ?? 0}</span>
+                        </div>
+                    </motion.div>
+
+                </div>
+            </motion.div>
+
+        </div>
     );
 }
