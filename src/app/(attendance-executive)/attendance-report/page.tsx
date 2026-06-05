@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Download, FileSpreadsheet, Search,
-    CalendarDays, Users, Activity, Loader2
+    CalendarDays, Users, Activity, Loader2, X, Eye
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ const itemVariants = {
     visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
 };
 
-// --- Updated Interface to match API response ---
+// --- Updated Interface ---
 interface EmployeeReport {
     employee_id: number;
     employee_name: string;
@@ -41,6 +41,9 @@ export default function UserwiseAttendanceExport() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [page, setPage] = useState(1);
+    
+    // Modal State
+    const [selectedEmployee, setSelectedEmployee] = useState<EmployeeReport | null>(null);
 
     // Initialize with current YYYY-MM
     const today = new Date();
@@ -50,12 +53,10 @@ export default function UserwiseAttendanceExport() {
     const getAttendanceReport = async () => {
         setLoading(true);
         try {
-            // Split YYYY-MM into numeric year and month
             const [yearStr, monthStr] = selectedMonthYear.split("-");
             const month = parseInt(monthStr, 10) || 5;
             const year = parseInt(yearStr, 10) || 2026;
 
-            // Updated path pointing to the accountant dashboard API
             const response = await callGetAPIWithToken(
                 `accountant/dashboard/attendance-report?user_id=0&month=${month}&year=${year}`
             );
@@ -106,7 +107,6 @@ export default function UserwiseAttendanceExport() {
 
     const handleExport = (type: 'csv' | 'pdf', empName: string = 'All_Users') => {
         alert(`Exporting ${type.toUpperCase()} report for ${empName} (Period: ${selectedMonthYear})...`);
-        // TODO: window.open(`/api/export?type=${type}&user=${empName}&monthYear=${selectedMonthYear}`)
     };
 
     return (
@@ -248,12 +248,13 @@ export default function UserwiseAttendanceExport() {
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Half Day</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Out of Office</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Punctuality %</th>
+                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-right pr-4">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {paginatedData.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="py-20 text-center">
+                                            <td colSpan={9} className="py-20 text-center">
                                                 <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700 mb-4" />
                                                 <p className="text-sm font-black uppercase tracking-widest text-slate-400">No records found matching your criteria</p>
                                             </td>
@@ -306,6 +307,18 @@ export default function UserwiseAttendanceExport() {
                                                             {punctualityVal}%
                                                         </span>
                                                     </td>
+
+                                                    <td className="py-5 text-right pr-4">
+                                                        <Button
+                                                            onClick={() => setSelectedEmployee(emp)}
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="rounded-xl font-black uppercase tracking-widest text-[9px] h-9 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 gap-1.5"
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                            View
+                                                        </Button>
+                                                    </td>
                                                 </tr>
                                             );
                                         })
@@ -343,6 +356,111 @@ export default function UserwiseAttendanceExport() {
                     </div>
                 )}
             </motion.div>
+
+            {/* Modal - View Specific Employee Data */}
+            <AnimatePresence>
+                {selectedEmployee && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedEmployee(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+
+                        {/* Modal Body */}
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ type: "spring", duration: 0.4 }}
+                            className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-8 z-10 overflow-hidden"
+                        >
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setSelectedEmployee(null)}
+                                className="absolute right-6 top-6 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+
+                            {/* Header */}
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="h-14 w-14 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-lg uppercase">
+                                    {selectedEmployee.employee_name ? selectedEmployee.employee_name.split(' ').map(n => n[0]).join('') : 'U'}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                        {selectedEmployee.employee_name}
+                                    </h3>
+                                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mt-1">
+                                        Employee ID: {selectedEmployee.employee_id} • {selectedEmployee.month_label}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Grid Metrics */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 rounded-2xl">
+                                    <span className="block text-[10px] font-black uppercase tracking-wider text-emerald-600/75 dark:text-emerald-400/80">Present Days</span>
+                                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-2 block">{selectedEmployee.present}</span>
+                                </div>
+
+                                <div className="p-4 bg-rose-50/50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl">
+                                    <span className="block text-[10px] font-black uppercase tracking-wider text-rose-600/75 dark:text-rose-400/80">Absent Days</span>
+                                    <span className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-2 block">{selectedEmployee.absent}</span>
+                                </div>
+
+                                <div className="p-4 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-2xl">
+                                    <span className="block text-[10px] font-black uppercase tracking-wider text-amber-600/75 dark:text-amber-400/80">Late Attendance</span>
+                                    <span className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-2 block">{selectedEmployee.late}</span>
+                                </div>
+
+                                <div className="p-4 bg-sky-50/50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-900/20 rounded-2xl">
+                                    <span className="block text-[10px] font-black uppercase tracking-wider text-sky-600/75 dark:text-sky-400/80">Approved Leaves</span>
+                                    <span className="text-3xl font-black text-sky-600 dark:text-sky-400 mt-2 block">{selectedEmployee.on_leave}</span>
+                                </div>
+
+                                <div className="p-4 bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 rounded-2xl">
+                                    <span className="block text-[10px] font-black uppercase tracking-wider text-indigo-600/75 dark:text-indigo-400/80">Half Days</span>
+                                    <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2 block">{selectedEmployee.half_day}</span>
+                                </div>
+
+                                <div className="p-4 bg-teal-50/50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/20 rounded-2xl">
+                                    <span className="block text-[10px] font-black uppercase tracking-wider text-teal-600/75 dark:text-teal-400/80">Out of Office</span>
+                                    <span className="text-3xl font-black text-teal-600 dark:text-teal-400 mt-2 block">{selectedEmployee.out_of_office}</span>
+                                </div>
+                            </div>
+
+                            {/* Punctuality Indicator */}
+                            <div className="mt-6 p-5 border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-850 rounded-[1.8rem] flex items-center justify-between">
+                                <div>
+                                    <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Punctuality Rating</span>
+                                    <p className="text-[11px] font-bold text-slate-500 mt-1 uppercase">Computed against non-late shifts</p>
+                                </div>
+                                <span className={cn(
+                                    "inline-flex items-center rounded-2xl px-5 py-2.5 text-base font-black uppercase tracking-widest",
+                                    getHealthColor(calculatePunctuality(selectedEmployee.present, selectedEmployee.late))
+                                )}>
+                                    {calculatePunctuality(selectedEmployee.present, selectedEmployee.late)}%
+                                </span>
+                            </div>
+
+                            <div className="mt-8 flex justify-end gap-2">
+                                <Button
+                                    onClick={() => setSelectedEmployee(null)}
+                                    variant="ghost"
+                                    className="rounded-2xl px-6 font-black uppercase tracking-widest text-[10px]"
+                                >
+                                    Dismiss
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }
