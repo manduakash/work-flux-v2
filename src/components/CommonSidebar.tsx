@@ -54,8 +54,9 @@ const DEV_NAV_ITEMS = [
 const ADMIN_NAV_ITEMS = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin-dashboard' },
     { icon: ShieldCheck, label: 'Assign Project Lead', href: '/assign-project-lead' },
-    { icon: ClipboardCheck, label: 'Daily Attendance Logs', href: '/attendance-logs' },
+    // { icon: ClipboardCheck, label: 'Daily Attendance Logs', href: '/attendance-logs' },
     { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+    { icon: ClockCheck, label: 'Discipline Metrics', href: '/dicipline-metrics' },
     { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Admin also gets it
     { icon: Users, label: 'User Management', href: '/team' },
