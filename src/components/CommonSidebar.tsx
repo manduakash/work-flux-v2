@@ -21,7 +21,9 @@ import {
     CalendarCheck,
     CalendarDays,
     Calendar,
-    ClockCheck
+    ClockCheck,
+    IndianRupeeIcon,
+    Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
@@ -70,6 +72,8 @@ const ACCOUNTANT_NAV_ITEMS = [
     { icon: ClockCheck, label: 'Discipline Metrics', href: '/discipline-metrics' },
     { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Everyone gets it
+    { icon: IndianRupeeIcon, label: 'Salary-Reports', href: '/salary-reports' }, // Everyone gets it
+    { icon: Wallet, label: 'Salary-Structure', href: '/salary-structure' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 
