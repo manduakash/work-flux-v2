@@ -76,6 +76,44 @@ export default function DisciplineComplianceExport() {
         }
     };
 
+    // --- CSV Export Logic ---
+    const handleExportCSV = () => {
+        if (reports.length === 0) return;
+
+        const headers = [
+            "Employee ID", "Name", "Period", 
+            "Permissible Count", "Permissible %", 
+            "Breach Count", "Breach %", 
+            "Absent Count", "Absent %", 
+            "On Leave Count", "Leave %"
+        ];
+
+        const csvRows = reports.map(emp => [
+            emp.employee_id,
+            `"${emp.employee_name}"`,
+            `"${emp.period_label}"`,
+            emp.discipline_permissible,
+            emp.permissible_pct,
+            emp.discipline_breach,
+            emp.breach_pct,
+            emp.absent_count,
+            emp.absent_pct,
+            emp.on_leave,
+            emp.leave_pct
+        ].join(","));
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Discipline_Audit_${selectedMonthYear}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     useEffect(() => {
         getDisciplineReport();
         setPage(1);
@@ -124,6 +162,8 @@ export default function DisciplineComplianceExport() {
 
                 <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
                     <Button
+                        onClick={handleExportCSV}
+                        disabled={loading || reports.length === 0}
                         variant="ghost"
                         className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] text-slate-700 dark:text-slate-300"
                     >

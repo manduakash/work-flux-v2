@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Download, FileSpreadsheet, Search,
     CalendarDays, Users, Banknote, Loader2, X, Eye,
-    TrendingDown, CreditCard, CalendarCheck, ReceiptIndianRupee
+    TrendingDown, CreditCard, CalendarCheck, ReceiptIndianRupee,
+    CalendarRange, ChevronRight
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -52,8 +53,13 @@ export default function SalaryReportExport() {
 
     // Modal State
     const [selectedSalary, setSelectedSalary] = useState<SalaryReport | null>(null);
+    
+    // Receipt Date Range States (for Individual Modal)
+    const [receiptRangeType, setReceiptRangeType] = useState<'monthly' | 'yearly' | 'custom'>('monthly');
+    const [receiptCustomStart, setReceiptCustomStart] = useState("");
+    const [receiptCustomEnd, setReceiptCustomEnd] = useState("");
 
-    // Date State
+    // Date State for main table
     const today = new Date();
     const initialMonthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const [selectedMonthYear, setSelectedMonthYear] = useState(initialMonthYear);
@@ -80,6 +86,46 @@ export default function SalaryReportExport() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // --- CSV Export Logic ---
+    const handleExportCSV = () => {
+        if (reports.length === 0) return;
+
+        const headers = [
+            "Employee ID", "Name", "Designation", "Month", 
+            "Gross Salary", "PF Deduction", "ESI Deduction", 
+            "Prof. Tax", "LOP Days", "Leave Deduction", 
+            "Total Deduction", "Net Salary", "Status", "Payment Date"
+        ];
+
+        const csvRows = reports.map(emp => [
+            emp.employee_id,
+            `"${emp.employee_name}"`,
+            `"${emp.designation}"`,
+            emp.salary_month || selectedMonthYear,
+            emp.gross_salary || 0,
+            emp.pf_deduction || 0,
+            emp.esi_deduction || 0,
+            emp.professional_tax || 0,
+            emp.lop_days || 0,
+            emp.excess_leave_deduction || 0,
+            emp.total_deduction || 0,
+            emp.net_salary || 0,
+            emp.payment_status || 'Pending',
+            emp.payment_date || 'N/A'
+        ].join(","));
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Salary_Report_${selectedMonthYear}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     useEffect(() => {
@@ -138,6 +184,8 @@ export default function SalaryReportExport() {
 
                 <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
                     <Button
+                        onClick={handleExportCSV}
+                        disabled={loading || reports.length === 0}
                         variant="ghost"
                         className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all text-slate-700 dark:text-slate-300"
                     >
@@ -330,29 +378,85 @@ export default function SalaryReportExport() {
                                         </div>
                                     </div>
 
-                                    <div className="p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <CalendarCheck className="h-4 w-4 text-emerald-500" />
-                                            <div>
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase">Payment Date</span>
-                                                <span className="text-xs font-bold">{selectedSalary.payment_date || 'Processing...'}</span>
-                                            </div>
+                                    {/* NEW: Salary Receipt Generation Options */}
+                                    <div className="p-6 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 space-y-5">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <CalendarRange className="h-4 w-4 text-emerald-500" />
+                                            <span className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-widest">Receipt Period</span>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <CreditCard className="h-4 w-4 text-emerald-500" />
-                                            <div>
-                                                <span className="block text-[9px] font-black text-slate-400 uppercase">Reference</span>
-                                                <span className="text-xs font-bold uppercase">PAY-{selectedSalary.employee_id}-{selectedMonthYear.replace('-', '')}</span>
-                                            </div>
+                                        
+                                        {/* Range Selector */}
+                                        <div className="flex gap-1 p-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                            {(['monthly', 'yearly', 'custom'] as const).map((type) => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setReceiptRangeType(type)}
+                                                    className={cn(
+                                                        "flex-1 py-2 text-[9px] font-black uppercase tracking-tighter rounded-xl transition-all",
+                                                        receiptRangeType === type 
+                                                            ? "bg-emerald-600 text-white shadow-md" 
+                                                            : "text-slate-400 hover:text-slate-600"
+                                                    )}
+                                                >
+                                                    {type}
+                                                </button>
+                                            ))}
                                         </div>
+
+                                        {/* Conditional Inputs for Receipt */}
+                                        <AnimatePresence mode="wait">
+                                            {receiptRangeType === 'monthly' && (
+                                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase block mb-2 ml-1">Current Period</span>
+                                                    <div className="h-11 px-4 flex items-center bg-white dark:bg-slate-900 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
+                                                        {selectedMonthYear}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {receiptRangeType === 'yearly' && (
+                                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}>
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase block mb-2 ml-1">Fiscal Year</span>
+                                                    <div className="h-11 px-4 flex items-center bg-white dark:bg-slate-900 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
+                                                        {selectedMonthYear.split('-')[0]}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {receiptRangeType === 'custom' && (
+                                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-3">
+                                                    <div>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase block mb-1 ml-1">Start</span>
+                                                        <input 
+                                                            type="date" 
+                                                            value={receiptCustomStart}
+                                                            onChange={(e) => setReceiptCustomStart(e.target.value)}
+                                                            className="w-full h-11 px-4 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-black border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase block mb-1 ml-1">End</span>
+                                                        <input 
+                                                            type="date" 
+                                                            value={receiptCustomEnd}
+                                                            onChange={(e) => setReceiptCustomEnd(e.target.value)}
+                                                            className="w-full h-11 px-4 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-black border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                                 <Button onClick={() => setSelectedSalary(null)} variant="ghost" className="rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]">Dismiss</Button>
-                                <Button className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] gap-2">
-                                    <ReceiptIndianRupee className="h-4 w-4" /> Download Payslip
+                                <Button 
+                                    onClick={() => alert(`Generating ${receiptRangeType} Payslip for ${selectedSalary.employee_name}`)}
+                                    className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-emerald-600/20"
+                                >
+                                    <ReceiptIndianRupee className="h-4 w-4" /> Download Receipt
                                 </Button>
                             </div>
                         </motion.div>
