@@ -20,7 +20,8 @@ import {
     FileBarChart,
     CalendarCheck,
     CalendarDays,
-    Calendar
+    Calendar,
+    ClockCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
@@ -61,10 +62,11 @@ const ADMIN_NAV_ITEMS = [
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 
-const ATTENDANCE_EXE_NAV_ITEMS = [
+const ACCOUNTANT_NAV_ITEMS = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/attendance-executive-dashboard' },
     { icon: ClipboardCheck, label: 'Attendance Entry', href: '/attendance-entry' },
     { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
+    { icon: ClockCheck, label: 'Discipline Metrics', href: '/discipline-metrics' },
     { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
@@ -92,7 +94,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
         } else if (roleId === 1) {
             setNavItems(ADMIN_NAV_ITEMS);
         } else if (roleId === 5) {
-            setNavItems(ATTENDANCE_EXE_NAV_ITEMS);
+            setNavItems(ACCOUNTANT_NAV_ITEMS);
         }
         else {
             const role = currentUser?.role || getCookie("role");
@@ -103,7 +105,7 @@ const Sidebar = ({ isMobileOpen, isCollapsed, setIsCollapsed, pathname, currentU
             } else if (role === 'MANAGEMENT') {
                 setNavItems(ADMIN_NAV_ITEMS);
             } else if (role === 'ATTENDANCE_EXECUTIVE') {
-                setNavItems(ATTENDANCE_EXE_NAV_ITEMS);
+                setNavItems(ACCOUNTANT_NAV_ITEMS);
             } else {
                 setNavItems([]);
             }
