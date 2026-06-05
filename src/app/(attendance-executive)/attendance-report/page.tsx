@@ -523,7 +523,7 @@ export default function UserwiseAttendanceExport() {
                                     onClick={() => alert(`Exporting individual logs for ${selectedEmployee?.employee_name}`)}
                                     className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl px-6 font-black uppercase tracking-widest text-[10px]"
                                 >
-                                    Export Logs
+                                    Export.Logs
                                 </Button>
                             </div>
                         </motion.div>
