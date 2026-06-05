@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Download, FileText, FileSpreadsheet, Search, Filter,
+    Download, FileSpreadsheet, Search,
     CalendarDays, Users, Activity, Loader2
 } from 'lucide-react';
 
@@ -22,17 +22,18 @@ const itemVariants = {
     visible: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 100 } }
 };
 
-// --- Interfaces ---
+// --- Updated Interface to match API response ---
 interface EmployeeReport {
-    UserID: number;
-    UserFullName: string;
-    Present: string | number;
-    Absent: string | number;
-    OnTime: string | number;
-    Late: string | number;
-    OnLeave: string | number;
-    TotalWorkingDaysUntilToday: number;
-    Punctuality: string | number;
+    employee_id: number;
+    employee_name: string;
+    month_label: string;
+    month_number: number;
+    present: string | number;
+    late: string | number;
+    out_of_office: string | number;
+    absent: string | number;
+    on_leave: string | number;
+    half_day: string | number;
 }
 
 export default function UserwiseAttendanceExport() {
@@ -43,17 +44,21 @@ export default function UserwiseAttendanceExport() {
 
     // Initialize with current YYYY-MM
     const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
-    const [fromDate, setFromDate] = useState(formatDate(firstDay));
-    const [toDate, setToDate] = useState(formatDate(today));
+    const initialMonthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const [selectedMonthYear, setSelectedMonthYear] = useState(initialMonthYear);
 
     const getAttendanceReport = async () => {
         setLoading(true);
         try {
-            const response = await callGetAPIWithToken(`attendance/employee-report?fromDate=${fromDate}&toDate=${toDate}`);
+            // Split YYYY-MM into numeric year and month
+            const [yearStr, monthStr] = selectedMonthYear.split("-");
+            const month = parseInt(monthStr, 10) || 5;
+            const year = parseInt(yearStr, 10) || 2026;
+
+            // Updated path pointing to the accountant dashboard API
+            const response = await callGetAPIWithToken(
+                `accountant/dashboard/attendance-report?user_id=0&month=${month}&year=${year}`
+            );
 
             if (response?.success && response?.data) {
                 setReports(response.data);
@@ -71,12 +76,12 @@ export default function UserwiseAttendanceExport() {
     useEffect(() => {
         getAttendanceReport();
         setPage(1);
-    }, [fromDate, toDate]); // Restored for stability and HMR consistency
+    }, [selectedMonthYear]);
 
     // --- Filtering Logic ---
     const filteredData = reports.filter(emp =>
-        emp.UserFullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.UserID.toString().includes(searchTerm)
+        emp.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.employee_id.toString().includes(searchTerm)
     );
 
     // --- Pagination Logic ---
@@ -84,19 +89,24 @@ export default function UserwiseAttendanceExport() {
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
     const paginatedData = filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-    // --- Helper for Punctuality Badge ---
+    // --- Helper for Punctuality calculation ---
+    const calculatePunctuality = (presentCount: string | number, lateCount: string | number) => {
+        const pres = Number(presentCount) || 0;
+        const lat = Number(lateCount) || 0;
+        const total = pres + lat;
+        if (total === 0) return 100;
+        return Math.round((pres / total) * 100);
+    };
+
     const getHealthColor = (punctuality: number) => {
         if (punctuality >= 90) return "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20";
         if (punctuality >= 75) return "text-amber-500 bg-amber-50 dark:bg-amber-900/20";
         return "text-rose-500 bg-rose-50 dark:bg-rose-900/20";
     };
 
-    // --- Export Handlers ---
     const handleExport = (type: 'csv' | 'pdf', empName: string = 'All_Users') => {
-        // In reality, this triggers a file download via API utilizing the date range
-        alert(`Exporting ${type.toUpperCase()} report for ${empName} (Period: ${fromDate} to ${toDate})...`);
-
-        // TODO: window.open(`/api/export?type=${type}&user=${empName}&fromDate=${fromDate}&toDate=${toDate}`)
+        alert(`Exporting ${type.toUpperCase()} report for ${empName} (Period: ${selectedMonthYear})...`);
+        // TODO: window.open(`/api/export?type=${type}&user=${empName}&monthYear=${selectedMonthYear}`)
     };
 
     return (
@@ -156,7 +166,7 @@ export default function UserwiseAttendanceExport() {
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
-                            setPage(1); // Reset pagination on search
+                            setPage(1);
                         }}
                         className="w-full h-14 pl-16 pr-6 bg-slate-50 dark:bg-slate-800/50 border-none rounded-3xl text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
                     />
@@ -164,37 +174,28 @@ export default function UserwiseAttendanceExport() {
 
                 <div className="w-px h-10 bg-slate-200 dark:bg-slate-800 hidden md:block mx-2" />
 
-                {/* Date Range Picker */}
+                {/* Month-Year Picker */}
                 <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:flex-none">
                         <CalendarDays className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500 pointer-events-none" />
                         <input
-                            type="date"
-                            value={fromDate}
-                            onChange={(e) => setFromDate(e.target.value)}
-                            className="h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                            type="month"
+                            value={selectedMonthYear}
+                            onChange={(e) => setSelectedMonthYear(e.target.value)}
+                            className="h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
                         />
                     </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">TO</span>
-                    <div className="relative flex-1 md:flex-none flex items-center gap-2">
-                        <div className="relative">
-                            <CalendarDays className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-indigo-500 pointer-events-none" />
-                            <input
-                                type="date"
-                                value={toDate}
-                                onChange={(e) => setToDate(e.target.value)}
-                                className="h-14 pl-14 pr-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                            />
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setToDate(formatDate(today))}
-                            className="h-10 rounded-xl px-4 font-black uppercase tracking-widest text-[9px] border-slate-100 dark:border-slate-800 hover:bg-slate-50 transition-all shrink-0"
-                        >
-                            Today
-                        </Button>
-                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            const currentMonthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                            setSelectedMonthYear(currentMonthYear);
+                        }}
+                        className="h-14 rounded-3xl px-6 font-black uppercase tracking-widest text-[10px] border-slate-100 dark:border-slate-800 hover:bg-slate-50 transition-all shrink-0"
+                    >
+                        Current Month
+                    </Button>
                     <Button
                         onClick={() => {
                             getAttendanceReport();
@@ -218,12 +219,12 @@ export default function UserwiseAttendanceExport() {
                                 Employee Attendance Database
                             </h3>
                             <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">
-                                Displaying {filteredData.length} records from {fromDate} to {toDate}
+                                Displaying {filteredData.length} records for {selectedMonthYear}
                             </p>
                             <div className="mt-3 flex items-center gap-2">
                                 <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
                                 <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                                    Note: Out of office days check-in times are not considered as late
+                                    Note: Out of office and half day statistics are tracked separately
                                 </p>
                             </div>
                         </div>
@@ -244,83 +245,70 @@ export default function UserwiseAttendanceExport() {
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Absent</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Late</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Leave</th>
+                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Half Day</th>
+                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Out of Office</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Punctuality %</th>
-                                        {/* <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-right pr-4">Individual Export</th> */}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {paginatedData.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="py-20 text-center">
+                                            <td colSpan={8} className="py-20 text-center">
                                                 <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-700 mb-4" />
                                                 <p className="text-sm font-black uppercase tracking-widest text-slate-400">No records found matching your criteria</p>
                                             </td>
                                         </tr>
                                     ) : (
-                                        paginatedData.map((emp) => (
-                                            <tr key={emp.UserID} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                                <td className="py-5 px-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm uppercase">
-                                                            {emp.UserFullName.split(' ').map(n => n[0]).join('')}
+                                        paginatedData.map((emp) => {
+                                            const punctualityVal = calculatePunctuality(emp.present, emp.late);
+                                            return (
+                                                <tr key={emp.employee_id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                                    <td className="py-5 px-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm uppercase">
+                                                                {emp.employee_name ? emp.employee_name.split(' ').map(n => n[0]).join('') : 'U'}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">
+                                                                    {emp.employee_name}
+                                                                </span>
+                                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                                                                    UID: {emp.employee_id} • {emp.month_label}
+                                                                </span>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">
-                                                                {emp.UserFullName}
-                                                            </span>
-                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                                                                UID: {emp.UserID} • Total Working Days: {emp.TotalWorkingDaysUntilToday}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
+                                                    </td>
 
-                                                <td className="py-5 text-center">
-                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{emp.Present}</span>
-                                                </td>
-                                                <td className="py-5 text-center">
-                                                    <span className={`text-sm font-black ${Number(emp.Absent) > 0 ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>{emp.Absent}</span>
-                                                </td>
-                                                <td className="py-5 text-center">
-                                                    <span className={`text-sm font-black ${Number(emp.Late) > 0 ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>{emp.Late}</span>
-                                                </td>
-                                                <td className="py-5 text-center">
-                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{emp.OnLeave}</span>
-                                                </td>
+                                                    <td className="py-5 text-center">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white">{emp.present}</span>
+                                                    </td>
+                                                    <td className="py-5 text-center">
+                                                        <span className={`text-sm font-black ${Number(emp.absent) > 0 ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>{emp.absent}</span>
+                                                    </td>
+                                                    <td className="py-5 text-center">
+                                                        <span className={`text-sm font-black ${Number(emp.late) > 0 ? 'text-amber-500' : 'text-slate-900 dark:text-white'}`}>{emp.late}</span>
+                                                    </td>
+                                                    <td className="py-5 text-center">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white">{emp.on_leave}</span>
+                                                    </td>
+                                                    <td className="py-5 text-center">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white">{emp.half_day}</span>
+                                                    </td>
+                                                    <td className="py-5 text-center">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white">{emp.out_of_office}</span>
+                                                    </td>
 
-                                                <td className="py-5 text-center">
-                                                    <span className={cn(
-                                                        "inline-flex items-center rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-widest",
-                                                        getHealthColor(Number(emp.Punctuality) || 0)
-                                                    )}>
-                                                        {emp.Punctuality}%
-                                                    </span>
-                                                </td>
-
-                                                {/* <td className="py-5 text-right pr-4">
-                                                    <div className="flex justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                                        <Button 
-                                                            onClick={() => handleExport('csv', emp.Name)}
-                                                            size="icon" 
-                                                            variant="ghost" 
-                                                            title="Export CSV"
-                                                            className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-emerald-900/50 dark:hover:text-emerald-400"
-                                                        >
-                                                            <FileSpreadsheet className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button 
-                                                            onClick={() => handleExport('pdf', emp.Name)}
-                                                            size="icon" 
-                                                            variant="ghost" 
-                                                            title="Export PDF"
-                                                            className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-rose-900/50 dark:hover:text-rose-400"
-                                                        >
-                                                            <FileText className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td> */}
-                                            </tr>
-                                        ))
+                                                    <td className="py-5 text-center">
+                                                        <span className={cn(
+                                                            "inline-flex items-center rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-widest",
+                                                            getHealthColor(punctualityVal)
+                                                        )}>
+                                                            {punctualityVal}%
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
