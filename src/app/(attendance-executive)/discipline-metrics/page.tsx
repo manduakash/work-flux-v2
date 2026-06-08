@@ -11,7 +11,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { callGetAPIWithToken, callPostAPIWithToken } from '@/components/apis/commonAPIs';
+import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
 
 // --- Animations ---
 const containerVariants = {
@@ -93,7 +93,7 @@ export default function DisciplineComplianceExport() {
             formData.append('month_year', selectedMonthYear);
 
             // Replace with your actual import endpoint
-            const response = await callPostAPIWithToken(`accountant/dashboard/discipline/import`, formData);
+            const response = await callAPIWithToken(`accountant/dashboard/discipline/import`, formData);
 
             if (response?.success) {
                 alert("Data imported successfully");

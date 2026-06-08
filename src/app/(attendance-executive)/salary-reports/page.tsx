@@ -6,7 +6,7 @@ import {
     Download, FileSpreadsheet, Search,
     CalendarDays, Users, Banknote, Loader2, X, Eye,
     TrendingDown, CreditCard, CalendarCheck, ReceiptIndianRupee,
-    CalendarRange, ChevronRight
+    CalendarRange, ChevronRight, Award
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -30,12 +30,17 @@ interface SalaryReport {
     employee_name: string;
     designation: string;
     salary_month: string | null;
+    basic?: string | number | null;
+    hra?: string | number | null;
+    conv_allowance?: string | number | null;
+    special_allowance?: string | number | null;
     gross_salary: string | number | null;
     pf_deduction: string | number | null;
     esi_deduction: string | number | null;
     professional_tax: string | number | null;
     lop_days: string | number | null;
     excess_leave_deduction: string | number | null;
+    discipline_incentive?: string | number | null;
     total_deduction: string | number | null;
     net_salary: string | number | null;
     payment_status: string | null;
@@ -53,7 +58,7 @@ export default function SalaryReportExport() {
 
     // Modal State
     const [selectedSalary, setSelectedSalary] = useState<SalaryReport | null>(null);
-    
+
     // Receipt Date Range States (for Individual Modal)
     const [receiptRangeType, setReceiptRangeType] = useState<'monthly' | 'yearly' | 'custom'>('monthly');
     const [receiptCustomStart, setReceiptCustomStart] = useState("");
@@ -93,9 +98,9 @@ export default function SalaryReportExport() {
         if (reports.length === 0) return;
 
         const headers = [
-            "Employee ID", "Name", "Designation", "Month", 
-            "Gross Salary", "PF Deduction", "ESI Deduction", 
-            "Prof. Tax", "LOP Days", "Leave Deduction", 
+            "Employee ID", "Name", "Designation", "Month",
+            "Gross Salary", "Discipline Incentive", "PF Deduction", "ESI Deduction",
+            "Prof. Tax", "LOP Days", "Leave Deduction",
             "Total Deduction", "Net Salary", "Status", "Payment Date"
         ];
 
@@ -105,6 +110,7 @@ export default function SalaryReportExport() {
             `"${emp.designation}"`,
             emp.salary_month || selectedMonthYear,
             emp.gross_salary || 0,
+            emp.discipline_incentive || 0,
             emp.pf_deduction || 0,
             emp.esi_deduction || 0,
             emp.professional_tax || 0,
@@ -134,7 +140,7 @@ export default function SalaryReportExport() {
     }, [selectedMonthYear]);
 
     // --- Formatters ---
-    const formatCurrency = (val: string | number | null) => {
+    const formatCurrency = (val: string | number | null | undefined) => {
         const num = Number(val) || 0;
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -250,6 +256,7 @@ export default function SalaryReportExport() {
                                         <th className="pb-4 px-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Employee Details</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Gross Salary</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Deductions</th>
+                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Discipline Incentive</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Net Salary</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Status</th>
                                         <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-right pr-4">Breakdown</th>
@@ -274,6 +281,7 @@ export default function SalaryReportExport() {
                                                 <td className="py-5 text-center">
                                                     <span className="text-xs font-black text-rose-500">-{formatCurrency(emp.total_deduction)}</span>
                                                 </td>
+                                                <td className="py-5 text-center font-black text-sm text-slate-600">{formatCurrency(emp.discipline_incentive)}</td>
                                                 <td className="py-5 text-center font-black text-sm text-emerald-600">{formatCurrency(emp.net_salary)}</td>
                                                 <td className="py-5 text-center">
                                                     <span className={cn("inline-flex items-center rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border", getStatusStyles(emp.payment_status))}>
@@ -325,10 +333,16 @@ export default function SalaryReportExport() {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Monthly Breakdown */}
                                 <div className="lg:col-span-2 space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="p-6 rounded-[2rem] bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/20">
                                             <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Monthly Gross</span>
                                             <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{formatCurrency(selectedSalary.gross_salary)}</p>
+                                        </div>
+                                        <div className="p-6 rounded-[2rem] bg-teal-50 dark:bg-teal-950/20 border border-teal-100 dark:border-teal-900/20">
+                                            <span className="text-[10px] font-black uppercase text-teal-600 tracking-widest flex items-center gap-1">
+                                                <Award className="h-3 w-3" /> Discipline Incentive
+                                            </span>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{formatCurrency(selectedSalary.discipline_incentive)}</p>
                                         </div>
                                         <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                                             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Monthly Net</span>
@@ -378,13 +392,13 @@ export default function SalaryReportExport() {
                                         </div>
                                     </div>
 
-                                    {/* NEW: Salary Receipt Generation Options */}
+                                    {/* Salary Receipt Generation Options */}
                                     <div className="p-6 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800 space-y-5">
                                         <div className="flex items-center gap-2 mb-2">
                                             <CalendarRange className="h-4 w-4 text-emerald-500" />
                                             <span className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-widest">Receipt Period</span>
                                         </div>
-                                        
+
                                         {/* Range Selector */}
                                         <div className="flex gap-1 p-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
                                             {(['monthly', 'yearly', 'custom'] as const).map((type) => (
@@ -393,8 +407,8 @@ export default function SalaryReportExport() {
                                                     onClick={() => setReceiptRangeType(type)}
                                                     className={cn(
                                                         "flex-1 py-2 text-[9px] font-black uppercase tracking-tighter rounded-xl transition-all",
-                                                        receiptRangeType === type 
-                                                            ? "bg-emerald-600 text-white shadow-md" 
+                                                        receiptRangeType === type
+                                                            ? "bg-emerald-600 text-white shadow-md"
                                                             : "text-slate-400 hover:text-slate-600"
                                                     )}
                                                 >
@@ -427,20 +441,20 @@ export default function SalaryReportExport() {
                                                 <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-3">
                                                     <div>
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase block mb-1 ml-1">Start</span>
-                                                        <input 
-                                                            type="date" 
+                                                        <input
+                                                            type="date"
                                                             value={receiptCustomStart}
                                                             onChange={(e) => setReceiptCustomStart(e.target.value)}
-                                                            className="w-full h-11 px-4 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-black border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
+                                                            className="w-full h-11 px-4 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-black border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                                         />
                                                     </div>
                                                     <div>
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase block mb-1 ml-1">End</span>
-                                                        <input 
-                                                            type="date" 
+                                                        <input
+                                                            type="date"
                                                             value={receiptCustomEnd}
                                                             onChange={(e) => setReceiptCustomEnd(e.target.value)}
-                                                            className="w-full h-11 px-4 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-black border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
+                                                            className="w-full h-11 px-4 bg-white dark:bg-slate-900 rounded-xl text-[10px] font-black border border-slate-100 dark:border-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                                         />
                                                     </div>
                                                 </motion.div>
@@ -450,6 +464,7 @@ export default function SalaryReportExport() {
                                 </div>
                             </div>
 
+                            {/* Optional: Reactivate action buttons when needed */}
                             {/* <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                                 <Button onClick={() => setSelectedSalary(null)} variant="ghost" className="rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]">Dismiss</Button>
                                 <Button 
