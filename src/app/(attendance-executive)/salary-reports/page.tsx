@@ -450,7 +450,7 @@ export default function SalaryReportExport() {
                                 </div>
                             </div>
 
-                            <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+                            {/* <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
                                 <Button onClick={() => setSelectedSalary(null)} variant="ghost" className="rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]">Dismiss</Button>
                                 <Button 
                                     onClick={() => alert(`Generating ${receiptRangeType} Payslip for ${selectedSalary.employee_name}`)}
@@ -458,7 +458,7 @@ export default function SalaryReportExport() {
                                 >
                                     <ReceiptIndianRupee className="h-4 w-4" /> Download Receipt
                                 </Button>
-                            </div>
+                            </div> */}
                         </motion.div>
                     </div>
                 )}
