@@ -65,6 +65,9 @@ const ADMIN_NAV_ITEMS = [
     { icon: ClockCheck, label: 'Discipline Metrics', href: '/dicipline-metrics' },
     { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Admin also gets it
+    { icon: Bed, label: 'Week-Off', href: '/week-off-admin' }, // Everyone gets it
+    { icon: CalendarOff, label: 'Holidays', href: '/holidays-admin' }, // Everyone gets it
+    { icon: ScanFace, label: 'Face-Log', href: '/face-login' }, // Everyone gets it
     { icon: Users, label: 'User Management', href: '/team' },
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
