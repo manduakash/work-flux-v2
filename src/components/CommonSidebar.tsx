@@ -23,12 +23,16 @@ import {
     Calendar,
     ClockCheck,
     IndianRupeeIcon,
-    Wallet
+    Wallet,
+    Bed,
+    CalendarOff,
+    ScanFace
 } from 'lucide-react';
 import Link from 'next/link';
 import { User } from '@/types';
 import { useEffect, useState } from 'react';
 import { getCookie } from '@/utils/cookies';
+
 
 // SVG Dot Pattern
 const patternDots = `url("https://www.transparenttextures.com/patterns/padded-light.png")`;
@@ -74,6 +78,9 @@ const ACCOUNTANT_NAV_ITEMS = [
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Everyone gets it
     { icon: Wallet, label: 'Salary-Structure', href: '/salary-structure' }, // Everyone gets it
     { icon: IndianRupeeIcon, label: 'Salary-Reports', href: '/salary-reports' }, // Everyone gets it
+    { icon: Bed, label: 'Week-Off', href: '/week-off' }, // Everyone gets it
+    { icon: CalendarOff, label: 'Holidays', href: '/holidays' }, // Everyone gets it
+    { icon: ScanFace, label: 'Face-Log', href: '/facelog' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 
