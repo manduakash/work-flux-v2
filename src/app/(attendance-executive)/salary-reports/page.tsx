@@ -6,12 +6,12 @@ import {
     Download, FileSpreadsheet, Search,
     CalendarDays, Users, Banknote, Loader2, X, Eye,
     TrendingDown, CreditCard, CalendarCheck, ReceiptIndianRupee,
-    CalendarRange, ChevronRight, Award
+    CalendarRange, ChevronRight, Award, Save
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { callGetAPIWithToken } from '@/components/apis/commonAPIs';
+import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
 
 // --- Animations ---
 const containerVariants = {
@@ -26,6 +26,7 @@ const itemVariants = {
 
 // --- Interface ---
 interface SalaryReport {
+    sr_id?: number;
     employee_id: number;
     employee_name: string;
     designation: string;
@@ -48,6 +49,11 @@ interface SalaryReport {
     yearly_gross: string;
     yearly_deduction: string;
     yearly_net: string;
+    // Optional additions matching the model fallback details
+    sr_es_id?: number;
+    sr_nspl_id?: string;
+    bank_ac_no?: string;
+    ifsc_code?: string;
 }
 
 export default function SalaryReportExport() {
@@ -63,6 +69,10 @@ export default function SalaryReportExport() {
     const [receiptRangeType, setReceiptRangeType] = useState<'monthly' | 'yearly' | 'custom'>('monthly');
     const [receiptCustomStart, setReceiptCustomStart] = useState("");
     const [receiptCustomEnd, setReceiptCustomEnd] = useState("");
+
+    // Bulk Save Progress States
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0 });
 
     // Date State for main table
     const today = new Date();
@@ -91,6 +101,58 @@ export default function SalaryReportExport() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // --- Bulk Save Operations ---
+    const handleSaveAllSalaries = async () => {
+        if (reports.length === 0) return;
+        setIsSaving(true);
+        setSaveProgress({ current: 0, total: reports.length });
+
+        for (let i = 0; i < reports.length; i++) {
+            const emp = reports[i];
+
+            // Construct payload matching your schema
+            const payload = {
+                sr_id: emp.sr_id || 0,
+                sr_es_id: emp.sr_es_id || 5,
+                sr_ua_id: emp.employee_id,
+                sr_nspl_id: emp.sr_nspl_id || `NSPL-${selectedMonthYear.split('-')[0]}-${String(emp.employee_id).padStart(3, '0')}`,
+                sr_designation: emp.designation,
+                sr_salary_month: `${selectedMonthYear}-01`, // Default to first of month
+                sr_basic: Number(emp.basic) || 0,
+                sr_hra: Number(emp.hra) || 0,
+                sr_conv_allow: Number(emp.conv_allowance) || 0,
+                sr_special_allow: Number(emp.special_allowance) || 0,
+                sr_pf_employee: Number(emp.pf_deduction) || 0,
+                sr_esi_employee: Number(emp.esi_deduction) || 0,
+                sr_ptax: Number(emp.professional_tax) || 0,
+                sr_working_days: 26, // Fallback default
+                sr_present_days: 26 - (Number(emp.lop_days) || 0),
+                sr_lop_days: Number(emp.lop_days) || 0,
+                sr_excess_leave_deduction: Number(emp.excess_leave_deduction) || 0,
+                sr_discipline_incentive: Number(emp.discipline_incentive) || 0,
+                sr_other_bonus_incentive: 0.00,
+                sr_bank_ac_no: emp.bank_ac_no || "",
+                sr_ifsc_code: emp.ifsc_code || "",
+                sr_payment_date: emp.payment_date || null,
+                sr_payment_mode: "bank_transfer",
+                sr_status: emp.payment_status?.toLowerCase() || "pending",
+                sr_remarks: `${emp.employee_name} ${selectedMonthYear} salary`
+            };
+
+            try {
+                await callAPIWithToken('accountant/salary', payload);
+            } catch (error) {
+                console.error(`Failed to submit record for Employee ID: ${emp.employee_id}`, error);
+            }
+
+            setSaveProgress(prev => ({ ...prev, current: i + 1 }));
+        }
+
+        setIsSaving(false);
+        // Reload data to reflect updated records
+        getSalaryReport();
     };
 
     // --- CSV Export Logic ---
@@ -172,6 +234,32 @@ export default function SalaryReportExport() {
             variants={containerVariants}
             className="max-w-[1600px] mx-auto space-y-8 p-4 md:p-10 relative"
         >
+            {/* Bulk Saving Progress Overlay */}
+            <AnimatePresence>
+                {isSaving && (
+                    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-md">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col items-center max-w-sm text-center"
+                        >
+                            <Loader2 className="h-12 w-12 animate-spin text-emerald-600 mb-6" />
+                            <h3 className="text-xl font-black uppercase text-slate-900 dark:text-white">Posting Payroll records</h3>
+                            <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-wider">
+                                Processing {saveProgress.current} of {saveProgress.total} personnel profiles
+                            </p>
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full mt-6 overflow-hidden">
+                                <div
+                                    className="bg-emerald-600 h-full transition-all duration-300"
+                                    style={{ width: `${(saveProgress.current / saveProgress.total) * 100}%` }}
+                                />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Header */}
             <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between relative">
                 <div>
@@ -191,12 +279,20 @@ export default function SalaryReportExport() {
                 <div className="flex flex-wrap items-center gap-4 bg-white/50 dark:bg-slate-900/50 p-2 rounded-[2rem] border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
                     <Button
                         onClick={handleExportCSV}
-                        disabled={loading || reports.length === 0}
+                        disabled={loading || reports.length === 0 || isSaving}
                         variant="ghost"
                         className="h-14 rounded-3xl px-8 font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all text-slate-700 dark:text-slate-300"
                     >
                         <FileSpreadsheet className="mr-3 h-5 w-5 text-emerald-500" />
                         Export Master CSV
+                    </Button>
+                    <Button
+                        onClick={handleSaveAllSalaries}
+                        disabled={loading || reports.length === 0 || isSaving}
+                        className="h-14 rounded-3xl bg-emerald-600 px-8 font-black uppercase tracking-widest text-[11px] hover:bg-emerald-700 transition-all text-white shadow-lg shadow-emerald-600/20"
+                    >
+                        <Save className="mr-3 h-5 w-5" />
+                        Save All to DB
                     </Button>
                 </div>
             </div>
@@ -228,7 +324,7 @@ export default function SalaryReportExport() {
                     </div>
                     <Button
                         onClick={() => { getSalaryReport(); setPage(1); }}
-                        className="h-14 rounded-3xl bg-emerald-600 px-10 font-black uppercase tracking-widest text-[11px] hover:bg-emerald-700 transition-all text-white ml-2 shadow-lg shadow-emerald-600/20"
+                        className="h-14 rounded-3xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-10 font-black uppercase tracking-widest text-[11px] transition-all text-slate-700 dark:text-slate-300 ml-2"
                     >
                         Re-Calculate
                     </Button>
@@ -264,7 +360,7 @@ export default function SalaryReportExport() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                     {paginatedData.length === 0 ? (
-                                        <tr><td colSpan={6} className="py-20 text-center uppercase font-black text-slate-400 text-xs tracking-widest">No payroll data found</td></tr>
+                                        <tr><td colSpan={7} className="py-20 text-center uppercase font-black text-slate-400 text-xs tracking-widest">No payroll data found</td></tr>
                                     ) : (
                                         paginatedData.map((emp) => (
                                             <tr key={emp.employee_id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
@@ -463,17 +559,6 @@ export default function SalaryReportExport() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Optional: Reactivate action buttons when needed */}
-                            {/* <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                                <Button onClick={() => setSelectedSalary(null)} variant="ghost" className="rounded-2xl px-8 font-black uppercase tracking-widest text-[10px]">Dismiss</Button>
-                                <Button 
-                                    onClick={() => alert(`Generating ${receiptRangeType} Payslip for ${selectedSalary.employee_name}`)}
-                                    className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-emerald-600/20"
-                                >
-                                    <ReceiptIndianRupee className="h-4 w-4" /> Download Receipt
-                                </Button>
-                            </div> */}
                         </motion.div>
                     </div>
                 )}
