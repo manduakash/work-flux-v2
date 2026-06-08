@@ -46,6 +46,8 @@ const LEAD_NAV_ITEMS = [
     { icon: ShieldCheck, label: 'Project Assignments', href: '/team-management' },
     { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' },
+    { icon: Bed, label: 'Week Off', href: '/week-off-lead' }, // Everyone gets it
+    { icon: CalendarOff, label: 'Holidays', href: '/holidays-list-lead' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 
@@ -54,6 +56,8 @@ const DEV_NAV_ITEMS = [
     { icon: ListChecks, label: 'Tasks', href: '/create-manage-task' },
     { icon: FolderKanban, label: 'Projects', href: '/assigned-projects' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' },
+    { icon: Bed, label: 'Week Off', href: '/week-off-dev' }, // Everyone gets it
+    { icon: CalendarOff, label: 'Holidays', href: '/holidays-list' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 
@@ -65,7 +69,7 @@ const ADMIN_NAV_ITEMS = [
     { icon: ClockCheck, label: 'Discipline Metrics', href: '/dicipline-metrics' },
     { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Admin also gets it
-    { icon: Bed, label: 'Week-Off', href: '/week-off-admin' }, // Everyone gets it
+    { icon: Bed, label: 'Week Off', href: '/week-off-admin' }, // Everyone gets it
     { icon: CalendarOff, label: 'Holidays', href: '/holidays-admin' }, // Everyone gets it
     { icon: ScanFace, label: 'Face-Log', href: '/face-login' }, // Everyone gets it
     { icon: Users, label: 'User Management', href: '/team' },
@@ -81,7 +85,7 @@ const ACCOUNTANT_NAV_ITEMS = [
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Everyone gets it
     { icon: Wallet, label: 'Salary-Structure', href: '/salary-structure' }, // Everyone gets it
     { icon: IndianRupeeIcon, label: 'Salary-Reports', href: '/salary-reports' }, // Everyone gets it
-    { icon: Bed, label: 'Week-Off', href: '/week-off' }, // Everyone gets it
+    { icon: Bed, label: 'Week Off', href: '/week-off' }, // Everyone gets it
     { icon: CalendarOff, label: 'Holidays', href: '/holidays' }, // Everyone gets it
     { icon: ScanFace, label: 'Face-Log', href: '/facelog' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
