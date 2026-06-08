@@ -371,12 +371,12 @@ export default function AttendanceExecutiveDashboard() {
             name: working.month_label || 'Selected',
             'Present': working.present || 0,
             'Late': working.late || 0,
-            'OOO': working.out_of_office || 0,
-            'Absent': working.absent || 0,
             'On Leave': working.on_leave || 0,
+            'Absent': working.absent || 0,
             'Half Day': working.half_day || 0,
             'Week Off': working.week_off_count || 0,
-            'Holiday': working.holiday_count || 0
+            'Holiday': working.holiday_count || 0,
+            'OOO': working.out_of_office || 0,
         }];
     }, [working]);
 
