@@ -42,7 +42,7 @@ const LEAD_NAV_ITEMS = [
     { icon: LayoutDashboard, label: 'Overview', href: '/team-lead-dashboard' },
     { icon: Plus, label: 'Add Project', href: '/project-create' },
     { icon: FolderKanban, label: 'Project Oversight', href: '/project-oversight' },
-    { icon: Users, label: 'User Management', href: '/team' },
+    // { icon: Users, label: 'User Management', href: '/team' },
     { icon: ShieldCheck, label: 'Project Assignments', href: '/team-management' },
     { icon: ListChecks, label: 'Task Management', href: '/create-manage-task' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' },
@@ -80,14 +80,14 @@ const ACCOUNTANT_NAV_ITEMS = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/attendance-executive-dashboard' },
     { icon: ClipboardCheck, label: 'Attendance Entry', href: '/attendance-entry' },
     { icon: FileBarChart, label: 'Attendance Reports', href: '/attendance-report' },
-    { icon: ClockCheck, label: 'Discipline Metrics', href: '/discipline-metrics' },
+    { icon: ClockCheck, label: 'Discipline Metrics', href: '/dicipline-metrics' },
     { icon: CalendarCheck, label: 'Leave Reports', href: '/leave-report' },
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Everyone gets it
     { icon: Wallet, label: 'Salary-Structure', href: '/salary-structure' }, // Everyone gets it
     { icon: IndianRupeeIcon, label: 'Salary-Reports', href: '/salary-reports' }, // Everyone gets it
     { icon: Bed, label: 'Week Off', href: '/week-off' }, // Everyone gets it
     { icon: CalendarOff, label: 'Holidays', href: '/holidays' }, // Everyone gets it
-    { icon: ScanFace, label: 'Face-Log', href: '/facelog' }, // Everyone gets it
+    { icon: ScanFace, label: 'Id-Check', href: '/facelog' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 
