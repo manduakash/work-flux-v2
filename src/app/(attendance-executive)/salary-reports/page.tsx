@@ -137,12 +137,12 @@ export default function SalaryReportExport() {
                 sr_ifsc_code: emp.ifsc_code || "",
                 sr_payment_date: emp.payment_date || null,
                 sr_payment_mode: "bank_transfer",
-                sr_status: emp.payment_status?.toLowerCase() || "pending",
+                sr_status: "paid",
                 sr_remarks: `${emp.employee_name} ${selectedMonthYear} salary`
             };
 
             try {
-                await callAPIWithToken('accountant/salary', payload);
+                await callAPIWithToken('accountant/salary/records', payload);
             } catch (error) {
                 console.error(`Failed to submit record for Employee ID: ${emp.employee_id}`, error);
             }

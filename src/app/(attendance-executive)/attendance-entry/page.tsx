@@ -318,10 +318,10 @@ export default function RapidDataEntry() {
                                                         <CalendarOff className="h-3.5 w-3.5" /> Leave
                                                     </button>
                                                     <button
-                                                        onClick={() => handleStatusChange(emp.id, 6)} // 5 = On WO/HO
+                                                        onClick={() => handleStatusChange(emp.id, 7)} // 7 = On WO/HO
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                                            emp.statusId === 6 ? "bg-white dark:bg-slate-900 text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                                            emp.statusId === 7 ? "bg-white dark:bg-slate-900 text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                                         )}
                                                     >
                                                         <CalendarOff className="h-3.5 w-3.5" /> WO/HO
