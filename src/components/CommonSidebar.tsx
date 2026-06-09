@@ -71,7 +71,7 @@ const ADMIN_NAV_ITEMS = [
     { icon: Calendar, label: 'Leave Application', href: '/leave-application' }, // Admin also gets it
     { icon: Bed, label: 'Week Off', href: '/week-off-admin' }, // Everyone gets it
     { icon: CalendarOff, label: 'Holidays', href: '/holidays-admin' }, // Everyone gets it
-    { icon: ScanFace, label: 'Face-Log', href: '/face-login' }, // Everyone gets it
+    { icon: ScanFace, label: 'Face Authenticated Checkin', href: '/face-login' }, // Everyone gets it
     { icon: Users, label: 'User Management', href: '/team' },
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
@@ -87,7 +87,7 @@ const ACCOUNTANT_NAV_ITEMS = [
     { icon: IndianRupeeIcon, label: 'Salary-Reports', href: '/salary-reports' }, // Everyone gets it
     { icon: Bed, label: 'Week Off', href: '/week-off' }, // Everyone gets it
     { icon: CalendarOff, label: 'Holidays', href: '/holidays' }, // Everyone gets it
-    { icon: ScanFace, label: 'Id-Check', href: '/facelog' }, // Everyone gets it
+    { icon: ScanFace, label: 'Face Authenticated Checkin', href: '/facelog' }, // Everyone gets it
     { icon: UserCircleIcon, label: 'Profile', href: '/profile' },
 ];
 

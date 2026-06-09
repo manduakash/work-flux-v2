@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Download, FileSpreadsheet, Search,
-    CalendarDays, Users, Activity, Loader2, X, Eye
+    CalendarDays, Users, Activity, Loader2, X, Eye, Calendar, ShieldAlert
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -28,6 +28,10 @@ interface EmployeeReport {
     employee_name: string;
     month_label: string;
     month_number: number;
+    total_days: string | number;
+    holiday_count: string | number;
+    week_off_count: string | number;
+    working_days: string | number;
     present: string | number;
     late: string | number;
     out_of_office: string | number;
@@ -59,6 +63,18 @@ export default function UserwiseAttendanceExport() {
     const initialMonthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const [selectedMonthYear, setSelectedMonthYear] = useState(initialMonthYear);
 
+    // Dynamic Summary calculated from the first loaded record
+    const summaryMeta = useMemo(() => {
+        if (reports.length === 0) return { workingDays: 0, weekOffs: 0, holidays: 0, totalDays: 0 };
+        const first = reports[0];
+        return {
+            workingDays: Number(first.working_days) || 0,
+            weekOffs: Number(first.week_off_count) || 0,
+            holidays: Number(first.holiday_count) || 0,
+            totalDays: Number(first.total_days) || 0
+        };
+    }, [reports]);
+
     const getAttendanceReport = async () => {
         setLoading(true);
         try {
@@ -66,8 +82,9 @@ export default function UserwiseAttendanceExport() {
             const month = parseInt(monthStr, 10);
             const year = parseInt(yearStr, 10);
 
+            // Updated endpoint to fetch from dashboard/working
             const response = await callGetAPIWithToken(
-                `accountant/dashboard/attendance-report?user_id=0&month=${month}&year=${year}`
+                `accountant/dashboard/working?user_id=0&month=${month}&year=${year}`
             );
 
             if (response?.success && response?.data) {
@@ -76,7 +93,7 @@ export default function UserwiseAttendanceExport() {
                 setReports([]);
             }
         } catch (error) {
-            console.error("Failed to fetch attendance:", error);
+            console.error("Failed to fetch attendance working metrics:", error);
             setReports([]);
         } finally {
             setLoading(false);
@@ -87,11 +104,14 @@ export default function UserwiseAttendanceExport() {
     const handleExportCSV = () => {
         if (reports.length === 0) return;
 
-        // 1. Define Headers
         const headers = [
             "Employee ID",
             "Employee Name",
             "Month",
+            "Total Days",
+            "Working Days",
+            "Week Offs",
+            "Holidays",
             "Present",
             "Absent",
             "Late",
@@ -101,13 +121,16 @@ export default function UserwiseAttendanceExport() {
             "Punctuality %"
         ];
 
-        // 2. Map data to rows
         const rows = reports.map(emp => {
             const punctuality = calculatePunctuality(emp.present, emp.late);
             return [
                 emp.employee_id,
-                `"${emp.employee_name}"`, // Wrap name in quotes to handle commas
+                `"${emp.employee_name}"`,
                 emp.month_label,
+                emp.total_days,
+                emp.working_days,
+                emp.week_off_count,
+                emp.holiday_count,
                 emp.present,
                 emp.absent,
                 emp.late,
@@ -118,15 +141,13 @@ export default function UserwiseAttendanceExport() {
             ].join(",");
         });
 
-        // 3. Combine headers and rows
         const csvContent = [headers.join(","), ...rows].join("\n");
 
-        // 4. Create Blob and trigger download
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Attendance_Master_${selectedMonthYear}.csv`);
+        link.setAttribute("download", `Attendance_Working_Summary_${selectedMonthYear}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -182,18 +203,9 @@ export default function UserwiseAttendanceExport() {
         return "text-rose-500 bg-rose-50 dark:bg-rose-900/20";
     };
 
-    const getStatusColor = (status: string) => {
-        const normalized = (status || "").toLowerCase();
-        if (normalized.includes("present")) return "text-emerald-600 bg-emerald-50 border-emerald-100";
-        if (normalized.includes("late")) return "text-amber-600 bg-amber-50 border-amber-100";
-        if (normalized.includes("absent")) return "text-rose-600 bg-rose-50 border-rose-100";
-        if (normalized.includes("leave")) return "text-blue-600 bg-blue-50 border-blue-100";
-        return "text-slate-600 bg-slate-50 border-slate-100";
-    };
-
     return (
         <motion.div initial="hidden" animate="visible" variants={containerVariants} className="max-w-[1600px] mx-auto space-y-8 p-4 md:p-10 relative">
-            
+
             {/* Header Section */}
             <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between relative">
                 <div>
@@ -218,6 +230,48 @@ export default function UserwiseAttendanceExport() {
                     </Button>
                 </div>
             </div>
+
+            {/* General Calendar Summary KPIs */}
+            {!loading && reports.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600">
+                            <Calendar className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Days</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{summaryMeta.totalDays}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
+                            <Activity className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Working Days</p>
+                            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{summaryMeta.workingDays}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-600">
+                            <CalendarDays className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Week Offs</p>
+                            <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-0.5">{summaryMeta.weekOffs}</p>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-rose-600">
+                            <ShieldAlert className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Holidays</p>
+                            <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-0.5">{summaryMeta.holidays}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Filter Section */}
             <motion.div variants={itemVariants} className="flex flex-col md:flex-row gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm items-center">
@@ -257,53 +311,57 @@ export default function UserwiseAttendanceExport() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto p-10">
-                         <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
-                                        <th className="pb-4 px-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Personnel</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Present</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Absent</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Late</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Leave</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Punctuality %</th>
-                                        <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-right pr-4">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                                    {paginatedData.map((emp) => {
-                                        const punctualityVal = calculatePunctuality(emp.present, emp.late);
-                                        return (
-                                            <tr key={emp.employee_id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                                <td className="py-5 px-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-sm uppercase">
-                                                            {emp.employee_name ? emp.employee_name[0] : 'U'}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">{emp.employee_name}</span>
-                                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: {emp.employee_id}</span>
-                                                        </div>
+                        <table className="w-full text-left min-w-[1200px]">
+                            <thead>
+                                <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
+                                    <th className="pb-4 px-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500">Personnel</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Working Days</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Week Offs</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Holidays</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Present</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Absent</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Late</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Leave</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Half Day</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Out of Office</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 text-center">Punctuality %</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                {paginatedData.map((emp) => {
+                                    const punctualityVal = calculatePunctuality(emp.present, emp.late);
+                                    return (
+                                        <tr key={emp.employee_id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                            <td className="py-5 px-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-sm uppercase">
+                                                        {emp.employee_name ? emp.employee_name[0] : 'U'}
                                                     </div>
-                                                </td>
-                                                <td className="py-5 text-center font-black text-sm">{emp.present}</td>
-                                                <td className="py-5 text-center font-black text-sm text-rose-500">{emp.absent}</td>
-                                                <td className="py-5 text-center font-black text-sm text-amber-500">{emp.late}</td>
-                                                <td className="py-5 text-center font-black text-sm">{emp.on_leave}</td>
-                                                <td className="py-5 text-center">
-                                                    <span className={cn("inline-flex items-center rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-widest", getHealthColor(punctualityVal))}>
-                                                        {punctualityVal}%
-                                                    </span>
-                                                </td>
-                                                <td className="py-5 text-right pr-4">
-                                                    <Button onClick={() => handleViewDetails(emp)} size="sm" variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[9px] h-9 gap-1.5">
-                                                        <Eye className="h-3.5 w-3.5" /> View Logs
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">{emp.employee_name}</span>
+                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: {emp.employee_id}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-5 text-center font-black text-sm text-emerald-600 dark:text-emerald-400">{emp.working_days}</td>
+                                            <td className="py-5 text-center font-black text-sm text-slate-500">{emp.week_off_count}</td>
+                                            <td className="py-5 text-center font-black text-sm text-slate-500">{emp.holiday_count}</td>
+                                            <td className="py-5 text-center font-black text-sm">{emp.present}</td>
+                                            <td className="py-5 text-center font-black text-sm text-rose-500">{emp.absent}</td>
+                                            <td className="py-5 text-center font-black text-sm text-amber-500">{emp.late}</td>
+                                            <td className="py-5 text-center font-black text-sm">{emp.on_leave}</td>
+                                            <td className="py-5 text-center font-black text-sm">{emp.half_day}</td>
+                                            <td className="py-5 text-center font-black text-sm">{emp.out_of_office}</td>
+                                            <td className="py-5 text-center">
+                                                <span className={cn("inline-flex items-center rounded-xl px-3 py-1.5 text-[11px] font-black uppercase tracking-widest", getHealthColor(punctualityVal))}>
+                                                    {punctualityVal}%
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 )}
 
@@ -318,8 +376,6 @@ export default function UserwiseAttendanceExport() {
                     </div>
                 )}
             </motion.div>
-
-            {/* Modal Logic Remains the Same... */}
         </motion.div>
     );
 }

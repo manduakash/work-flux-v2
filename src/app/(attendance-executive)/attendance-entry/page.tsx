@@ -4,12 +4,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, CalendarDays, CheckCircle2, UserX, MapPin,
-    CalendarOff, Save, Loader2, RotateCcw, Activity
+    CalendarOff, Save, Loader2, RotateCcw, Activity, ShieldAlert
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-// Ensure both GET and POST helpers are imported from your APIs
 import { callGetAPIWithToken, callAPIWithToken } from '@/components/apis/commonAPIs';
 import moment from 'moment';
 import { toast } from 'sonner';
@@ -31,7 +30,7 @@ interface EmployeeEntry {
     id: number;
     name: string;
     dept: string;
-    statusId: number | null; // 1=OnTime, 2=Late, 3=OOO, 4=Absent, 5=Leave
+    statusId: number | null; // 1=OnTime, 2=Late, 3=OOO, 4=Absent, 5=Leave, 7=WO/HO
     checkIn: string;
     checkOut: string;
     workLocationId: number; // 1=Office, 2=Remote, 3=Field
@@ -42,14 +41,28 @@ export default function RapidDataEntry() {
     const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [employees, setEmployees] = useState<EmployeeEntry[]>([]);
     const [originalData, setOriginalData] = useState<EmployeeEntry[]>([]);
+    const [weekoffs, setWeekoffs] = useState<any[]>([]);
+    const [holidays, setHolidays] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const hasUnsavedChanges = employees.some(emp => emp.isDirty);
 
+    // Contextual information about the current date selection
+    const selectedDateMeta = useMemo(() => {
+        const formattedSelectedDate = moment(date).format("DD MMM YYYY");
+        const matchingWeekoff = weekoffs.find((w: any) => w.off_date === formattedSelectedDate);
+        const matchingHoliday = holidays.find((h: any) => h.holiday_date === formattedSelectedDate);
+        return {
+            isWeekoff: !!matchingWeekoff,
+            isHoliday: !!matchingHoliday,
+            label: matchingHoliday ? matchingHoliday.holiday_name : matchingWeekoff ? "Scheduled Weekoff" : null
+        };
+    }, [date, weekoffs, holidays]);
+
     const isDataValid = useMemo(() => {
-        // Find every "dirty" row. If status is Present (1) or OOO (3), they MUST have a check-in time.
+        // Active rows of status Present (1) or OOO (3) must have a check-in time specified.
         return employees.filter(emp => emp.isDirty).every(emp => {
             if (emp.statusId === 1 || emp.statusId === 3) {
                 return (emp.checkIn && emp.checkIn.trim() !== "");
@@ -58,33 +71,65 @@ export default function RapidDataEntry() {
         });
     }, [employees]);
 
-    // --- API Integration: Fetch Data ---
+    // --- Fetch Daily Log & Date Metadata (Weekoffs and Holidays) ---
     const getDailyAttendanceLog = async (dateStr: string) => {
         setIsLoading(true);
+        const mDate = moment(dateStr);
+        const month = mDate.month() + 1;
+        const year = mDate.year();
+
         try {
-            // Note: Update the endpoint path string to exactly match your actual GET route
-            const response = await callGetAPIWithToken(`attendance?date=${dateStr}`);
-            console.log(response);
-            if (response?.success) {
-                const mappedData: EmployeeEntry[] = response.data.map((item: any) => ({
-                    id: item?.ID,
-                    name: item?.EmpName,
-                    dept: item?.RoleName,
-                    statusId: item.StatusID,
-                    checkIn: item?.CheckIn || "",
-                    checkOut: item?.CheckOut || "",
-                    // Safely mapping Type to work_location_id (Office=1, Remote=2, Field=3)
-                    workLocationId: item.Type === 'Remote' ? 2 : item.Type === 'Field' ? 3 : 1,
-                    isDirty: false
-                }));
+            // Parallel fetches to retrieve metadata along with actual attendance
+            const [attendanceRes, weekoffsRes, holidaysRes] = await Promise.all([
+                callGetAPIWithToken(`attendance?date=${dateStr}`),
+                callGetAPIWithToken(`accountant/weekoffs?month=${month}&year=${year}`),
+                callGetAPIWithToken(`accountant/holidays?month=0&year=${year}`)
+            ]);
+
+            let fetchedWeekoffs: any[] = [];
+            let fetchedHolidays: any[] = [];
+
+            if (weekoffsRes?.success && Array.isArray(weekoffsRes.data)) {
+                fetchedWeekoffs = weekoffsRes.data;
+                setWeekoffs(fetchedWeekoffs);
+            }
+            if (holidaysRes?.success && Array.isArray(holidaysRes.data)) {
+                fetchedHolidays = holidaysRes.data;
+                setHolidays(fetchedHolidays);
+            }
+
+            const formattedSelectedDate = mDate.format("DD MMM YYYY");
+            const isWeekoffOrHolidayDate = fetchedWeekoffs.some(w => w.off_date === formattedSelectedDate) ||
+                fetchedHolidays.some(h => h.holiday_date === formattedSelectedDate);
+
+            if (attendanceRes?.success) {
+                const mappedData: EmployeeEntry[] = attendanceRes.data.map((item: any) => {
+                    const originalStatusId = item.StatusID !== null && item.StatusID !== undefined && item.StatusID !== ""
+                        ? Number(item.StatusID)
+                        : null;
+
+                    // Apply status 7 automatically if no recorded status exists on a weekoff/holiday
+                    const finalStatusId = originalStatusId === null && isWeekoffOrHolidayDate ? 7 : originalStatusId;
+
+                    return {
+                        id: item?.ID,
+                        name: item?.EmpName,
+                        dept: item?.RoleName,
+                        statusId: finalStatusId,
+                        checkIn: item?.CheckIn || "",
+                        checkOut: item?.CheckOut || "",
+                        workLocationId: item.Type === 'Remote' ? 2 : item.Type === 'Field' ? 3 : 1,
+                        isDirty: originalStatusId !== finalStatusId
+                    };
+                });
                 setEmployees(mappedData);
-                setOriginalData(mappedData); // Keep a clean copy for the 'Reset' button
+                setOriginalData(mappedData);
             } else {
                 setEmployees([]);
                 setOriginalData([]);
             }
         } catch (error) {
-            console.error("Failed to fetch attendance:", error);
+            console.error("Failed to retrieve operational data:", error);
         } finally {
             setIsLoading(false);
         }
@@ -95,16 +140,15 @@ export default function RapidDataEntry() {
         getDailyAttendanceLog(formattedDate);
     }, [date]);
 
-    // --- Handlers for 1-Click Inline Editing ---
-
+    // --- Inline Modifications ---
     const handleStatusChange = (id: number, newStatusId: number) => {
         setEmployees(prev => prev.map(emp => {
             if (emp.id === id) {
-                const isDisabling = newStatusId === 4 || newStatusId === 5; // 4=Absent, 5=Leave
+                // Time entries are disabled for Absent (4), Leave (5), and WO/HO (7)
+                const isDisabling = newStatusId === 4 || newStatusId === 5 || newStatusId === 7;
                 return {
                     ...emp,
                     statusId: newStatusId,
-                    // No more default 11:00. Clear times if absent/leave.
                     checkIn: isDisabling ? "" : emp.checkIn,
                     checkOut: isDisabling ? "" : emp.checkOut,
                     isDirty: true
@@ -130,16 +174,12 @@ export default function RapidDataEntry() {
         }
     };
 
-    // --- API Integration: Save Updates ---
     const handleSaveAll = async () => {
         setIsSaving(true);
         try {
-            const dirtyRecords = employees?.filter(emp => emp?.isDirty);
+            const dirtyRecords = employees.filter(emp => emp.isDirty);
 
-            // Generate a Promise for every modified record
             const promises = dirtyRecords.map(emp => {
-
-                // Format times for MySQL (HH:mm:ss). If empty, send null.
                 const formatTime = (timeStr: string) => timeStr ? (timeStr.length === 5 ? `${timeStr}:00` : timeStr) : null;
 
                 const payload = {
@@ -155,25 +195,26 @@ export default function RapidDataEntry() {
                 return callAPIWithToken('attendance/update-daily-attendance', payload);
             });
 
-            // Wait for all updates to finish processing
             const result = await Promise.all(promises);
-            const res = result?.every((res) => res?.success);
+            const res = result.every((res) => res?.success);
 
-            res ? toast.success("Attendance updated successfully!") : toast.error("Failed to update attendance")
-            // Re-fetch the table to ensure the UI is fully synced with the database
+            if (res) {
+                toast.success("Attendance updated successfully!");
+            } else {
+                toast.error("Failed to update one or more attendance logs");
+            }
+
             await getDailyAttendanceLog(moment(date).format("YYYY-MM-DD"));
 
         } catch (error: any) {
-            toast.error(error?.message || "Failed to update, Please Try Again")
-            console.error("Failed to save updates:", error);
-            // Optional: Implement an error toast here
+            toast.error(error?.message || "Failed to submit operations update");
+            console.error("Save operational error:", error);
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Filtered data for rendering
-    const filteredEmployees = employees?.filter(emp =>
+    const filteredEmployees = employees.filter(emp =>
         emp?.name?.toLowerCase()?.includes(searchTerm?.toLowerCase()) ||
         emp?.id?.toString()?.includes(searchTerm)
     );
@@ -191,10 +232,17 @@ export default function RapidDataEntry() {
                     <h1 className="text-5xl font-black tracking-tighter text-slate-900 dark:text-white uppercase leading-none">
                         Daily <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-400 to-indigo-600 animate-gradient-x">Attendance Log</span>
                     </h1>
-                    <p className="mt-4 text-lg font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-emerald-500" />
-                        Inline Edit Mode: <span className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest text-xs">Changes autosave locally</span>
-                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-emerald-500" />
+                            Inline Edit Mode
+                        </p>
+                        {selectedDateMeta.label && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30">
+                                <ShieldAlert className="h-3 w-3" /> {selectedDateMeta.label}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Date & Search Controls */}
@@ -240,18 +288,18 @@ export default function RapidDataEntry() {
                             <thead>
                                 <tr className="border-b border-slate-100 dark:border-slate-800 opacity-50">
                                     <th className="pb-4 px-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[20%]">Personnel</th>
-                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[40%] text-center">1-Click Status</th>
-                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[15%] text-center">Check-In</th>
-                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[15%] text-center">Check-Out</th>
-                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[10%] text-right pr-4">Reset</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[45%] text-center">1-Click Status</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[12%] text-center">Check-In</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[12%] text-center">Check-Out</th>
+                                    <th className="pb-4 font-black text-[10px] uppercase tracking-[0.2em] text-slate-500 w-[11%] text-right pr-4">Reset</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                 {filteredEmployees.length === 0 ? (
                                     <tr><td colSpan={5} className="py-10 text-center text-slate-400 text-sm font-medium">No employees found.</td></tr>
                                 ) : filteredEmployees.map((emp) => {
-                                    // 4 = Absent, 5 = On Leave
-                                    const isDisabling = emp.statusId === 4 || emp.statusId === 5;
+                                    // Disable time entry for Absent (4), Leave (5), or WO/HO (7)
+                                    const isDisabling = emp.statusId === 4 || emp.statusId === 5 || emp.statusId === 7;
 
                                     return (
                                         <tr
@@ -264,7 +312,7 @@ export default function RapidDataEntry() {
                                             {/* 1. Employee Info */}
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-slate-300 font-black text-sm uppercase">
+                                                    <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-slate-300 font-black text-sm uppercase flex-shrink-0">
                                                         {emp?.name?.split(' ').map(n => n[0]).join('')}
                                                     </div>
                                                     <div className="flex flex-col">
@@ -280,9 +328,10 @@ export default function RapidDataEntry() {
 
                                             {/* 2. 1-Click Segmented Status Toggle */}
                                             <td className="py-4 text-center">
-                                                <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                                                <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex-wrap justify-center gap-0.5">
                                                     <button
-                                                        onClick={() => handleStatusChange(emp.id, 1)} // 1 = On Time / Present
+                                                        type="button"
+                                                        onClick={() => handleStatusChange(emp.id, 1)} // 1 = Present
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                                                             emp.statusId === 1 ? "bg-white dark:bg-slate-900 text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
@@ -291,6 +340,7 @@ export default function RapidDataEntry() {
                                                         <CheckCircle2 className="h-3.5 w-3.5" /> Present
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleStatusChange(emp.id, 4)} // 4 = Absent
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
@@ -300,15 +350,17 @@ export default function RapidDataEntry() {
                                                         <UserX className="h-3.5 w-3.5" /> Absent
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleStatusChange(emp.id, 3)} // 3 = Out of Office
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                                                             emp.statusId === 3 ? "bg-white dark:bg-slate-900 text-purple-600 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                                         )}
                                                     >
-                                                        <MapPin className="h-3.5 w-3.5" /> Out of Office
+                                                        <MapPin className="h-3.5 w-3.5" /> OOO
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleStatusChange(emp.id, 5)} // 5 = On Leave
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
@@ -318,13 +370,14 @@ export default function RapidDataEntry() {
                                                         <CalendarOff className="h-3.5 w-3.5" /> Leave
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleStatusChange(emp.id, 7)} // 7 = On WO/HO
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                                            emp.statusId === 7 ? "bg-white dark:bg-slate-900 text-amber-600 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                                            emp.statusId === 7 ? "bg-white dark:bg-slate-900 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                                         )}
                                                     >
-                                                        <CalendarOff className="h-3.5 w-3.5" /> WO/HO
+                                                        <CalendarDays className="h-3.5 w-3.5" /> WO/HO
                                                     </button>
                                                 </div>
                                             </td>
