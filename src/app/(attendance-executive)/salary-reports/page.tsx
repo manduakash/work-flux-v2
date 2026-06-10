@@ -196,6 +196,16 @@ export default function SalaryReportExport() {
         document.body.removeChild(link);
     };
 
+    // --- Salary Slip Download Handler ---
+    const handleDownloadSlip = (employeeId: number) => {
+        const [yearStr, monthStr] = selectedMonthYear.split("-");
+        const month = parseInt(monthStr, 10);
+        const year = parseInt(yearStr, 10);
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+        const downloadUrl = `${baseUrl}generate/slip?__ua=${btoa(employeeId?.toString())}&__mxT=${btoa(month?.toString())}&__yIU=${btoa(year?.toString())}`;
+        window.open(downloadUrl, '_blank');
+    };
+
     useEffect(() => {
         getSalaryReport();
         setPage(1);
@@ -292,7 +302,7 @@ export default function SalaryReportExport() {
                         className="h-14 rounded-3xl bg-emerald-600 px-8 font-black uppercase tracking-widest text-[11px] hover:bg-emerald-700 transition-all text-white shadow-lg shadow-emerald-600/20"
                     >
                         <Save className="mr-3 h-5 w-5" />
-                        Save All to DB
+                        Save All as Paid
                     </Button>
                 </div>
             </div>
@@ -362,35 +372,49 @@ export default function SalaryReportExport() {
                                     {paginatedData.length === 0 ? (
                                         <tr><td colSpan={7} className="py-20 text-center uppercase font-black text-slate-400 text-xs tracking-widest">No payroll data found</td></tr>
                                     ) : (
-                                        paginatedData.map((emp) => (
-                                            <tr key={emp.employee_id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                                <td className="py-5 px-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 font-black text-sm uppercase">{emp.employee_name[0]}</div>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">{emp.employee_name}</span>
-                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">{emp.designation}</span>
+                                        paginatedData.map((emp) => {
+                                            const isPaid = emp.payment_status?.toLowerCase() === 'paid';
+                                            return (
+                                                <tr key={emp.employee_id} className="group transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                                    <td className="py-5 px-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 font-black text-sm uppercase">{emp.employee_name[0]}</div>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">{emp.employee_name}</span>
+                                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">{emp.designation}</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="py-5 text-center font-black text-sm text-slate-900 dark:text-white">{formatCurrency(emp.gross_salary)}</td>
-                                                <td className="py-5 text-center">
-                                                    <span className="text-xs font-black text-rose-500">-{formatCurrency(emp.total_deduction)}</span>
-                                                </td>
-                                                <td className="py-5 text-center font-black text-sm text-slate-600">{formatCurrency(emp.discipline_incentive)}</td>
-                                                <td className="py-5 text-center font-black text-sm text-emerald-600">{formatCurrency(emp.net_salary)}</td>
-                                                <td className="py-5 text-center">
-                                                    <span className={cn("inline-flex items-center rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border", getStatusStyles(emp.payment_status))}>
-                                                        {emp.payment_status || 'Pending'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-5 text-right pr-4">
-                                                    <Button onClick={() => setSelectedSalary(emp)} variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[9px] h-9 gap-1.5 border-slate-200 dark:border-slate-800">
-                                                        <Eye className="h-3.5 w-3.5" /> View
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))
+                                                    </td>
+                                                    <td className="py-5 text-center font-black text-sm text-slate-900 dark:text-white">{formatCurrency(emp.gross_salary)}</td>
+                                                    <td className="py-5 text-center">
+                                                        <span className="text-xs font-black text-rose-500">-{formatCurrency(emp.total_deduction)}</span>
+                                                    </td>
+                                                    <td className="py-5 text-center font-black text-sm text-slate-600">{formatCurrency(emp.discipline_incentive)}</td>
+                                                    <td className="py-5 text-center font-black text-sm text-emerald-600">{formatCurrency(emp.net_salary)}</td>
+                                                    <td className="py-5 text-center">
+                                                        <span className={cn("inline-flex items-center rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border", getStatusStyles(emp.payment_status))}>
+                                                            {emp.payment_status || 'Pending'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-5 text-right pr-4">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {isPaid && (
+                                                                <Button
+                                                                    onClick={() => handleDownloadSlip(emp.employee_id)}
+                                                                    variant="outline"
+                                                                    className="rounded-xl font-black uppercase tracking-widest text-[9px] h-9 gap-1.5 border-emerald-500/30 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all"
+                                                                >
+                                                                    <Download className="h-3.5 w-3.5" /> Slip
+                                                                </Button>
+                                                            )}
+                                                            <Button onClick={() => setSelectedSalary(emp)} variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[9px] h-9 gap-1.5 border-slate-200 dark:border-slate-800">
+                                                                <Eye className="h-3.5 w-3.5" /> View
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -556,6 +580,16 @@ export default function SalaryReportExport() {
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
+
+                                        {/* Download Salary Slip button within Modal */}
+                                        {selectedSalary.payment_status?.toLowerCase() === 'paid' && (
+                                            <Button
+                                                onClick={() => handleDownloadSlip(selectedSalary.employee_id)}
+                                                className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[10px] transition-all shadow-md flex items-center justify-center gap-2 mt-4"
+                                            >
+                                                <Download className="h-4 w-4" /> Download Salary Slip
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
