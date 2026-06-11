@@ -73,7 +73,7 @@ export default function TeamPage() {
 
     const fetchTeamProfiles = async () => {
         try {
-            const response = await callGetAPIWithToken("users/profile-details");
+            const response = await callGetAPIWithToken("profile/profile-details");
             if (response.success && Array.isArray(response.data)) {
                 const mappedUsers: User[] = response.data.map((u: any) => ({
                     id: u.UserID.toString(),
@@ -230,7 +230,7 @@ export default function TeamPage() {
         const toastId = toast.loading('Revoking system access...');
 
         try {
-            const response = await callDeleteAPIWithToken("users/remove-user", {
+            const response = await callDeleteAPIWithToken("profile/remove-user", {
                 userId: parseInt(userToDelete.id),
                 removalReason: removalReason
             });

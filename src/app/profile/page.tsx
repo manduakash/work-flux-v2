@@ -103,7 +103,7 @@ export default function ProfileSettings() {
                 designations: designations.map(d => d.id),
             };
 
-            const response = await callPutAPIWithToken('users/profile', payload);
+            const response = await callPutAPIWithToken('profile/profile', payload);
 
             if (response?.success) {
                 toast.success("Profile updated successfully");
